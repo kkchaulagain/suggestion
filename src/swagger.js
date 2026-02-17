@@ -113,6 +113,51 @@ const spec = {
         },
       },
     },
+    '/api/auth/login': {
+      post: {
+        summary: 'Login an existing user',
+        tags: ['Auth'],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['email', 'password'],
+                properties: {
+                  email: { type: 'string', format: 'email', example: 'user@example.com' },
+                  password: { type: 'string', minLength: 6, example: 'secret123' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'User logged in',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    message: { type: 'string', example: 'User logged in' },
+                    token: { type: 'string', example: 'dXNlcl9pZDoxNzA4MTY2NTAwMDAw' },
+                  },
+                },
+              },
+            },
+          },
+          400: {
+            description: 'Invalid email or password',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Error' },
+              },
+            },
+          },
+        },
+      },
+    },
   },
   components: {
     schemas: {
