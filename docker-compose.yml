@@ -8,6 +8,9 @@ services:
       - MONGODB_URI=mongodb://mongodb:27017/suggestion
     depends_on:
       - mongodb
+    volumes:
+      - .:/app
+      - /app/node_modules
     restart: unless-stopped
 
   mongodb:

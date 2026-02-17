@@ -127,10 +127,23 @@ const spec = {
 };
 
 function setupSwagger(app, basePath = '/api-docs') {
-  app.get(`${basePath}.json`, (req, res) => res.json(spec));
-  app.get(basePath, swaggerUi.setup(spec, {
+  const basePathWithSlash = `${basePath}/`;
+  const swaggerSetup = swaggerUi.setup(spec, {
     customCss: '.swagger-ui .topbar { display: none }',
-  }));
+  });
+  // Serve HTML at both /api-docs and /api-docs/ (no redirect to avoid ERR_TOO_MANY_REDIRECTS)
+  const serveHtml = (req, res, next) => {
+    const originalSend = res.send;
+    res.send = function (body) {
+      if (typeof body === 'string' && body.includes('swagger-ui-bundle.js'))
+        body = body.replace('<head>', `<head><base href="${basePathWithSlash}">`);
+      return originalSend.call(this, body);
+    };
+    swaggerSetup(req, res, next);
+  };
+  app.get(`${basePath}.json`, (req, res) => res.json(spec));
+  app.get(basePath, serveHtml);
+  app.get(basePathWithSlash, serveHtml);
   app.use(basePath, swaggerUi.serve);
   return spec;
 }
