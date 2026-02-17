@@ -53,3 +53,8 @@ Uses in-memory MongoDB by default; set `MONGODB_URI` to use a real DB.
 - `GET /api/feedback-forms/:id` – Get one feedback form
 - `PUT /api/feedback-forms/:id` – Update an existing feedback form
 - `DELETE /api/feedback-forms/:id` – Delete a feedback form
+- `POST /api/feedback-forms/:id/qr` – Generate a QR code for the form URL that should open on frontend.
+  - Returns:
+    - `formUrl`: frontend URL with form id appended
+    - `qrCodeDataUrl`: PNG QR image in data URL format
+  - Uses `FRONTEND_FORM_BASE_URL` env var when set (example: `https://frontend.example.com/forms`)

@@ -88,6 +88,60 @@ describe('Feedback Forms API', () => {
     expect(res.body.feedbackForm.fields[0].type).toBe('long_text');
   });
 
+  it('generates a QR code that points to the frontend form URL', async () => {
+    const created = await FeedbackForm.create({
+      title: 'QR form',
+      fields: [{ name: 'comment', label: 'Comment', type: 'short_text' }],
+    });
+
+    const previousBaseUrl = process.env.FRONTEND_FORM_BASE_URL;
+    process.env.FRONTEND_FORM_BASE_URL = 'https://frontend.example.com/forms/';
+
+    try {
+      const res = await request(app)
+        .post(`/api/feedback-forms/${created._id}/qr`)
+        .expect(200);
+
+      expect(res.body).toHaveProperty('message', 'Feedback form QR generated');
+      expect(res.body.formUrl).toBe(`https://frontend.example.com/forms/${created._id.toString()}`);
+      expect(res.body.qrCodeDataUrl).toMatch(/^data:image\/png;base64,/);
+    } finally {
+      process.env.FRONTEND_FORM_BASE_URL = previousBaseUrl;
+    }
+  });
+
+  it('returns 400 when frontendBaseUrl is invalid', async () => {
+    const created = await FeedbackForm.create({
+      title: 'QR form',
+      fields: [{ name: 'comment', label: 'Comment', type: 'short_text' }],
+    });
+
+    const res = await request(app)
+      .post(`/api/feedback-forms/${created._id}/qr`)
+      .send({ frontendBaseUrl: '' })
+      .expect(400);
+
+    expect(res.body.error).toBe('frontendBaseUrl must be a non-empty string');
+  });
+
+  it('returns 404 when generating QR for non-existing form', async () => {
+    const missingId = '507f1f77bcf86cd799439011';
+
+    const res = await request(app)
+      .post(`/api/feedback-forms/${missingId}/qr`)
+      .expect(404);
+
+    expect(res.body.error).toBe('Feedback form not found');
+  });
+
+  it('returns 400 when generating QR with invalid form id', async () => {
+    const res = await request(app)
+      .post('/api/feedback-forms/not-an-object-id/qr')
+      .expect(400);
+
+    expect(res.body.error).toBe('Invalid feedback form id');
+  });
+
   it('deletes a feedback form', async () => {
     const created = await FeedbackForm.create({
       title: 'Delete me',

@@ -1,8 +1,10 @@
 const express = require('express');
 const mongoose = require('mongoose');
+const QRCode = require('qrcode');
 const { FeedbackForm } = require('../models/FeedbackForm');
 
 const router = express.Router();
+const DEFAULT_FRONTEND_FORM_BASE_URL = 'http://localhost:5173/feedback-forms';
 
 function normalizeFieldType(type) {
   if (typeof type !== 'string') return type;
@@ -39,6 +41,24 @@ function getValidationErrorMessage(err) {
     .map((fieldErr) => fieldErr.message)
     .filter(Boolean);
   return messages.length ? messages.join(', ') : 'Validation failed';
+}
+
+function normalizeBaseUrl(baseUrl) {
+  return baseUrl.trim().replace(/\/+$/, '');
+}
+
+function getFrontendFormUrl(formId, frontendBaseUrlOverride) {
+  if (typeof frontendBaseUrlOverride === 'string' && frontendBaseUrlOverride.trim()) {
+    return `${normalizeBaseUrl(frontendBaseUrlOverride)}/${encodeURIComponent(formId)}`;
+  }
+
+  const configuredBaseUrl = process.env.FRONTEND_FORM_BASE_URL;
+  const baseUrl =
+    typeof configuredBaseUrl === 'string' && configuredBaseUrl.trim()
+      ? configuredBaseUrl
+      : DEFAULT_FRONTEND_FORM_BASE_URL;
+
+  return `${normalizeBaseUrl(baseUrl)}/${encodeURIComponent(formId)}`;
 }
 
 router.post('/', async (req, res) => {
@@ -80,6 +100,43 @@ router.get('/:id', async (req, res) => {
     return res.status(200).json({ feedbackForm });
   } catch (err) {
     return res.status(500).json({ error: 'Failed to fetch feedback form' });
+  }
+});
+
+router.post('/:id/qr', async (req, res) => {
+  if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+    return res.status(400).json({ error: 'Invalid feedback form id' });
+  }
+
+  const { frontendBaseUrl } = req.body || {};
+  if (
+    Object.prototype.hasOwnProperty.call(req.body || {}, 'frontendBaseUrl') &&
+    (typeof frontendBaseUrl !== 'string' || !frontendBaseUrl.trim())
+  ) {
+    return res.status(400).json({ error: 'frontendBaseUrl must be a non-empty string' });
+  }
+
+  try {
+    const feedbackForm = await FeedbackForm.findById(req.params.id).select('_id');
+    if (!feedbackForm) {
+      return res.status(404).json({ error: 'Feedback form not found' });
+    }
+
+    const formUrl = getFrontendFormUrl(feedbackForm._id.toString(), frontendBaseUrl);
+    const qrCodeDataUrl = await QRCode.toDataURL(formUrl, {
+      type: 'image/png',
+      width: 320,
+      margin: 2,
+      errorCorrectionLevel: 'M',
+    });
+
+    return res.status(200).json({
+      message: 'Feedback form QR generated',
+      formUrl,
+      qrCodeDataUrl,
+    });
+  } catch (err) {
+    return res.status(500).json({ error: 'Failed to generate feedback form QR' });
   }
 });
 

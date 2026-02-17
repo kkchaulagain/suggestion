@@ -343,9 +343,82 @@ const spec = {
         },
       },
     },
+    '/api/feedback-forms/{id}/qr': {
+      parameters: [
+        {
+          in: 'path',
+          name: 'id',
+          required: true,
+          schema: { type: 'string' },
+          description: 'Feedback form id',
+        },
+      ],
+      post: {
+        summary: 'Generate QR code for feedback form',
+        tags: ['Feedback Forms'],
+        requestBody: {
+          required: false,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/FeedbackFormQrInput' },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'QR code generated for feedback form URL',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/FeedbackFormQrResponse' },
+              },
+            },
+          },
+          400: {
+            description: 'Invalid id or payload',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Error' },
+              },
+            },
+          },
+          404: {
+            description: 'Feedback form not found',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Error' },
+              },
+            },
+          },
+        },
+      },
+    },
   },
   components: {
     schemas: {
+      FeedbackFormQrInput: {
+        type: 'object',
+        properties: {
+          frontendBaseUrl: {
+            type: 'string',
+            example: 'https://frontend.example.com/forms',
+            description: 'Optional frontend base URL. Form id is appended automatically.',
+          },
+        },
+      },
+      FeedbackFormQrResponse: {
+        type: 'object',
+        properties: {
+          message: { type: 'string', example: 'Feedback form QR generated' },
+          formUrl: {
+            type: 'string',
+            example: 'https://frontend.example.com/forms/65f1f6c5f685ecf3f71f6f0a',
+          },
+          qrCodeDataUrl: {
+            type: 'string',
+            example: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...',
+          },
+        },
+      },
       FeedbackFieldInput: {
         type: 'object',
         required: ['name', 'label', 'type'],
