@@ -1,5 +1,6 @@
 const express = require('express');
 const authRoutes = require('./routes/auth');
+const feedbackFormRoutes = require('./routes/feedbackForms');
 const { setupSwagger } = require('./swagger');
 
 const app = express();
@@ -16,5 +17,6 @@ app.get('/health', (req, res) => {
 });
 
 app.use('/api/auth', authRoutes);
+app.use('/api/feedback-forms', feedbackFormRoutes);
 
 module.exports = app;
