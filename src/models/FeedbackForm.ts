@@ -63,13 +63,13 @@ const feedbackFormSchema = new mongoose.Schema(
       required: [true, 'Fields are required'],
       validate: [
         {
-          validator(fields) {
+          validator(fields:any) {
             return Array.isArray(fields) && fields.length > 0;
           },
           message: 'Form must include at least one field',
         },
         {
-          validator(fields) {
+          validator(fields:any) {
             if (!Array.isArray(fields)) return false;
             const fieldNames = fields
               .map((field) => field?.name?.toLowerCase())

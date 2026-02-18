@@ -2,16 +2,15 @@ const express = require('express');
 const mongoose = require('mongoose');
 const QRCode = require('qrcode');
 const { FeedbackForm } = require('../models/FeedbackForm');
-
 const router = express.Router();
 const DEFAULT_FRONTEND_FORM_BASE_URL = 'http://localhost:5173/feedback-forms';
 
-function normalizeFieldType(type) {
+function normalizeFieldType(type: any) {
   if (typeof type !== 'string') return type;
   return type.toLowerCase().trim().replace(/[\s-]+/g, '_');
 }
 
-function normalizeFields(fields) {
+function normalizeFields(fields: any[]) {
   if (!Array.isArray(fields)) return fields;
   return fields.map((field) => {
     if (!field || typeof field !== 'object') return field;
@@ -19,8 +18,8 @@ function normalizeFields(fields) {
   });
 }
 
-function buildPayload(body) {
-  const payload = {};
+function buildPayload(body: any) {
+  const payload: any = {};
 
   if (Object.prototype.hasOwnProperty.call(body, 'title')) {
     payload.title = body.title;
@@ -35,19 +34,19 @@ function buildPayload(body) {
   return payload;
 }
 
-function getValidationErrorMessage(err) {
+function getValidationErrorMessage(err:any) {
   if (!err || err.name !== 'ValidationError') return null;
   const messages = Object.values(err.errors || {})
-    .map((fieldErr) => fieldErr.message)
+    .map((fieldErr) => (fieldErr as any).message)
     .filter(Boolean);
   return messages.length ? messages.join(', ') : 'Validation failed';
 }
 
-function normalizeBaseUrl(baseUrl) {
+function normalizeBaseUrl(baseUrl: string) {
   return baseUrl.trim().replace(/\/+$/, '');
 }
 
-function getFrontendFormUrl(formId, frontendBaseUrlOverride) {
+function getFrontendFormUrl(formId: string, frontendBaseUrlOverride?: string) {
   if (typeof frontendBaseUrlOverride === 'string' && frontendBaseUrlOverride.trim()) {
     return `${normalizeBaseUrl(frontendBaseUrlOverride)}/${encodeURIComponent(formId)}`;
   }
@@ -61,7 +60,7 @@ function getFrontendFormUrl(formId, frontendBaseUrlOverride) {
   return `${normalizeBaseUrl(baseUrl)}/${encodeURIComponent(formId)}`;
 }
 
-router.post('/', async (req, res) => {
+router.post('/', async (req: any, res: any) => {
   try {
     const payload = buildPayload(req.body || {});
     const feedbackForm = await FeedbackForm.create(payload);
@@ -78,7 +77,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.get('/', async (req, res) => {
+router.get('/', async (req: any, res: any) => {
   try {
     const feedbackForms = await FeedbackForm.find().sort({ createdAt: -1 });
     return res.status(200).json({ feedbackForms });
@@ -87,7 +86,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-router.get('/:id', async (req, res) => {
+router.get('/:id', async (req: any, res: any) => {
   if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
     return res.status(400).json({ error: 'Invalid feedback form id' });
   }
@@ -103,7 +102,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-router.post('/:id/qr', async (req, res) => {
+router.post('/:id/qr', async (req: any, res: any) => {
   if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
     return res.status(400).json({ error: 'Invalid feedback form id' });
   }
@@ -140,7 +139,7 @@ router.post('/:id/qr', async (req, res) => {
   }
 });
 
-router.put('/:id', async (req, res) => {
+router.put('/:id', async (req: any, res: any) => {
   if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
     return res.status(400).json({ error: 'Invalid feedback form id' });
   }
@@ -173,7 +172,7 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', async (req: any, res: any) => {
   if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
     return res.status(400).json({ error: 'Invalid feedback form id' });
   }
