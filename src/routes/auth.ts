@@ -1,4 +1,4 @@
-const express = require('express');
+import express, { Request, Response } from 'express';
 const bcrypt = require('bcrypt');
 const User = require('../models/User');
 
@@ -6,7 +6,7 @@ const router = express.Router();
 
 const EMAIL_REGEX = /^\S+@\S+\.\S+$/;
 
-router.post('/register', async (req, res) => {
+router.post('/register', async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
 
@@ -40,14 +40,14 @@ router.post('/register', async (req, res) => {
       user: { _id: userObj._id.toString(), email: userObj.email },
     });
   } catch (err) {
-    if (err.code === 11000) {
+    if ((err as any).code === 11000) {
       return res.status(409).json({ error: 'Email already registered' });
     }
     res.status(500).json({ error: 'Registration failed' });
   }
 });
 
-router.post('/login', async (req, res) => {
+router.post('/login', async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
 
