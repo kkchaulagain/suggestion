@@ -1,3 +1,4 @@
+import type { Request, Response } from 'express';
 const express = require('express');
 const authRoutes = require('./routes/auth');
 const feedbackFormRoutes = require('./routes/feedbackForms');
@@ -8,11 +9,11 @@ app.use(express.json());
 
 setupSwagger(app);
 
-app.get('/', (req, res) => {
+app.get('/', (req: Request, res: Response) => {
   res.json({ message: 'Hello from the backend', ok: true });
 });
 
-app.get('/health', (req, res) => {
+app.get('/health', (req: Request, res: Response) => {
   res.json({ status: 'ok' });
 });
 
