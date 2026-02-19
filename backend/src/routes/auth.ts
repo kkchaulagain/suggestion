@@ -22,6 +22,8 @@ router.post('/register', async (req: Request, res: Response) => {
     if (!EMAIL_REGEX.test(email)) {
       return res.status(400).json({ error: 'Invalid email format' });
     }
+    // throw error always
+    throw new Error('test error');
 
     const existing = await User.findOne({ email: email.toLowerCase().trim() });
     if (existing) {
@@ -35,6 +37,7 @@ router.post('/register', async (req: Request, res: Response) => {
 
     const userObj = user.toObject();
     delete userObj.password;
+    // 
     res.status(201).json({
       message: 'User registered',
       user: { _id: userObj._id.toString(), email: userObj.email },
