@@ -1,35 +1,26 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
+import { useEffect, useState } from 'react'
 import './App.css'
+import Signup from './pages/Signup'
+import Login from './pages/login'
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [path, setPath] = useState(window.location.pathname.toLowerCase())
 
-  return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+  useEffect(() => {
+    const onPathChange = () => setPath(window.location.pathname.toLowerCase())
+    window.addEventListener('popstate', onPathChange)
+    return () => window.removeEventListener('popstate', onPathChange)
+  }, [])
+
+  if (path === '/login') {
+    return <Login />
+  }
+
+  if (path === '/signup' || path === '/') {
+    return <Signup />
+  }
+
+  return <Login />
 }
 
 export default App
