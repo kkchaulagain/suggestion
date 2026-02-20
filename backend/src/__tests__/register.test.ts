@@ -21,7 +21,7 @@ describe('POST /api/auth/register', () => {
   it('returns 201 and user (no password) when email and password are valid', async () => {
     const res = await request(app)
       .post('/api/auth/register')
-      .send({ email: 'test@example.com', password: 'secret123' })
+      .send({ name: 'Test User', email: 'test@example.com', password: 'secret123' })
       .expect(201);
 
     expect(res.body).toMatchObject({
@@ -37,7 +37,7 @@ describe('POST /api/auth/register', () => {
   it('returns 400 when email is missing', async () => {
     const res = await request(app)
       .post('/api/auth/register')
-      .send({ password: 'secret123' })
+      .send({ name: 'Test User', password: 'secret123' })
       .expect(400);
 
     expect(res.body.error).toBeDefined();
@@ -46,7 +46,7 @@ describe('POST /api/auth/register', () => {
   it('returns 400 when password is missing', async () => {
     const res = await request(app)
       .post('/api/auth/register')
-      .send({ email: 'test@example.com' })
+      .send({ name: 'Test User', email: 'test@example.com' })
       .expect(400);
 
     expect(res.body.error).toBeDefined();
@@ -55,33 +55,33 @@ describe('POST /api/auth/register', () => {
   it('returns 400 when password is shorter than 6 characters', async () => {
     await request(app)
       .post('/api/auth/register')
-      .send({ email: 'test@example.com', password: '12345' })
+      .send({ name: 'Test User', email: 'test@example.com', password: '12345' })
       .expect(400);
   });
 
   it('returns 400 when email is invalid', async () => {
     await request(app)
       .post('/api/auth/register')
-      .send({ email: 'not-an-email', password: 'secret123' })
+      .send({ name: 'Test User', email: 'not-an-email', password: 'secret123' })
       .expect(400);
   });
 
   it('returns 409 when email already exists', async () => {
     await request(app)
       .post('/api/auth/register')
-      .send({ email: 'dup@example.com', password: 'secret123' })
+      .send({ name: 'Dup User', email: 'dup@example.com', password: 'secret123' })
       .expect(201);
 
     await request(app)
       .post('/api/auth/register')
-      .send({ email: 'dup@example.com', password: 'other456' })
+      .send({ name: 'Dup User 2', email: 'dup@example.com', password: 'other456' })
       .expect(409);
   });
 
   it('persists user with hashed password in database', async () => {
     await request(app)
       .post('/api/auth/register')
-      .send({ email: 'hash@example.com', password: 'secret123' })
+      .send({ name: 'Hash User', email: 'hash@example.com', password: 'secret123' })
       .expect(201);
 
     const user = await User.findOne({ email: 'hash@example.com' }).select('+password');
