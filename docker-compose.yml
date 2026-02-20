@@ -15,6 +15,21 @@ services:
       - /app/node_modules
     restart: unless-stopped
 
+  frontend:
+    build:
+      context: ./frontend/suggestion
+      dockerfile: Dockerfile
+    ports:
+      - "3002:5173"
+    environment:
+      - PORT=3000
+    depends_on:
+      - mongodb
+    volumes:
+      - ./frontend/suggestion:/app
+      - /app/node_modules
+    restart: unless-stopped
+
   mongodb:
     image: mongo:7
     ports:
