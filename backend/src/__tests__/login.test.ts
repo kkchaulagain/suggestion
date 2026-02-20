@@ -19,6 +19,7 @@ describe('POST /api/auth/login', () => {
 
   it('returns 200 with token when email and password are valid', async () => {
     await User.create({
+      name: 'Login User',
       email: '123456@gmail.com',
       password: 'secret123',
     });
@@ -43,6 +44,7 @@ describe('POST /api/auth/login', () => {
 
   it('returns 400 when password is wrong', async () => {
     await User.create({
+      name: 'Login User',
       email: '123456@gmail.com',
       password: 'secret123',
     });
