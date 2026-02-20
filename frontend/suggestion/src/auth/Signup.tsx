@@ -3,14 +3,9 @@ import type { FormEvent, JSX } from 'react'
 import axios from 'axios' 
 import {userapi} from '../utils/apipath'
 
-const navigateTo = (path: string) => {
-  window.history.pushState({}, '', path)
-  window.dispatchEvent(new PopStateEvent('popstate'))
-}
-
-
-
+import { useNavigate } from 'react-router-dom'
 export default function Signup():JSX.Element {
+  const navigate=useNavigate();
     const [name,setName]=useState('');
     const [email,setEmail]=useState('');
     const [password,setPassword]=useState('');
@@ -62,7 +57,7 @@ export default function Signup():JSX.Element {
           <button className="mt-2 rounded-xl bg-gradient-to-r from-teal-700 to-teal-500 px-4 py-3 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:brightness-105 active:translate-y-0" type='submit'>Sign Up</button>
           <p className="mt-2 text-sm text-slate-500">
             Already have an account?{' '}
-            <button className="border-none bg-transparent p-0 font-bold text-teal-700 hover:underline" type="button" onClick={() => navigateTo('/login')}>Login</button>
+            <button className="border-none bg-transparent p-0 font-bold text-teal-700 hover:underline" type="button" onClick={() => navigate('/login')}>Login</button>
           </p>
         </form>
       </div>
