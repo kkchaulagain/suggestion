@@ -12,6 +12,7 @@ const mockedAxios = axios as jest.Mocked<typeof axios>
 describe('Login Component', () => {
     beforeEach(() => {
         jest.clearAllMocks()
+        window.alert = jest.fn()
     });
 
     test('renders login form fields', ()=>{
@@ -20,10 +21,23 @@ describe('Login Component', () => {
         expect(screen.getByLabelText(/Password/i)).toBeInTheDocument()
         expect(screen.getByRole('button', { name: /Login/i })).toBeInTheDocument()
     })
-    test('shows alert if fields are empty', () => {
+    test('shows backend field errors when fields are empty', async () => {
+        mockedAxios.post.mockRejectedValue({
+            response: {
+                data: {
+                    errors: {
+                        email: 'Email is required',
+                        password: 'Password is required',
+                    },
+                },
+            },
+        })
+
         render(<Login />)
         fireEvent.click(screen.getByRole('button', { name: /Login/i }))
-        expect(screen.getByText(/Please enter both email and password/i)).toBeInTheDocument()
+
+        expect(await screen.findByText(/Email is required/i)).toBeInTheDocument()
+        expect(await screen.findByText(/Password is required/i)).toBeInTheDocument()
     });
     test('api call on valid form submission', async () => {
         window.alert = jest.fn()

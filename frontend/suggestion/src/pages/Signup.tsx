@@ -1,70 +1,168 @@
 import { useState } from 'react'
 import type { FormEvent, JSX } from 'react'
-import axios from 'axios' 
-import {userapi} from '../utils/apipath'
+import axios from 'axios'
+import { userapi } from '../utils/apipath'
 
 const navigateTo = (path: string) => {
   window.history.pushState({}, '', path)
   window.dispatchEvent(new PopStateEvent('popstate'))
 }
 
+type FieldErrors = {
+  name?: string
+  email?: string
+  password?: string
+  general?: string
+}
 
+export default function Signup(): JSX.Element {
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [errors, setErrors] = useState<FieldErrors>({})
 
-export default function Signup():JSX.Element {
-    const [name,setName]=useState('');
-    const [email,setEmail]=useState('');
-    const [password,setPassword]=useState('');
-    
-    const handelFromSubmit= async(e: FormEvent<HTMLFormElement>)=>
-    {
-         e.preventDefault();
-         if(!name || !email || !password)
-         {
-            alert('Please fill all the fields')
-            return
-         }
-         if(password.length<6)
-         {
-            alert("Password must be greater than 6 Characters")
-            return
-         }
-         try {
-            const data= {name,email,password}
-            const response =await axios.post(userapi,data, {
-                withCredentials:true,
-                headers: {
-                    'Content-Type': 'application/json',
-                }
-            })
-            if(response.data.message){
-                alert(response.data.message)
-              navigateTo('/login')
-            }
-         } catch (error) {
-            console.log(error);
-            
-         }
+  const handleFormSubmit = async (e: FormEvent) => {
+    e.preventDefault()
+    setErrors({})
+
+    try {
+      const data = { name, email, password }
+      const response = await axios.post(userapi, data, {
+        withCredentials: true,
+        headers: { 'Content-Type': 'application/json' },
+      })
+
+      if (response.data.message) {
+        alert(response.data.message)
+        navigateTo('/login')
+      }
+    } catch (error: any) {
+      const responseData = error?.response?.data
+
+      if (responseData?.field && responseData?.error) {
+        setErrors({ [responseData.field]: responseData.error })
+      } else if (responseData?.errors && typeof responseData.errors === 'object') {
+        const mapped = responseData.errors as Record<string, string>
+        setErrors({
+          name: mapped.name,
+          email: mapped.email,
+          password: mapped.password,
+          general: mapped.general,
+        })
+      } else if (responseData?.error) {
+        setErrors({ general: responseData.error })
+      } else {
+        setErrors({ general: 'Something went wrong. Please try again.' })
+      }
     }
+  }
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(55rem_28rem_at_90%_-20%,#c8efe3_5%,transparent_65%),radial-gradient(42rem_25rem_at_-10%_120%,#ffcfa6_5%,transparent_65%),linear-gradient(140deg,#fffdf8_0%,#f5fbff_100%)] px-6 py-8 grid place-items-center">
-      <div className="w-full max-w-[460px] rounded-2xl border border-teal-700/20 bg-gradient-to-b from-white to-amber-50 p-6 sm:p-8 shadow-[0_30px_50px_-32px_rgba(19,49,84,0.32)]">
-        <p className="m-0 text-xs font-bold uppercase tracking-[0.08em] text-teal-700">Suggestion Platform</p>
-        <h1 className="mt-2 mb-1 text-3xl sm:text-4xl font-bold leading-tight text-slate-800">Create account</h1>
-        <p className="mb-5 text-sm text-slate-600">Join the workspace and start submitting smart suggestions.</p>
-        <form className="grid gap-2.5" onSubmit={handelFromSubmit}>
-          <label htmlFor="signup-name" className="text-xs font-semibold tracking-wide text-slate-800">Name</label>
-          <input id="signup-name" className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none transition focus:border-teal-600 focus:ring-3 focus:ring-teal-600/20" type="text"  value={name} onChange={(e)=>setName(e.target.value)}/>
-          <label htmlFor="signup-email" className="text-xs font-semibold tracking-wide text-slate-800">Email</label>
-          <input id="signup-email" className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none transition focus:border-teal-600 focus:ring-3 focus:ring-teal-600/20" type="email" value={email} onChange={(e)=>setEmail(e.target.value)}/>
-          <label htmlFor="signup-password" className="text-xs font-semibold tracking-wide text-slate-800">Password</label>
-          <input id="signup-password" className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none transition focus:border-teal-600 focus:ring-3 focus:ring-teal-600/20" type="password" value={password} onChange={(e)=>setPassword(e.target.value)}/>
-          <button className="mt-2 rounded-xl bg-gradient-to-r from-teal-700 to-teal-500 px-4 py-3 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:brightness-105 active:translate-y-0" type='submit'>Sign Up</button>
-          <p className="mt-2 text-sm text-slate-500">
-            Already have an account?{' '}
-            <button className="border-none bg-transparent p-0 font-bold text-teal-700 hover:underline" type="button" onClick={() => navigateTo('/login')}>Login</button>
-          </p>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="bg-white p-8 rounded-xl shadow-md w-full max-w-md">
+        <h1 className="text-2xl font-bold mb-1 text-center">Suggestion Platform</h1>
+        <h2 className="text-lg font-semibold mb-1 text-center">Create account</h2>
+        <p className="text-sm text-gray-500 text-center mb-6">
+          Join the workspace and start submitting smart suggestions.
+        </p>
+
+        {errors.general && (
+          <p className="text-red-500 text-sm text-center mb-4">{errors.general}</p>
+        )}
+
+        <form onSubmit={handleFormSubmit} noValidate className="flex flex-col gap-4">
+          {/* Name */}
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium text-gray-700" htmlFor="name">
+              Name
+            </label>
+            <input
+              id="name"
+              type="text"
+              value={name}
+              onChange={(e) => {
+                setName(e.target.value)
+                setErrors((prev) => ({ ...prev, name: undefined }))
+              }}
+              placeholder="Your name"
+              className={`border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 transition ${
+                errors.name
+                  ? 'border-red-400 focus:ring-red-200'
+                  : 'border-gray-300 focus:ring-blue-200'
+              }`}
+            />
+            {errors.name && (
+              <p className="text-red-500 text-xs mt-0.5">{errors.name}</p>
+            )}
+          </div>
+
+          {/* Email */}
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium text-gray-700" htmlFor="email">
+              Email
+            </label>
+            <input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value)
+                setErrors((prev) => ({ ...prev, email: undefined }))
+              }}
+              placeholder="you@example.com"
+              className={`border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 transition ${
+                errors.email
+                  ? 'border-red-400 focus:ring-red-200'
+                  : 'border-gray-300 focus:ring-blue-200'
+              }`}
+            />
+            {errors.email && (
+              <p className="text-red-500 text-xs mt-0.5">{errors.email}</p>
+            )}
+          </div>
+
+          {/* Password */}
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium text-gray-700" htmlFor="password">
+              Password
+            </label>
+            <input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => {
+                setPassword(e.target.value)
+                setErrors((prev) => ({ ...prev, password: undefined }))
+              }}
+              placeholder="Min. 6 characters"
+              className={`border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 transition ${
+                errors.password
+                  ? 'border-red-400 focus:ring-red-200'
+                  : 'border-gray-300 focus:ring-blue-200'
+              }`}
+            />
+            {errors.password && (
+              <p className="text-red-500 text-xs mt-0.5">{errors.password}</p>
+            )}
+          </div>
+
+          <button
+            type="submit"
+            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg text-sm transition"
+          >
+            Sign Up
+          </button>
         </form>
+
+        <p className="text-sm text-center text-gray-500 mt-4">
+          Already have an account?{' '}
+          <button
+            onClick={() => navigateTo('/login')}
+            className="text-blue-600 hover:underline font-medium"
+          >
+            Login
+          </button>
+        </p>
       </div>
     </div>
   )

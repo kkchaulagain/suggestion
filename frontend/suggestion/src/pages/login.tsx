@@ -12,22 +12,16 @@ export default function Login():JSX.Element {
     
     const [email,setEmail]=useState('');
     const [password,setPassword]=useState('');
-    const [error, setError] = useState('')
+    const [errors, setErrors] = useState<{
+      email?: string
+      password?: string
+      general?: string
+    }>({})
     
     const handelFromSubmit= async(e: FormEvent<HTMLFormElement>)=>
     {
          e.preventDefault();
-         if( !email || !password)
-         {
-            setError('Please enter both email and password')
-            return
-         }
-         setError('')
-         if(password.length<6)
-         {
-            alert("Password must be greater than 6 Characters")
-            return
-         }
+         setErrors({})
          try {
             const data= {email,password}
             const response =await axios.post(loginapi,data, {
@@ -39,9 +33,23 @@ export default function Login():JSX.Element {
             if(response.data.message){
                 alert(response.data.message)
             }
-         } catch (error) {
-            console.log(error);
-            
+         } catch (error: any) {
+            const responseData = error?.response?.data
+
+            if (responseData?.field && responseData?.error) {
+              setErrors({ [responseData.field]: responseData.error })
+            } else if (responseData?.errors && typeof responseData.errors === 'object') {
+              const mapped = responseData.errors as Record<string, string>
+              setErrors({
+                email: mapped.email,
+                password: mapped.password,
+                general: mapped.general,
+              })
+            } else if (responseData?.error) {
+              setErrors({ general: responseData.error })
+            } else {
+              setErrors({ general: 'Something went wrong. Please try again.' })
+            }
          }
     }
 
@@ -51,12 +59,40 @@ export default function Login():JSX.Element {
         <p className="m-0 text-xs font-bold uppercase tracking-[0.08em] text-teal-700">Suggestion Platform</p>
         <h1 className="mt-2 mb-1 text-3xl sm:text-4xl font-bold leading-tight text-slate-800">Welcome back</h1>
         <p className="mb-5 text-sm text-slate-600">Log in to continue sharing and managing ideas.</p>
-        {error && <p className="mb-3 text-sm text-red-600">{error}</p>}
-        <form className="grid gap-2.5" onSubmit={handelFromSubmit}>
+        {errors.general && <p className="mb-3 text-sm text-red-600">{errors.general}</p>}
+        <form className="grid gap-2.5" onSubmit={handelFromSubmit} noValidate>
           <label htmlFor="login-email" className="text-xs font-semibold tracking-wide text-slate-800">Email</label>
-          <input id="login-email" className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none transition focus:border-teal-600 focus:ring-3 focus:ring-teal-600/20" type="email" value={email} onChange={(e)=>setEmail(e.target.value)}/>
+          <input
+            id="login-email"
+            className={`w-full rounded-xl border bg-white px-3 py-2.5 text-sm text-slate-800 outline-none transition ${
+              errors.email
+                ? 'border-red-400 focus:border-red-500 focus:ring-3 focus:ring-red-200'
+                : 'border-slate-300 focus:border-teal-600 focus:ring-3 focus:ring-teal-600/20'
+            }`}
+            type="email"
+            value={email}
+            onChange={(e) => {
+              setEmail(e.target.value)
+              setErrors((prev) => ({ ...prev, email: undefined, general: undefined }))
+            }}
+          />
+          {errors.email && <p className="text-xs text-red-600">{errors.email}</p>}
           <label htmlFor="login-password" className="text-xs font-semibold tracking-wide text-slate-800">Password</label>
-          <input id="login-password" className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none transition focus:border-teal-600 focus:ring-3 focus:ring-teal-600/20" type="password" value={password} onChange={(e)=>setPassword(e.target.value)}/>
+          <input
+            id="login-password"
+            className={`w-full rounded-xl border bg-white px-3 py-2.5 text-sm text-slate-800 outline-none transition ${
+              errors.password
+                ? 'border-red-400 focus:border-red-500 focus:ring-3 focus:ring-red-200'
+                : 'border-slate-300 focus:border-teal-600 focus:ring-3 focus:ring-teal-600/20'
+            }`}
+            type="password"
+            value={password}
+            onChange={(e) => {
+              setPassword(e.target.value)
+              setErrors((prev) => ({ ...prev, password: undefined, general: undefined }))
+            }}
+          />
+          {errors.password && <p className="text-xs text-red-600">{errors.password}</p>}
           <button className="mt-2 rounded-xl bg-gradient-to-r from-teal-700 to-teal-500 px-4 py-3 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:brightness-105 active:translate-y-0" type='submit'>Login</button>
           <p className="mt-2 text-sm text-slate-500">
             New here?{' '}
