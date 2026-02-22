@@ -26,6 +26,8 @@ describe('Login Component', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         mockNavigate.mockClear()
+        window.alert = jest.fn()
+        localStorage.clear()
     });
 
     test('renders login form fields', ()=>{
@@ -34,10 +36,23 @@ describe('Login Component', () => {
         expect(screen.getByLabelText(/Password/i)).toBeInTheDocument()
         expect(screen.getByRole('button', { name: /Login/i })).toBeInTheDocument()
     })
-    test('shows alert if fields are empty', () => {
+    test('shows validation errors when fields are empty', async () => {
+        mockedAxios.post.mockRejectedValueOnce({
+          response: {
+            data: {
+              errors: {
+                email: 'Email is required',
+                password: 'Password is required',
+              },
+            },
+          },
+        })
         renderLogin()
         fireEvent.click(screen.getByRole('button', { name: /Login/i }))
-        expect(screen.getByText(/Please enter both email and password/i)).toBeInTheDocument()
+        await waitFor(() => {
+          expect(screen.getByText(/Email is required/i)).toBeInTheDocument()
+          expect(screen.getByText(/Password is required/i)).toBeInTheDocument()
+        })
     });
     test('api call on valid form submission', async () => {
         mockedAxios.post.mockResolvedValue({
@@ -54,6 +69,7 @@ describe('Login Component', () => {
         await waitFor(() => {
             expect(mockedAxios.post).toHaveBeenCalled()
         })
+        expect(window.alert).toHaveBeenCalledWith('Login successful')
         expect(mockNavigate).toHaveBeenCalledWith('/dashboard')
     });
 });

@@ -38,15 +38,41 @@ describe('Signup Component', () => {
     expect(screen.getByRole('button', { name: /Sign Up/i })).toBeInTheDocument()
   })
 
-  test('shows alert if fields are empty', () => {
+  test('shows validation errors if fields are empty', async () => {
+    mockedAxios.post.mockRejectedValueOnce({
+      response: {
+        data: {
+          errors: {
+            name: 'Name is required',
+            email: 'Email is required',
+            password: 'Password is required',
+          },
+        },
+      },
+    })
+
     renderSignup()
 
     fireEvent.click(screen.getByRole('button', { name: /Sign Up/i }))
 
-    expect(window.alert).toHaveBeenCalledWith('Please fill all the fields')
+    await waitFor(() => {
+      expect(screen.getByText(/Name is required/i)).toBeInTheDocument()
+      expect(screen.getByText(/Email is required/i)).toBeInTheDocument()
+      expect(screen.getByText(/Password is required/i)).toBeInTheDocument()
+    })
   })
 
-  test('shows alert if password is less than 6 characters', () => {
+  test('shows validation error if password is less than 6 characters', async () => {
+    mockedAxios.post.mockRejectedValueOnce({
+      response: {
+        data: {
+          errors: {
+            password: 'Password must be at least 6 characters',
+          },
+        },
+      },
+    })
+
     renderSignup()
 
     fireEvent.change(screen.getByLabelText(/Name/i), {
@@ -63,9 +89,11 @@ describe('Signup Component', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /Sign Up/i }))
 
-    expect(window.alert).toHaveBeenCalledWith(
-      'Password must be greater than 6 Characters'
-    )
+    await waitFor(() => {
+      expect(
+        screen.getByText(/Password must be at least 6 characters/i)
+      ).toBeInTheDocument()
+    })
   })
 
   test('calls API and navigates on successful signup', async () => {
