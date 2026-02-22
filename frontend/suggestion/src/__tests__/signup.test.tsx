@@ -1,7 +1,7 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import axios from 'axios'
-import Signup from '../pages/Signup'
+import Signup from '../auth/Signup'
 
 jest.mock('axios')
 const mockedAxios = axios as jest.Mocked<typeof axios>

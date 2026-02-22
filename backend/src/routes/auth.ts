@@ -73,6 +73,7 @@ router.post('/login', async (req: Request, res: Response) => {
 
     const token = Buffer.from(`${user._id}:${Date.now()}`).toString('base64url');
     return res.status(200).json({ message: 'User logged in', token });
+    
   } catch (err) {
     return res.status(500).json({ error: 'Login failed' });
   }

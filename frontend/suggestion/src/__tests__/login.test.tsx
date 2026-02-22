@@ -2,7 +2,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import axios from 'axios'
 
-import Login from '../pages/login'
+import Login from '../auth/login'
 
 
 
