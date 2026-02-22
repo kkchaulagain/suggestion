@@ -33,7 +33,7 @@ export default function Signup():JSX.Element {
             })
             if(response.data.message){
                 alert(response.data.message)
-              navigateTo('/login')
+              navigate('/login')
             }
          } catch (error) {
             console.log(error);

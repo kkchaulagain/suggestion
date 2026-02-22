@@ -1,20 +1,36 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import axios from 'axios'
+import { MemoryRouter } from 'react-router-dom'
 import Signup from '../auth/Signup'
 
 jest.mock('axios')
 const mockedAxios = axios as jest.Mocked<typeof axios>
 
+const mockNavigate = jest.fn()
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  useNavigate: () => mockNavigate,
+}))
+
+function renderSignup() {
+  return render(
+    <MemoryRouter>
+      <Signup />
+    </MemoryRouter>
+  )
+}
+
 describe('Signup Component', () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
+    mockNavigate.mockClear()
     window.alert = jest.fn()
   })
 
   test('renders signup form fields', () => {
-    render(<Signup />)
+    renderSignup()
 
     expect(screen.getByLabelText(/Name/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/Email/i)).toBeInTheDocument()
@@ -23,7 +39,7 @@ describe('Signup Component', () => {
   })
 
   test('shows alert if fields are empty', () => {
-    render(<Signup />)
+    renderSignup()
 
     fireEvent.click(screen.getByRole('button', { name: /Sign Up/i }))
 
@@ -31,7 +47,7 @@ describe('Signup Component', () => {
   })
 
   test('shows alert if password is less than 6 characters', () => {
-    render(<Signup />)
+    renderSignup()
 
     fireEvent.change(screen.getByLabelText(/Name/i), {
       target: { value: 'Suman' },
@@ -57,7 +73,7 @@ describe('Signup Component', () => {
       data: { message: 'User created successfully' },
     })
 
-    render(<Signup />)
+    renderSignup()
 
     fireEvent.change(screen.getByLabelText(/Name/i), {
       target: { value: 'Suman' },
@@ -78,7 +94,7 @@ describe('Signup Component', () => {
     })
 
     expect(window.alert).toHaveBeenCalledWith('User created successfully')
-    expect(window.location.pathname).toBe('/login')
+    expect(mockNavigate).toHaveBeenCalledWith('/login')
   })
 
 })
