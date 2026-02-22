@@ -1,26 +1,28 @@
-import { useEffect, useState } from 'react'
 import './App.css'
-import Signup from './pages/Signup'
-import Login from './pages/login'
+import Signup from './auth/Signup'
+import Login from './auth/login'
+import Dashboard from './pages/Dashboard'
+import ProtectedRoute from './component/ProtectedRoutes'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
 
 function App() {
-  const [path, setPath] = useState(window.location.pathname.toLowerCase())
-
-  useEffect(() => {
-    const onPathChange = () => setPath(window.location.pathname.toLowerCase())
-    window.addEventListener('popstate', onPathChange)
-    return () => window.removeEventListener('popstate', onPathChange)
-  }, [])
-
-  if (path === '/login') {
-    return <Login />
-  }
-
-  if (path === '/signup' || path === '/') {
-    return <Signup />
-  }
-
-  return <Login />
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Signup />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+      </Routes>
+    </BrowserRouter>
+  )
 }
 
 export default App
