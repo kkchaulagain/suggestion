@@ -1,4 +1,13 @@
+import { useNavigate } from 'react-router-dom'
+
 const Dashboard = () => {
+  const navigate = useNavigate()
+
+  const handleLogout = () => {
+    localStorage.removeItem('isLoggedIn')
+    navigate('/login')
+  }
+
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center">
       <div className="bg-white rounded-2xl shadow-md p-8 w-full max-w-md">
@@ -13,7 +22,11 @@ const Dashboard = () => {
             <h3 className="text-gray-800 font-medium">john@example.com</h3>
           </div>
         </div>
-        <button className="mt-6 w-full bg-red-500 hover:bg-red-600 text-white font-medium py-2 rounded-xl transition-colors">
+        <button
+          type="button"
+          className="mt-6 w-full bg-red-500 hover:bg-red-600 text-white font-medium py-2 rounded-xl transition-colors"
+          onClick={handleLogout}
+        >
           Logout
         </button>
       </div>
