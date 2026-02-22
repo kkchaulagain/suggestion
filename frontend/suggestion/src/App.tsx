@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import './App.css'
+import Login from './pages/login'
 import Signup from './pages/Signup'
 
 function App() {
@@ -18,6 +19,7 @@ function App() {
   if (path === '/signup' || path === '/') {
     return <Signup />
   }
+  
   
 
   return <Login />

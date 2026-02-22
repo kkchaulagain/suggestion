@@ -29,9 +29,15 @@ export default function Login():JSX.Element {
                 headers: {
                     'Content-Type': 'application/json',
                 }
+                
             })
             if(response.data.message){
+                const token = response.data?.data?.token || response.data?.token
+                if (token) {
+                  localStorage.setItem('token', token)
+                }
                 alert(response.data.message)
+                navigateTo('/test')
             }
          } catch (error: any) {
             const responseData = error?.response?.data

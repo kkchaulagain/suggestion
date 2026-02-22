@@ -4,6 +4,7 @@ const authRoutes = require('./routes/auth');
 const feedbackFormRoutes = require('./routes/feedbackForms');
 const { setupSwagger } = require('./swagger');
 import cors from 'cors';
+import { isAuthenticated } from './middleware/isauthenticated';
 
 const app = express();
 app.use(express.json());
@@ -22,7 +23,12 @@ app.get('/health', (req: Request, res: Response) => {
   res.json({ status: 'ok' });
 });
 
+
 app.use('/api/auth', authRoutes);
 app.use('/api/feedback-forms', feedbackFormRoutes);
+
+
+
+
 
 module.exports = app;

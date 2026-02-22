@@ -2,7 +2,7 @@
   "name": "suggestion",
   "version": "1.0.0",
   "description": "Basic backend API",
-  "main": "src/index.js",
+  "main": "src/app.ts",
   "scripts": {
     "start": "node src/index.js",
     "dev": "ts-node-dev --respawn src/index.ts",
@@ -16,6 +16,7 @@
     "bcrypt": "^5.1.1",
     "cors": "^2.8.6",
     "express": "^4.21.0",
+    "jsonwebtoken": "^9.0.3",
     "mongoose": "^8.8.0",
     "qrcode": "^1.5.4",
     "swagger-ui-express": "^5.0.1"
