@@ -35,6 +35,7 @@ describe('Dashboard Component', () => {
     localStorage.setItem('isLoggedIn', 'true')
     mockedAxios.get.mockResolvedValueOnce({
       data: {
+        success: true,
         data: {
           name: 'John Doe',
           email: 'john@example.com',
@@ -44,19 +45,22 @@ describe('Dashboard Component', () => {
 
     renderDashboard()
 
-    expect(screen.getByRole('heading', { name: /Welcome Back/i })).toBeInTheDocument()
+    // Wait for loading to finish
     await waitFor(() => {
-      expect(screen.getByText(/John Doe/i)).toBeInTheDocument()
-      expect(screen.getByText(/john@example.com/i)).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: /Welcome Back/i })).toBeInTheDocument()
     })
+
+    expect(screen.getByText(/John Doe/i)).toBeInTheDocument()
+    expect(screen.getByText(/john@example.com/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Logout/i })).toBeInTheDocument()
   })
 
-  test('logout clears isLoggedIn and navigates to login', () => {
+  test('logout clears isLoggedIn and navigates to login', async () => {
     localStorage.setItem('isLoggedIn', 'true')
     localStorage.setItem('token', 'fake-token')
     mockedAxios.get.mockResolvedValueOnce({
       data: {
+        success: true,
         data: {
           name: 'John Doe',
           email: 'john@example.com',
@@ -65,6 +69,11 @@ describe('Dashboard Component', () => {
     } as any)
 
     renderDashboard()
+
+    // Wait for loading to finish
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Logout/i })).toBeInTheDocument()
+    })
 
     fireEvent.click(screen.getByRole('button', { name: /Logout/i }))
 
