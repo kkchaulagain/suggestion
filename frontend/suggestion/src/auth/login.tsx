@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import type { FormEvent, JSX } from 'react'
 import axios from 'axios' 
-import { loginapi } from '../utils/apipath'
-import { useNavigate, Link } from 'react-router-dom'
+import { loginapi, meapi } from '../utils/apipath'
+import { useNavigate } from 'react-router-dom'
 
 
 
@@ -38,8 +38,16 @@ export default function Login():JSX.Element {
                   localStorage.setItem('token', token)
                 }
                 localStorage.setItem('isLoggedIn', 'true')
+                let role = response.data?.data?.role || response.data?.user?.role
+                if (!role) {
+                  const meResponse = await axios.get(meapi, {
+                    withCredentials: true,
+                    headers: token ? { Authorization: `Bearer ${token}` } : {},
+                  })
+                  role = meResponse?.data?.data?.role
+                }
                 alert(response.data.message)
-                navigate('/dashboard')
+                navigate(String(role).toLowerCase() === 'business' ? '/business-dashboard' : '/dashboard')
             }
          } catch (error: any) {
             localStorage.removeItem('isLoggedIn')
