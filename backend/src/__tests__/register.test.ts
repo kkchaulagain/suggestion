@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const { connect, disconnect } = require('../db');
 const app = require('../app');
 const User = require('../models/User');
+const Business = require('../models/Business');
 
 describe('POST /api/auth/register', () => {
   beforeAll(async () => {
@@ -11,11 +12,13 @@ describe('POST /api/auth/register', () => {
 
   afterAll(async () => {
     await User.deleteMany({});
+    await Business.deleteMany({});
     await disconnect();
   });
 
   afterEach(async () => {
     await User.deleteMany({});
+    await Business.deleteMany({});
   });
 
   it('returns 201 and user (no password) when email and password are valid', async () => {
@@ -88,5 +91,45 @@ describe('POST /api/auth/register', () => {
     expect(user).not.toBeNull();
     expect(user.password).not.toBe('secret123');
     expect(user.password).toMatch(/^\$2[aby]\$/);
+  });
+
+  it('creates a business profile when role is business', async () => {
+    const res = await request(app)
+      .post('/api/auth/register')
+      .send({
+        email: 'biz@example.com',
+        password: 'secret123',
+        role: 'business',
+        businessname: 'Acme Traders',
+        location: 'jorpati',
+        pancardNumber: 12345678,
+        description: 'Retail store',
+      })
+      .expect(201);
+
+    const user = await User.findOne({ email: 'biz@example.com' });
+    const business = await Business.findOne({ owner: user._id });
+
+    expect(user).not.toBeNull();
+    expect(user.role).toBe('business');
+    expect(business).not.toBeNull();
+    expect(business.businessname).toBe('Acme Traders');
+    expect(res.body.user.businessname).toBe('Acme Traders');
+  });
+
+  it('returns 400 when business role is missing businessname', async () => {
+    const res = await request(app)
+      .post('/api/auth/register')
+      .send({
+        email: 'biz-missing-name@example.com',
+        password: 'secret123',
+        role: 'business',
+        location: 'jorpati',
+        pancardNumber: 12345678,
+        description: 'Retail store',
+      })
+      .expect(400);
+
+    expect(res.body.errors.businessname).toBeDefined();
   });
 });

@@ -15,6 +15,12 @@ const userSchema = new mongoose.Schema({
     minlength: 6,
     select: false,
   },
+  role:{
+    type: String,
+    enum: ['business', 'user','governmentservices'],
+    default: 'user',
+    
+  }
 }, { timestamps: true });
 
 userSchema.pre('save', async function (this: any) {
