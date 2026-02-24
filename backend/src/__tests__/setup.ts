@@ -1,6 +1,6 @@
 const { MongoMemoryServer } = require('mongodb-memory-server');
 
-let mongod;
+let mongod:any;
 
 beforeAll(async () => {
   if (!process.env.MONGODB_URI) {
