@@ -4,7 +4,7 @@ const cookieParser = require('cookie-parser');
 const authRoutes = require('./routes/auth');
 const feedbackFormRoutes = require('./routes/feedbackForms');
 const { setupSwagger } = require('./swagger');
-
+const formResponseRoutes=require('./routes/formResponse')
 import cors from 'cors';
 
 const app = express();
@@ -27,7 +27,7 @@ app.get('/health', (req: Request, res: Response) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/feedback-forms', feedbackFormRoutes);
-
+app.use('/api/form-responses',formResponseRoutes);
 
 
 module.exports = app;

@@ -42,5 +42,5 @@ const formResponseSchema=new mongoose.Schema(
     },
     {timestamps:true}
 );
-const Formresponse=mongoose.model('FormResponse',formResponseSchema);
-module.exports={Formresponse}
+const FormResponse=mongoose.model('FormResponse',formResponseSchema);
+module.exports={FormResponse}
