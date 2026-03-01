@@ -9,6 +9,12 @@ import { feedbackFormsApi } from '../utils/apipath'
 jest.mock('axios')
 const mockedAxios = axios as jest.Mocked<typeof axios>
 
+jest.mock('../context/AuthContext', () => ({
+  useAuth: () => ({
+    getAuthHeaders: () => ({ Authorization: 'Bearer fake-token' }),
+  }),
+}))
+
 const mockNavigate = jest.fn()
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
@@ -35,8 +41,6 @@ describe('CreateFormPage', () => {
     jest.clearAllMocks()
     mockedAxios.post.mockReset()
     localStorage.clear()
-    localStorage.setItem('token', 'fake-token')
-    localStorage.setItem('isLoggedIn', 'true')
   })
 
   test('auto-fills field name from label and adds field to preview', () => {
@@ -263,6 +267,6 @@ describe('CreateFormPage', () => {
       )
     })
 
-    expect(mockNavigate).toHaveBeenCalledWith('/business-dashboard/forms')
+    expect(mockNavigate).toHaveBeenCalledWith('/dashboard/forms')
   })
 })

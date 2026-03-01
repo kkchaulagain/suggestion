@@ -6,6 +6,7 @@ import axios from 'axios'
 import TopHeader from '../pages/business-dashboard/components/TopHeader'
 import BusinessDashboardLayout from '../pages/business-dashboard/layout/BusinessDashboardLayout'
 import FormsPage from '../pages/business-dashboard/pages/FormsPage'
+import { AuthProvider } from '../context/AuthContext'
 
 jest.mock('axios')
 const mockedAxios = axios as jest.Mocked<typeof axios>
@@ -22,29 +23,40 @@ describe('TopHeader', () => {
     mockedAxios.get.mockReset()
     mockNavigate.mockReset()
     localStorage.clear()
-    localStorage.setItem('token', 'fake-token')
-    localStorage.setItem('role', 'business')
-    localStorage.setItem('isLoggedIn', 'true')
+    localStorage.setItem('auth_token', 'fake-token')
   })
 
   test('closes profile menu on outside click and logs out', async () => {
-    mockedAxios.get.mockResolvedValueOnce({
-      data: {
-        success: true,
+    mockedAxios.get
+      .mockResolvedValueOnce({
         data: {
-          businessname: 'Acme Traders',
-          location: 'Kathmandu',
-          pancardNumber: 12345678,
-          description: 'Retail store',
+          success: true,
+          data: { _id: '1', name: 'Test', email: 't@t.com', role: 'business' },
         },
-      },
-    } as any)
+      } as any)
+      .mockResolvedValueOnce({
+        data: {
+          success: true,
+          data: {
+            businessname: 'Acme Traders',
+            location: 'Kathmandu',
+            pancardNumber: 12345678,
+            description: 'Retail store',
+          },
+        },
+      } as any)
 
     render(
       <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-        <TopHeader title="Forms" onOpenSidebar={jest.fn()} />
+        <AuthProvider>
+          <TopHeader title="Forms" onOpenSidebar={jest.fn()} />
+        </AuthProvider>
       </MemoryRouter>,
     )
+
+    await waitFor(() => {
+      expect(mockedAxios.get).toHaveBeenCalled()
+    })
 
     fireEvent.click(screen.getByRole('button', { name: /Profile/i }))
     expect(screen.getByRole('menu')).toBeInTheDocument()
@@ -57,18 +69,25 @@ describe('TopHeader', () => {
     fireEvent.click(screen.getByRole('button', { name: /Profile/i }))
     fireEvent.click(screen.getByRole('menuitem', { name: /Logout/i }))
 
-    expect(localStorage.getItem('token')).toBeNull()
-    expect(localStorage.getItem('role')).toBeNull()
-    expect(localStorage.getItem('isLoggedIn')).toBe('false')
+    expect(localStorage.getItem('auth_token')).toBeNull()
     expect(mockNavigate).toHaveBeenCalledWith('/login')
   })
 
   test('keeps profile null when business profile fetch fails', async () => {
-    mockedAxios.get.mockRejectedValueOnce(new Error('request failed'))
+    mockedAxios.get
+      .mockResolvedValueOnce({
+        data: {
+          success: true,
+          data: { _id: '1', name: 'Test', email: 't@t.com', role: 'business' },
+        },
+      } as any)
+      .mockRejectedValueOnce(new Error('request failed'))
 
     render(
       <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-        <TopHeader title="Forms" onOpenSidebar={jest.fn()} />
+        <AuthProvider>
+          <TopHeader title="Forms" onOpenSidebar={jest.fn()} />
+        </AuthProvider>
       </MemoryRouter>,
     )
 
@@ -85,21 +104,32 @@ describe('TopHeader', () => {
 
 describe('BusinessDashboardLayout and page', () => {
   beforeEach(() => {
-    mockedAxios.get.mockResolvedValue({ data: { success: true, data: {} } } as any)
+    mockedAxios.get.mockReset()
   })
 
   test('renders fallback title and opens sidebar from header menu button', async () => {
+    localStorage.setItem('auth_token', 'fake-token')
+    mockedAxios.get
+      .mockResolvedValueOnce({
+        data: { success: true, data: { _id: '1', name: 'Test', email: 't@t.com', role: 'business' } },
+      } as any)
+      .mockResolvedValueOnce({ data: { success: true, data: {} } } as any)
+
     render(
-      <MemoryRouter initialEntries={['/business-dashboard/unknown']} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-        <Routes>
-          <Route path="/business-dashboard" element={<BusinessDashboardLayout />}>
-            <Route path="unknown" element={<div>Unknown Page</div>} />
-          </Route>
-        </Routes>
+      <MemoryRouter initialEntries={['/dashboard/unknown']} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <AuthProvider>
+          <Routes>
+            <Route path="/dashboard" element={<BusinessDashboardLayout />}>
+              <Route path="unknown" element={<div>Unknown Page</div>} />
+            </Route>
+          </Routes>
+        </AuthProvider>
       </MemoryRouter>,
     )
 
-    expect(screen.getByRole('heading', { name: /Business Dashboard/i })).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /Business Dashboard/i })).toBeInTheDocument()
+    })
     expect(screen.getByText(/Unknown Page/i)).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: /Menu/i }))
@@ -110,11 +140,18 @@ describe('BusinessDashboardLayout and page', () => {
   })
 
   test('renders FormsPage static sections', async () => {
-    mockedAxios.get.mockResolvedValueOnce({ data: { feedbackForms: [] } } as any)
+    localStorage.setItem('auth_token', 'fake-token')
+    mockedAxios.get
+      .mockResolvedValueOnce({
+        data: { success: true, data: { _id: '1', name: 'Test', email: 't@t.com', role: 'business' } },
+      } as any)
+      .mockResolvedValueOnce({ data: { feedbackForms: [] } } as any)
 
     render(
       <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-        <FormsPage />
+        <AuthProvider>
+          <FormsPage />
+        </AuthProvider>
       </MemoryRouter>,
     )
 

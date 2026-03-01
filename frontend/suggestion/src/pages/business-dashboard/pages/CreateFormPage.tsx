@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
+import { useAuth } from '../../../context/AuthContext'
 import { feedbackFormsApi } from '../../../utils/apipath'
 
 type FeedbackFieldType = 'checkbox' | 'radio' | 'short_text' | 'long_text' | 'big_text' | 'image_upload'
@@ -51,15 +52,15 @@ export default function CreateFormPage() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
 
-  const token = localStorage.getItem('token')
+  const { getAuthHeaders } = useAuth()
   const isOptionType = OPTION_TYPES.includes(fieldType)
 
   const authHeaders = useMemo(
     () => ({
       withCredentials: true,
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      headers: getAuthHeaders(),
     }),
-    [token],
+    [getAuthHeaders],
   )
 
   const handleAddOption = () => {
@@ -138,7 +139,7 @@ export default function CreateFormPage() {
       setSubmitting(true)
       setError('')
       await axios.post(feedbackFormsApi, { title: title.trim(), description: description.trim(), fields }, authHeaders)
-      navigate('/business-dashboard/forms')
+      navigate('/dashboard/forms')
     } catch (err: any) {
       setError(err?.response?.data?.error || 'Failed to save form.')
     } finally {
@@ -157,7 +158,7 @@ export default function CreateFormPage() {
           <h3 className="text-lg font-bold text-slate-900">Create Form</h3>
           <button
             type="button"
-            onClick={() => navigate('/business-dashboard/forms')}
+            onClick={() => navigate('/dashboard/forms')}
             className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700"
           >
             Back to Form List

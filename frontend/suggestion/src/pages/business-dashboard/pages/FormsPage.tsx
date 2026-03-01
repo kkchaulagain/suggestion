@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
+import { useAuth } from '../../../context/AuthContext'
 import { feedbackFormsApi } from '../../../utils/apipath'
 
 interface FeedbackField {
@@ -30,14 +31,14 @@ export default function FormsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [qrByFormId, setQrByFormId] = useState<Record<string, QrPayload>>({})
-  const token = localStorage.getItem('token')
+  const { getAuthHeaders } = useAuth()
 
   const authHeaders = useMemo(
     () => ({
       withCredentials: true,
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      headers: getAuthHeaders(),
     }),
-    [token],
+    [getAuthHeaders],
   )
 
   async function loadForms() {
@@ -81,7 +82,7 @@ export default function FormsPage() {
           </button>
           <button
             type="button"
-            onClick={() => navigate('/business-dashboard/forms/create')}
+            onClick={() => navigate('/dashboard/forms/create')}
             className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700"
           >
             Make Form
