@@ -2,6 +2,13 @@ module.exports = {
   testEnvironment: 'jest-environment-jsdom',
   testMatch: ['**/src/__tests__/**/*.test.ts?(x)'],
   setupFilesAfterEnv: ['<rootDir>/src/__tests__/setup.ts'],
+  collectCoverageFrom: [
+    'src/**/*.{ts,tsx}',
+    '!src/__tests__/**',
+    '!vite.config.ts',
+  ],
+  coverageDirectory: 'coverage',
+  coverageReporters: [['cobertura', { file: 'cobertura.xml' }], 'text'],
   extensionsToTreatAsEsm: ['.ts', '.tsx'],
   transform: {
     '^.+\\.(t|j)sx?$': [

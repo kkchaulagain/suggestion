@@ -13,6 +13,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -25,9 +27,31 @@ jobs:
         run: npm ci
         working-directory: backend
 
-      - name: Run tests
-        run: npm test -- --ci
+      - name: Run tests with coverage
+        run: npm test -- --ci --coverage
         working-directory: backend
+
+      - name: Fetch base branch for diff
+        run: git fetch origin ${{ github.base_ref }}
+
+      - name: Setup Python for diff-cover
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install diff-cover
+        run: pip install diff-cover
+
+      - name: Check diff coverage (backend)
+        env:
+          DIFF_COVERAGE_THRESHOLD: ${{ secrets.DIFF_COVERAGE_THRESHOLD || '80' }}
+        run: |
+          if git diff --name-only origin/${{ github.base_ref }} -- backend/ | grep -q .; then
+            git diff origin/${{ github.base_ref }} -- backend/ > backend/diff.txt
+            diff-cover backend/coverage/cobertura.xml --diff-file=backend/diff.txt --fail-under=$DIFF_COVERAGE_THRESHOLD
+          else
+            echo "No backend files changed, skipping diff coverage check."
+          fi
 
   frontend-test:
     name: Frontend tests
@@ -36,6 +60,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -48,6 +74,28 @@ jobs:
         run: npm ci
         working-directory: frontend/suggestion
 
-      - name: Run tests
-        run: npm test -- --ci
+      - name: Run tests with coverage
+        run: npm test -- --ci --coverage
         working-directory: frontend/suggestion
+
+      - name: Fetch base branch for diff
+        run: git fetch origin ${{ github.base_ref }}
+
+      - name: Setup Python for diff-cover
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install diff-cover
+        run: pip install diff-cover
+
+      - name: Check diff coverage (frontend)
+        env:
+          DIFF_COVERAGE_THRESHOLD: ${{ secrets.DIFF_COVERAGE_THRESHOLD || '80' }}
+        run: |
+          if git diff --name-only origin/${{ github.base_ref }} -- frontend/suggestion/ | grep -q .; then
+            git diff origin/${{ github.base_ref }} -- frontend/suggestion/ > frontend/suggestion/diff.txt
+            diff-cover frontend/suggestion/coverage/cobertura.xml --diff-file=frontend/suggestion/diff.txt --fail-under=$DIFF_COVERAGE_THRESHOLD
+          else
+            echo "No frontend files changed, skipping diff coverage check."
+          fi
