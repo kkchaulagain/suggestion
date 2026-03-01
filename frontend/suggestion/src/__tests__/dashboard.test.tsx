@@ -21,7 +21,7 @@ jest.mock('../context/AuthContext', () => ({
 
 function renderDashboard() {
   return render(
-    <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+    <MemoryRouter>
       <Dashboard />
     </MemoryRouter>
   )

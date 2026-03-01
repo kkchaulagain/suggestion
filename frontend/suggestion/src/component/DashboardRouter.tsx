@@ -5,7 +5,7 @@ import BusinessDashboardLayout from '../pages/business-dashboard/layout/Business
 
 /**
  * Renders the correct dashboard for the current user role.
- * Business / governmentservices → business dashboard (forms only).
+ * Business / governmentservices → business dashboard (forms only); layout renders child routes via its own Outlet.
  * User → profile dashboard.
  */
 export default function DashboardRouter() {
@@ -14,11 +14,7 @@ export default function DashboardRouter() {
   const isBusinessRole = role === 'business' || role === 'governmentservices'
 
   if (isBusinessRole) {
-    return (
-      <BusinessDashboardLayout>
-        <Outlet />
-      </BusinessDashboardLayout>
-    )
+    return <BusinessDashboardLayout />
   }
 
   return <Outlet />

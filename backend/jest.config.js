@@ -4,6 +4,7 @@ module.exports = {
   testMatch: ['**/__tests__/**/*.test.ts'],
   testTimeout: 60000,
   setupFilesAfterEnv: ['<rootDir>/src/__tests__/setup.ts'],
+  // runInBand is set in npm test script so only one MongoMemoryServer runs at a time.
   watchman: false,
   collectCoverageFrom: [
     'src/**/*.ts',

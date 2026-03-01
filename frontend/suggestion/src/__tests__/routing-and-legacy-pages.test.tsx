@@ -65,7 +65,7 @@ describe('ProtectedRoute component', () => {
     })
 
     render(
-      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <MemoryRouter>
         <AuthProvider>
           <ProtectedRoute>
             <div>Private Content</div>
@@ -83,7 +83,6 @@ describe('ProtectedRoute component', () => {
     render(
       <MemoryRouter
         initialEntries={['/dashboard']}
-        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
       >
         <AuthProvider>
           <Routes>
@@ -182,7 +181,6 @@ describe('Legacy business pages', () => {
     render(
       <MemoryRouter
         initialEntries={['/old-business-dashboard']}
-        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
       >
         <Routes>
           <Route path="/old-business-dashboard" element={<BusinessDashboard />} />
@@ -196,7 +194,7 @@ describe('Legacy business pages', () => {
 
   test('suggestion form page shows migration guidance text', () => {
     render(
-      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <MemoryRouter>
         <SuggestionForm />
       </MemoryRouter>,
     )

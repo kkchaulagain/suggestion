@@ -15,7 +15,7 @@ jest.mock('react-router-dom', () => ({
 
 function renderSignup() {
   return render(
-    <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+    <MemoryRouter>
       <Signup />
     </MemoryRouter>
   )
@@ -147,10 +147,11 @@ describe('Signup Component', () => {
     expect(screen.queryByLabelText(/Business Name/i)).not.toBeInTheDocument()
   })
 
+  interface SignupSuccessResponse { data: { message: string } }
   test('submits business payload with parsed pancard number', async () => {
     mockedAxios.post.mockResolvedValueOnce({
       data: { message: 'Business created successfully' },
-    } as any)
+    } as SignupSuccessResponse)
 
     renderSignup()
 

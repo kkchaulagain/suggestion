@@ -1,4 +1,5 @@
-import type { Request } from 'express';
+import type { Request, Response, NextFunction } from 'express';
+import type { Types } from 'mongoose';
 const express = require('express');
 const mongoose = require('mongoose');
 const QRCode = require('qrcode');
@@ -9,31 +10,58 @@ const { isBusinessRole } = require('../middleware/isbusiness');
 const router = express.Router();
 const DEFAULT_FRONTEND_FORM_BASE_URL = 'http://localhost:5173/feedback-forms';
 
-interface AuthenticatedRequest extends Request {
-  id?: string;
-  businessProfile?: any;
+interface BusinessProfileDoc {
+  _id: Types.ObjectId;
 }
 
-function normalizeFieldType(type: any) {
+interface AuthenticatedRequest extends Request {
+  id?: string;
+  businessProfile?: BusinessProfileDoc;
+}
+
+interface FeedbackFieldInput {
+  name?: string;
+  type?: string;
+  label?: string;
+  required?: boolean;
+  placeholder?: string;
+  [key: string]: string | boolean | undefined;
+}
+
+function normalizeFieldType(type: string | FeedbackFieldInput[keyof FeedbackFieldInput]): string | FeedbackFieldInput[keyof FeedbackFieldInput] {
   if (typeof type !== 'string') return type;
   return type.toLowerCase().trim().replace(/[\s-]+/g, '_');
 }
 
-function normalizeFields(fields: any[]) {
-  if (!Array.isArray(fields)) return fields;
+function normalizeFields(fields: FeedbackFieldInput[] | null | undefined): FeedbackFieldInput[] {
+  if (!Array.isArray(fields)) return [];
   return fields.map((field) => {
-    if (!field || typeof field !== 'object') return field;
-    return { ...field, type: normalizeFieldType(field.type) };
+    if (!field || typeof field !== 'object') return field as FeedbackFieldInput;
+    const obj = field as FeedbackFieldInput;
+    return { ...obj, type: normalizeFieldType(obj.type) } as FeedbackFieldInput;
   });
 }
 
-function buildPayload(body: any) {
-  const payload: any = {};
+interface FeedbackFormPayload {
+  title?: string;
+  description?: string;
+  fields?: FeedbackFieldInput[];
+  businessId?: Types.ObjectId;
+}
 
-  if (Object.prototype.hasOwnProperty.call(body, 'title')) {
+interface RequestBody {
+  title?: string;
+  description?: string;
+  fields?: FeedbackFieldInput[];
+}
+
+function buildPayload(body: RequestBody): FeedbackFormPayload {
+  const payload: FeedbackFormPayload = {};
+
+  if (Object.prototype.hasOwnProperty.call(body, 'title') && typeof body.title === 'string') {
     payload.title = body.title;
   }
-  if (Object.prototype.hasOwnProperty.call(body, 'description')) {
+  if (Object.prototype.hasOwnProperty.call(body, 'description') && typeof body.description === 'string') {
     payload.description = body.description;
   }
   if (Object.prototype.hasOwnProperty.call(body, 'fields')) {
@@ -43,12 +71,18 @@ function buildPayload(body: any) {
   return payload;
 }
 
-function getValidationErrorMessage(err:any) {
-  if (!err || err.name !== 'ValidationError') return null;
-  const messages = Object.values(err.errors || {})
-    .map((fieldErr) => (fieldErr as any).message)
+interface MongooseValidationError extends Error {
+  name: 'ValidationError';
+  errors?: Record<string, { message?: string }>;
+}
+
+function getValidationErrorMessage(err: MongooseValidationError | Error | null): string | null {
+  if (!err || (err as MongooseValidationError).name !== 'ValidationError') return null;
+  const validationErr = err as MongooseValidationError;
+  const messages = Object.values(validationErr.errors || {})
+    .map((fieldErr) => fieldErr?.message)
     .filter(Boolean);
-  return messages.length ? messages.join(', ') : 'Validation failed';
+  return messages.length ? (messages as string[]).join(', ') : 'Validation failed';
 }
 
 function normalizeBaseUrl(baseUrl: string) {
@@ -69,7 +103,7 @@ function getFrontendFormUrl(formId: string, frontendBaseUrlOverride?: string) {
   return `${normalizeBaseUrl(baseUrl)}/${encodeURIComponent(formId)}`;
 }
 
-async function resolveBusinessProfile(req: AuthenticatedRequest, res: any, next: any) {
+async function resolveBusinessProfile(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   try {
     if (!req.id) {
       return res.status(401).json({ error: 'Unauthorized access' });
@@ -82,22 +116,22 @@ async function resolveBusinessProfile(req: AuthenticatedRequest, res: any, next:
 
     req.businessProfile = businessProfile;
     return next();
-  } catch (err) {
+  } catch (_err) {
     return res.status(500).json({ error: 'Failed to verify business profile' });
   }
 }
 
-router.post('/', isAuthenticated, isBusinessRole, resolveBusinessProfile, async (req: AuthenticatedRequest, res: any) => {
+router.post('/', isAuthenticated, isBusinessRole, resolveBusinessProfile, async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const payload = buildPayload(req.body || {});
-    payload.businessId = req.businessProfile._id;
+    const payload = buildPayload((req.body || {}) as RequestBody);
+    payload.businessId = req.businessProfile!._id;
     const feedbackForm = await FeedbackForm.create(payload);
     return res.status(201).json({
       message: 'Feedback form created',
       feedbackForm,
     });
-  } catch (err) {
-    const validationMessage = getValidationErrorMessage(err);
+  } catch (_err) {
+    const validationMessage = getValidationErrorMessage(_err as Error);
     if (validationMessage) {
       return res.status(400).json({ error: validationMessage });
     }
@@ -105,16 +139,16 @@ router.post('/', isAuthenticated, isBusinessRole, resolveBusinessProfile, async 
   }
 });
 
-router.get('/', isAuthenticated, isBusinessRole, resolveBusinessProfile, async (req: AuthenticatedRequest, res: any) => {
+router.get('/', isAuthenticated, isBusinessRole, resolveBusinessProfile, async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const feedbackForms = await FeedbackForm.find({ businessId: req.businessProfile._id }).sort({ createdAt: -1 });
+    const feedbackForms = await FeedbackForm.find({ businessId: req.businessProfile!._id }).sort({ createdAt: -1 });
     return res.status(200).json({ feedbackForms });
-  } catch (err) {
+  } catch (_err) {
     return res.status(500).json({ error: 'Failed to fetch feedback forms' });
   }
 });
 
-router.get('/:id', async (req: any, res: any) => {
+router.get('/:id', async (req: Request, res: Response) => {
   if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
     return res.status(400).json({ error: 'Invalid feedback form id' });
   }
@@ -125,12 +159,12 @@ router.get('/:id', async (req: any, res: any) => {
       return res.status(404).json({ error: 'Feedback form not found' });
     }
     return res.status(200).json({ feedbackForm });
-  } catch (err) {
+  } catch (_err) {
     return res.status(500).json({ error: 'Failed to fetch feedback form' });
   }
 });
 
-router.post('/:id/qr', isAuthenticated, isBusinessRole, resolveBusinessProfile, async (req: AuthenticatedRequest, res: any) => {
+router.post('/:id/qr', isAuthenticated, isBusinessRole, resolveBusinessProfile, async (req: AuthenticatedRequest, res: Response) => {
   if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
     return res.status(400).json({ error: 'Invalid feedback form id' });
   }
@@ -146,7 +180,7 @@ router.post('/:id/qr', isAuthenticated, isBusinessRole, resolveBusinessProfile, 
   try {
     const feedbackForm = await FeedbackForm.findOne({
       _id: req.params.id,
-      businessId: req.businessProfile._id,
+      businessId: req.businessProfile!._id,
     }).select('_id');
     if (!feedbackForm) {
       return res.status(404).json({ error: 'Feedback form not found' });
@@ -165,17 +199,17 @@ router.post('/:id/qr', isAuthenticated, isBusinessRole, resolveBusinessProfile, 
       formUrl,
       qrCodeDataUrl,
     });
-  } catch (err) {
+  } catch (_err) {
     return res.status(500).json({ error: 'Failed to generate feedback form QR' });
   }
 });
 
-router.put('/:id', isAuthenticated, isBusinessRole, resolveBusinessProfile, async (req: AuthenticatedRequest, res: any) => {
+router.put('/:id', isAuthenticated, isBusinessRole, resolveBusinessProfile, async (req: AuthenticatedRequest, res: Response) => {
   if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
     return res.status(400).json({ error: 'Invalid feedback form id' });
   }
 
-  const payload = buildPayload(req.body || {});
+  const payload = buildPayload((req.body || {}) as RequestBody);
   if (Object.keys(payload).length === 0) {
     return res.status(400).json({ error: 'At least one field is required to update' });
   }
@@ -183,7 +217,7 @@ router.put('/:id', isAuthenticated, isBusinessRole, resolveBusinessProfile, asyn
   try {
     const feedbackForm = await FeedbackForm.findOneAndUpdate({
       _id: req.params.id,
-      businessId: req.businessProfile._id,
+      businessId: req.businessProfile!._id,
     }, payload, {
       new: true,
       runValidators: true,
@@ -197,8 +231,8 @@ router.put('/:id', isAuthenticated, isBusinessRole, resolveBusinessProfile, asyn
       message: 'Feedback form updated',
       feedbackForm,
     });
-  } catch (err) {
-    const validationMessage = getValidationErrorMessage(err);
+  } catch (_err) {
+    const validationMessage = getValidationErrorMessage(_err as Error);
     if (validationMessage) {
       return res.status(400).json({ error: validationMessage });
     }
@@ -206,7 +240,7 @@ router.put('/:id', isAuthenticated, isBusinessRole, resolveBusinessProfile, asyn
   }
 });
 
-router.delete('/:id', isAuthenticated, isBusinessRole, resolveBusinessProfile, async (req: AuthenticatedRequest, res: any) => {
+router.delete('/:id', isAuthenticated, isBusinessRole, resolveBusinessProfile, async (req: AuthenticatedRequest, res: Response) => {
   if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
     return res.status(400).json({ error: 'Invalid feedback form id' });
   }
@@ -214,13 +248,13 @@ router.delete('/:id', isAuthenticated, isBusinessRole, resolveBusinessProfile, a
   try {
     const feedbackForm = await FeedbackForm.findOneAndDelete({
       _id: req.params.id,
-      businessId: req.businessProfile._id,
+      businessId: req.businessProfile!._id,
     });
     if (!feedbackForm) {
       return res.status(404).json({ error: 'Feedback form not found' });
     }
     return res.status(200).json({ message: 'Feedback form deleted' });
-  } catch (err) {
+  } catch (_err) {
     return res.status(500).json({ error: 'Failed to delete feedback form' });
   }
 });

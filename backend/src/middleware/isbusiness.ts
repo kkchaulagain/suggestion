@@ -3,8 +3,8 @@ const User = require('../models/User');
 
 interface AuthRequest extends Request {
   id?: string;
-  user?: any;
-  business?: any;
+  user?: { role?: string };
+  business?: object;
 }
 
 export const isBusinessRole = async (req: AuthRequest, res: Response, next: NextFunction) => {

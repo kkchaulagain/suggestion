@@ -39,7 +39,7 @@ export const isAuthenticated = (req: Request, res: Response, next: NextFunction)
 
     req.id = decoded.userId;
     next();
-  } catch (error) {
+  } catch (_error) {
     return res.status(401).json({ success: false, message: 'Invalid token' });
   }
 };

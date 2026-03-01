@@ -17,7 +17,7 @@ jest.mock('react-router-dom', () => ({
 
 function renderLogin() {
   return render(
-    <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+    <MemoryRouter>
       <AuthProvider>
         <Login />
       </AuthProvider>
@@ -78,6 +78,7 @@ describe('Login Component', () => {
         expect(mockedAxios.post).toHaveBeenCalled()
     });
 
+      interface LoginSuccessData { message: string; data: { token: string; _id: string; name: string; email: string; role: string } }
       test('stores token and navigates business role to dashboard', async () => {
         mockedAxios.post.mockResolvedValueOnce({
           data: {
@@ -90,7 +91,7 @@ describe('Login Component', () => {
               role: 'business',
             },
           },
-        } as any)
+        } as { data: LoginSuccessData })
 
         renderLogin()
         fireEvent.change(screen.getByLabelText(/Email/i), {
@@ -107,19 +108,21 @@ describe('Login Component', () => {
         expect(localStorage.getItem('auth_token')).toBe('jwt-token-1')
       })
 
+      interface LoginResponseNoRole { data: { message: string; data: { token: string } } }
+      interface MeApiResponse { data: { success: boolean; data: { _id: string; name: string; email: string; role: string } } }
       test('fetches profile role when login response has no role', async () => {
         mockedAxios.post.mockResolvedValueOnce({
           data: {
             message: 'Login successful',
             data: { token: 'jwt-token-2' },
           },
-        } as any)
+        } as LoginResponseNoRole)
         mockedAxios.get.mockResolvedValueOnce({
           data: {
             success: true,
             data: { _id: '1', name: 'Gov', email: 'gov@example.com', role: 'governmentservices' },
           },
-        } as any)
+        } as MeApiResponse)
 
         renderLogin()
         fireEvent.change(screen.getByLabelText(/Email/i), {

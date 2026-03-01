@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { useAuth } from '../../../context/AuthContext'
@@ -40,31 +40,35 @@ export default function FormsPage() {
     }),
     [getAuthHeaders],
   )
+  const authHeadersRef = useRef(authHeaders)
+  authHeadersRef.current = authHeaders
 
-  async function loadForms() {
+  const loadForms = useCallback(async () => {
+    const headers = authHeadersRef.current
     try {
       setLoading(true)
       setError('')
-      const response = await axios.get<{ feedbackForms: FeedbackForm[] }>(feedbackFormsApi, authHeaders)
+      const response = await axios.get<{ feedbackForms: FeedbackForm[] }>(feedbackFormsApi, headers)
       setSavedForms(response.data.feedbackForms ?? [])
     } catch {
       setError('Unable to load forms. Please check business login.')
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
   useEffect(() => {
     void loadForms()
-  }, [])
+  }, [loadForms])
 
   const handleGenerateQr = async (formId: string) => {
     try {
       setError('')
       const response = await axios.post<QrPayload>(`${feedbackFormsApi}/${formId}/qr`, {}, authHeaders)
       setQrByFormId((previous) => ({ ...previous, [formId]: response.data }))
-    } catch (err: any) {
-      setError(err?.response?.data?.error || 'Failed to generate QR.')
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error
+      setError(msg || 'Failed to generate QR.')
     }
   }
 

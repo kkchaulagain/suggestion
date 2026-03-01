@@ -1,5 +1,5 @@
 const request = require('supertest');
-const mongoose = require('mongoose');
+const _mongoose = require('mongoose');
 const { connect, disconnect } = require('../db');
 const app = require('../app');
 const User = require('../models/User');

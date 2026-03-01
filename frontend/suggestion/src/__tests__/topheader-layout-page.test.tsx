@@ -17,6 +17,9 @@ jest.mock('react-router-dom', () => ({
   useNavigate: () => mockNavigate,
 }))
 
+interface MeApiResponse { data: { success: boolean; data: { _id: string; name: string; email: string; role: string } } }
+interface BusinessProfileApiResponse { data: { success: boolean; data: { businessname?: string; location?: string; pancardNumber?: number; description?: string } } }
+
 describe('TopHeader', () => {
   beforeEach(() => {
     jest.clearAllMocks()
@@ -33,7 +36,7 @@ describe('TopHeader', () => {
           success: true,
           data: { _id: '1', name: 'Test', email: 't@t.com', role: 'business' },
         },
-      } as any)
+      } as MeApiResponse)
       .mockResolvedValueOnce({
         data: {
           success: true,
@@ -44,10 +47,10 @@ describe('TopHeader', () => {
             description: 'Retail store',
           },
         },
-      } as any)
+      } as BusinessProfileApiResponse)
 
     render(
-      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <MemoryRouter>
         <AuthProvider>
           <TopHeader title="Forms" onOpenSidebar={jest.fn()} />
         </AuthProvider>
@@ -80,11 +83,11 @@ describe('TopHeader', () => {
           success: true,
           data: { _id: '1', name: 'Test', email: 't@t.com', role: 'business' },
         },
-      } as any)
+      } as MeApiResponse)
       .mockRejectedValueOnce(new Error('request failed'))
 
     render(
-      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <MemoryRouter>
         <AuthProvider>
           <TopHeader title="Forms" onOpenSidebar={jest.fn()} />
         </AuthProvider>
@@ -112,11 +115,11 @@ describe('BusinessDashboardLayout and page', () => {
     mockedAxios.get
       .mockResolvedValueOnce({
         data: { success: true, data: { _id: '1', name: 'Test', email: 't@t.com', role: 'business' } },
-      } as any)
-      .mockResolvedValueOnce({ data: { success: true, data: {} } } as any)
+      } as MeApiResponse)
+      .mockResolvedValueOnce({ data: { success: true, data: {} } } as BusinessProfileApiResponse)
 
     render(
-      <MemoryRouter initialEntries={['/dashboard/unknown']} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <MemoryRouter initialEntries={['/dashboard/unknown']}>
         <AuthProvider>
           <Routes>
             <Route path="/dashboard" element={<BusinessDashboardLayout />}>
@@ -139,16 +142,17 @@ describe('BusinessDashboardLayout and page', () => {
     })
   })
 
+  interface FormsListResponse { data: { feedbackForms: Array<{ _id?: string; title?: string; fields?: Array<{ name: string; label: string; type: string }> }> } }
   test('renders FormsPage static sections', async () => {
     localStorage.setItem('auth_token', 'fake-token')
     mockedAxios.get
       .mockResolvedValueOnce({
         data: { success: true, data: { _id: '1', name: 'Test', email: 't@t.com', role: 'business' } },
-      } as any)
-      .mockResolvedValueOnce({ data: { feedbackForms: [] } } as any)
+      } as MeApiResponse)
+      .mockResolvedValueOnce({ data: { feedbackForms: [] } } as FormsListResponse)
 
     render(
-      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <MemoryRouter>
         <AuthProvider>
           <FormsPage />
         </AuthProvider>

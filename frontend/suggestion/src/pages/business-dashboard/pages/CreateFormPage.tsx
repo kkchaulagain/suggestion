@@ -140,8 +140,9 @@ export default function CreateFormPage() {
       setError('')
       await axios.post(feedbackFormsApi, { title: title.trim(), description: description.trim(), fields }, authHeaders)
       navigate('/dashboard/forms')
-    } catch (err: any) {
-      setError(err?.response?.data?.error || 'Failed to save form.')
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error
+      setError(msg || 'Failed to save form.')
     } finally {
       setSubmitting(false)
     }

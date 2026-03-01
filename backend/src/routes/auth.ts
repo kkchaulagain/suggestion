@@ -134,7 +134,7 @@ router.post('/register', async (req: Request, res: Response) => {
         businessname: businessname || null,
       },
     });
-  } catch (err) {
+  } catch (_err) {
     return res.status(500).json({
       success: false,
       message: 'Something went wrong',
@@ -201,7 +201,7 @@ router.post('/login', async (req: Request, res: Response) => {
       data: { token },
       token,
     });
-  } catch (err) {
+  } catch (_err) {
     return res.status(500).json({
       success: false,
       message: 'Something went wrong',
@@ -239,7 +239,7 @@ router.get('/me', isAuthenticated, async (req: AuthenticatedRequest, res: Respon
       message: 'User retrieved successfully',
       data: userdata,
     });
-  } catch (error) {
+  } catch (_error) {
     return res.status(500).json({
       success: false,
       message: 'Something went wrong',
@@ -263,7 +263,7 @@ router.get('/business',isAuthenticated,isBusinessRole, async (req: Authenticated
       data: business,
 
     });
-  } catch (error) {
+  } catch (_error) {
     return res.status(500).json({
       success: false,
       message: 'Something went wrong',

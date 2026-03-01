@@ -1,6 +1,6 @@
 const swaggerUi = require('swagger-ui-express');
-const express = require('express');
-import type { Request, Response } from 'express';
+const _express = require('express');
+import type { Application, Request, Response } from 'express';
 
 const spec = {
   openapi: '3.0.0',
@@ -519,15 +519,15 @@ const spec = {
   },
 };
 
-function setupSwagger(app:any, basePath = '/api-docs') {
+function setupSwagger(app: Application, basePath = '/api-docs') {
   const basePathWithSlash = `${basePath}/`;
   const swaggerSetup = swaggerUi.setup(spec, {
     customCss: '.swagger-ui .topbar { display: none }',
   });
   // Serve HTML at both /api-docs and /api-docs/ (no redirect to avoid ERR_TOO_MANY_REDIRECTS)
-  const serveHtml = (req:Request, res:any, next:Function) => {
-    const originalSend = res.send;
-    res.send = function (body:any) {
+  const serveHtml = (req: Request, res: Response, next: () => void) => {
+    const originalSend = res.send.bind(res);
+    res.send = function (body: string | unknown) {
       if (typeof body === 'string' && body.includes('swagger-ui-bundle.js'))
         body = body.replace('<head>', `<head><base href="${basePathWithSlash}">`);
       return originalSend.call(this, body);

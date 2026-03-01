@@ -35,9 +35,7 @@ export default function Signup(): JSX.Element {
     setErrors({})
 
     // Prepare data based on role
-    const data: any = { name, email, password, role }
-    
-    // Add business fields only if role is business
+    const data: Record<string, unknown> = { name, email, password, role }
     if (role === 'business') {
       data.location = location
       data.description = description
@@ -56,13 +54,15 @@ export default function Signup(): JSX.Element {
         alert(response.data.message)
         navigate('/login')
       }
-    } catch (error: any) {
-      const responseData = error?.response?.data
+    } catch (error: unknown) {
+      const responseData = (error as { response?: { data?: Record<string, unknown> } })?.response?.data
+      const field = responseData?.field
+      const errMsg = responseData?.error
 
-      if (responseData?.field && responseData?.error) {
-        setErrors({ [responseData.field]: responseData.error })
+      if (field != null && errMsg != null && typeof field === 'string' && typeof errMsg === 'string') {
+        setErrors({ [field]: errMsg })
       } else if (responseData?.errors && typeof responseData.errors === 'object') {
-        const mapped = responseData.errors as Record<string, string>
+        const mapped = responseData.errors as Record<string, string | undefined>
         setErrors({
           name: mapped.name,
           email: mapped.email,
@@ -73,9 +73,9 @@ export default function Signup(): JSX.Element {
           pancardNumber: mapped.pancardNumber,
           businessname: mapped.businessname,
           general: mapped.general,
-        })
-      } else if (responseData?.error) {
-        setErrors({ general: responseData.error })
+        } as FieldErrors)
+      } else if (typeof errMsg === 'string') {
+        setErrors({ general: errMsg })
       } else {
         setErrors({ general: 'Something went wrong. Please try again.' })
       }
