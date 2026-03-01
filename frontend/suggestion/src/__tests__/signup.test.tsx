@@ -147,10 +147,11 @@ describe('Signup Component', () => {
     expect(screen.queryByLabelText(/Business Name/i)).not.toBeInTheDocument()
   })
 
+  interface SignupSuccessResponse { data: { message: string } }
   test('submits business payload with parsed pancard number', async () => {
     mockedAxios.post.mockResolvedValueOnce({
       data: { message: 'Business created successfully' },
-    } as any)
+    } as SignupSuccessResponse)
 
     renderSignup()
 

@@ -226,7 +226,8 @@ describe('CreateFormPage', () => {
   })
 
   test('saves form and navigates back to forms list', async () => {
-    mockedAxios.post.mockResolvedValueOnce({ data: {} } as any)
+    interface CreateFormSaveResponse { data: Record<string, never> }
+    mockedAxios.post.mockResolvedValueOnce({ data: {} } as CreateFormSaveResponse)
     renderCreateFormPage()
 
     fireEvent.change(screen.getByPlaceholderText(/Form title/i), {

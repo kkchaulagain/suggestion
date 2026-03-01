@@ -47,10 +47,12 @@ describe('FormsPage', () => {
     })
   })
 
+  interface FormsListApiResponse { data: { feedbackForms: Array<{ _id: string; title?: string; description?: string; businessId?: string; fields?: Array<{ name: string; label: string; type: string; required?: boolean }> }> } }
+
   test('refresh button re-fetches forms', async () => {
     mockedAxios.get
-      .mockResolvedValueOnce({ data: { feedbackForms: [] } } as any)
-      .mockResolvedValueOnce({ data: { feedbackForms: [] } } as any)
+      .mockResolvedValueOnce({ data: { feedbackForms: [] } } as FormsListApiResponse)
+      .mockResolvedValueOnce({ data: { feedbackForms: [] } } as FormsListApiResponse)
 
     renderFormsPage()
 
@@ -78,14 +80,15 @@ describe('FormsPage', () => {
           },
         ],
       },
-    } as any)
+    } as FormsListApiResponse)
 
+    interface QrCodeApiResponse { data: { qrCodeDataUrl: string; formUrl: string } }
     mockedAxios.post.mockResolvedValueOnce({
       data: {
         qrCodeDataUrl: 'data:image/png;base64,abc',
         formUrl: 'https://frontend.example.com/feedback-forms/f1',
       },
-    } as any)
+    } as QrCodeApiResponse)
 
     renderFormsPage()
 
@@ -113,7 +116,7 @@ describe('FormsPage', () => {
           },
         ],
       },
-    } as any)
+    } as FormsListApiResponse)
 
     mockedAxios.post.mockRejectedValueOnce(new Error('qr failed'))
 

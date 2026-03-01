@@ -6,9 +6,19 @@ jest.mock('../models/User', () => ({
 
 const User = require('../models/User');
 
+interface MockResponse {
+  status: jest.Mock;
+  json: jest.Mock;
+}
+
+interface MockRequestWithId {
+  id?: string;
+  user?: { _id: string; role: string };
+}
+
 describe('isBusinessRole Middleware', () => {
-  const mockResponse = () => {
-    const res: any = {};
+  const mockResponse = (): MockResponse => {
+    const res = {} as MockResponse;
     res.status = jest.fn().mockReturnValue(res);
     res.json = jest.fn().mockReturnValue(res);
     return res;
@@ -19,7 +29,7 @@ describe('isBusinessRole Middleware', () => {
   });
 
   it('should return 401 if req.id is missing', async () => {
-    const req: any = {};
+    const req = {} as MockRequestWithId;
     const res = mockResponse();
     const next = jest.fn();
 
@@ -32,7 +42,7 @@ describe('isBusinessRole Middleware', () => {
   it('should return 404 if user does not exist', async () => {
     User.findById.mockResolvedValue(null);
 
-    const req: any = { id: '507f1f77bcf86cd799439011' };
+    const req: MockRequestWithId = { id: '507f1f77bcf86cd799439011' };
     const res = mockResponse();
     const next = jest.fn();
 
@@ -46,7 +56,7 @@ describe('isBusinessRole Middleware', () => {
   it('should return 403 if user role is not business', async () => {
     User.findById.mockResolvedValue({ _id: 'u1', role: 'user' });
 
-    const req: any = { id: '507f1f77bcf86cd799439011' };
+    const req: MockRequestWithId = { id: '507f1f77bcf86cd799439011' };
     const res = mockResponse();
     const next = jest.fn();
 
@@ -60,7 +70,7 @@ describe('isBusinessRole Middleware', () => {
     const businessUser = { _id: 'u2', role: 'business' };
     User.findById.mockResolvedValue(businessUser);
 
-    const req: any = { id: '507f1f77bcf86cd799439011' };
+    const req: MockRequestWithId = { id: '507f1f77bcf86cd799439011' };
     const res = mockResponse();
     const next = jest.fn();
 

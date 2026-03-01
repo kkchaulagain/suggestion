@@ -1,8 +1,9 @@
+import type { Types } from 'mongoose';
 import type { ApiResponse } from './api';
 
 export type BusinessDocument = {
-  _id: unknown;
-  owner: unknown;
+  _id: Types.ObjectId;
+  owner: Types.ObjectId;
   businessname: string;
   location: string;
   pancardNumber: number;

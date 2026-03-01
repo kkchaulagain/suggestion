@@ -22,7 +22,11 @@ const userSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
-userSchema.pre('save', async function (this: any) {
+interface UserDoc {
+  isModified(field: string): boolean;
+  password: string;
+}
+userSchema.pre('save', async function (this: UserDoc) {
   if (!this.isModified('password')) return;
   this.password = await bcrypt.hash(this.password, 10);
 });

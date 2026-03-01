@@ -71,7 +71,8 @@ describe('Feedback Forms API', () => {
     expect(res.body).toHaveProperty('message', 'Feedback form created');
     expect(res.body.feedbackForm.title).toBe('Customer feedback');
     expect(res.body.feedbackForm.fields).toHaveLength(6);
-    expect(res.body.feedbackForm.fields.map((field: any) => field.type)).toEqual([
+    interface FeedbackFormField { type: string }
+    expect(res.body.feedbackForm.fields.map((field: FeedbackFormField) => field.type)).toEqual([
       'checkbox',
       'radio',
       'short_text',
