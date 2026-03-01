@@ -97,7 +97,7 @@ router.post('/', isAuthenticated, isBusinessRole, resolveBusinessProfile, async 
       feedbackForm,
     });
   } catch (_err) {
-    const validationMessage = getValidationErrorMessage(err);
+    const validationMessage = getValidationErrorMessage(_err);
     if (validationMessage) {
       return res.status(400).json({ error: validationMessage });
     }
@@ -198,7 +198,7 @@ router.put('/:id', isAuthenticated, isBusinessRole, resolveBusinessProfile, asyn
       feedbackForm,
     });
   } catch (_err) {
-    const validationMessage = getValidationErrorMessage(err);
+    const validationMessage = getValidationErrorMessage(_err);
     if (validationMessage) {
       return res.status(400).json({ error: validationMessage });
     }
