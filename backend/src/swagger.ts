@@ -10,6 +10,7 @@ const spec = {
     description: 'Basic backend API with auth',
   },
   servers: [
+    { url: '/', description: 'This server (same origin)' },
     { url: 'http://localhost:3000', description: 'Local' },
   ],
   paths: {
@@ -388,6 +389,42 @@ const spec = {
             content: {
               'application/json': {
                 schema: { $ref: '#/components/schemas/Error' },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v1/business': {
+      get: {
+        summary: 'List all businesses',
+        tags: ['Business'],
+        responses: {
+          200: {
+            description: 'List of businesses',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    message: { type: 'string', example: 'Business API v1' },
+                    ok: { type: 'boolean', example: true },
+                    businesses: {
+                      type: 'array',
+                      items: {
+                        type: 'object',
+                        properties: {
+                          id: { type: 'string' },
+                          owner: { type: 'string' },
+                          businessname: { type: 'string' },
+                          location: { type: 'string' },
+                          pancardNumber: { type: 'number' },
+                          description: { type: 'string' },
+                        },
+                      },
+                    },
+                  },
+                },
               },
             },
           },
