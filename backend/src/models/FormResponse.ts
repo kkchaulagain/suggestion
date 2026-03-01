@@ -19,7 +19,7 @@ const answerSchema=new mongoose.Schema(
 
         },
     },
-    { _id:false}//mongo gives id but I don't want that
+    { _id:false}//mongo gives id  for all answers but I don't want that
 );
 const formResponseSchema=new mongoose.Schema(
     {

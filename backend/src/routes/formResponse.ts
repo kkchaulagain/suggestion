@@ -43,4 +43,27 @@ router.post('/',async (req:any,res:any)=>
 }
 })
 
+router.get('/:formId',async(req:any,res:any)=>
+{
+  try {
+    //is formId valid
+    const isValid=mongoose.Types.ObjectId.isValid(req.params.formId)
+    if(!isValid)
+    {
+      return res.status(400).json({error:'Invalid form Id',success:false});
+    }
+    //does that form exists in DB
+    const doesExists= await FeedbackForm.findById(req.params.formId)
+    if(!doesExists)
+    {
+      return res.status(404).json({error:'form Is Not found',success:false})
+    }
+    const responses= await FormResponse.find({formId:req.params.formId})
+    {
+      return res.status(200).json({ message: 'Form responses fetched successfully', success: true, responses })
+    }
+  } catch (error:any) {
+    return res.status(500).json({error:"Failed to fetch form Responses",success:false})
+  }
+})
 module.exports=router;
