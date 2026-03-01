@@ -1,0 +1,10 @@
+# Local dev only (docker-compose). Production uses Dockerfile.
+FROM node:20-alpine
+
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+RUN npm ci
+
+COPY . .
+CMD ["npm", "run", "dev"]

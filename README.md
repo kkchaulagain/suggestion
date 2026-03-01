@@ -8,7 +8,7 @@ A minimal Node.js + Express API with MongoDB and email/password auth.
 npm install
 ```
 
-**Optional config (backend):** Copy `backend/.env.example` to `backend/.env` and adjust. Defaults work for local dev (MongoDB on port 27017, default JWT secret). Set `JWT_SECRET` and `MONGODB_URI` for production.
+**Env:** See **[docs/ENV.md](docs/ENV.md)** for how to manage env (local `.env` and Fly.io secrets). Quick start: copy `backend/.env.example` → `backend/.env` and optionally `frontend/suggestion/.env.example` → `frontend/suggestion/.env`; defaults work for local dev.
 
 ## Run
 
@@ -61,14 +61,23 @@ Uses in-memory MongoDB by default; set `MONGODB_URI` to use a real DB.
     - `qrCodeDataUrl`: PNG QR image in data URL format
   - Uses `FRONTEND_FORM_BASE_URL` env var when set (example: `https://frontend.example.com/forms`)
 
-## Deploy on Fly.io
+## Deploy on Fly.io (backend + frontend)
 
-The repo has a **root `Dockerfile`** and **`fly.toml`** so Fly’s deploy (e.g. from GitHub) runs from the repo root and finds the app.
+One app per directory; deploy from **repo root** so you never `cd` into subdirs.
 
-1. Deploy from repo root: `fly deploy` (or use Fly’s GitHub integration).
-2. Set secrets for the API (required for auth and DB):
-   ```bash
-   fly secrets set MONGODB_URI="mongodb+srv://..." JWT_SECRET="your-secret"
-   ```
-   Use a [Fly Postgres](https://fly.io/docs/postgres/) or any MongoDB URL for `MONGODB_URI`.
-3. Optional: `fly secrets set FRONTEND_FORM_BASE_URL="https://your-frontend.fly.dev/forms"` for QR form links.
+| App     | Directory              | Command                    | URL (example)              |
+|---------|------------------------|----------------------------|----------------------------|
+| Backend | `backend/`             | `fly deploy ./backend`     | https://suggestion.fly.dev |
+| Frontend| `frontend/suggestion/` | `fly deploy ./frontend/suggestion` | https://suggestion-web.fly.dev |
+
+**From root (recommended):**
+```bash
+npm run deploy:backend    # or: fly deploy ./backend
+npm run deploy:frontend    # or: fly deploy ./frontend/suggestion
+```
+
+**First-time setup**
+- Backend: `fly secrets set MONGODB_URI="..." JWT_SECRET="..." -a suggestion`  
+  Optional: `fly secrets set FRONTEND_FORM_BASE_URL="https://suggestion-web.fly.dev/forms" -a suggestion`
+- Frontend: create app once with `fly apps create suggestion-web`, then `npm run deploy:frontend`.  
+  To use a different API URL: `fly deploy ./frontend/suggestion --build-arg VITE_API_URL=https://your-api.fly.dev`

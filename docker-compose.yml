@@ -18,7 +18,7 @@ services:
   frontend:
     build:
       context: ./frontend/suggestion
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     ports:
       - "3002:5173"
     environment:
