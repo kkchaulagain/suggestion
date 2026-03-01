@@ -71,13 +71,22 @@ export default function FormsPage() {
     <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-bold text-slate-900">Saved Forms</h3>
-        <button
-          type="button"
-          onClick={() => void loadForms()}
-          className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700"
-        >
-          Refresh
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => void loadForms()}
+            className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700"
+          >
+            Refresh
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate('/business-dashboard/forms/create')}
+            className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700"
+          >
+            Make Form
+          </button>
+        </div>
       </div>
 
       {loading ? <p className="mt-4 text-sm text-slate-500">Loading forms...</p> : null}
@@ -128,16 +137,6 @@ export default function FormsPage() {
       </div>
 
       {error ? <p className="mt-4 text-sm text-rose-600">{error}</p> : null}
-
-      <div className="mt-6 border-t border-slate-200 pt-5">
-        <button
-          type="button"
-          onClick={() => navigate('/business-dashboard/forms/create')}
-          className="w-full rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
-        >
-          Make Form
-        </button>
-      </div>
     </section>
   )
 }

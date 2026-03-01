@@ -188,9 +188,7 @@ export default function CreateFormPage() {
               onChange={(event) => {
                 const labelValue = event.target.value
                 setFieldLabel(labelValue)
-                if (!fieldName) {
-                  setFieldName(toFieldName(labelValue))
-                }
+                setFieldName(toFieldName(labelValue))
               }}
               placeholder="Field label"
               className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-emerald-600"
