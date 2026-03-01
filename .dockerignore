@@ -1,0 +1,12 @@
+# Root build context: only backend is copied in Dockerfile; ignore the rest to keep context small
+.git
+.github
+frontend
+*.md
+.env
+.env.*
+!.env.example
+backend/.env
+backend/node_modules
+backend/coverage
+*.log
