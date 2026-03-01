@@ -100,3 +100,48 @@ describe('GET /api/v1/business/:id', () => {
     expect(res.body.business).toHaveProperty('id', String(created._id));
   });
 });
+describe('Delete /api/v1/bussines/:id',()=>
+{afterEach(async () => {
+    try {
+      await Business.deleteMany({});
+    } catch {
+      // Ignore if connection already closed
+    }
+  });
+    //bussiness dont exits
+    it('should return 404 if business not found',async()=>
+    {
+      const nonExistentId=new mongoose.Types.ObjectId();
+      const res=await request(app)
+      .delete(`/api/v1/business/${nonExistentId}`)
+      .expect(404);
+      expect(res.body).toMatchObject({
+        message: 'Business not found',
+        ok:false,
+      });
+    });
+    //business exits then
+    it('should return 200 and delete business',async()=>
+    {
+      //creating a bussiness in Db so we have something to create
+      const created=await Business.create(
+        buildBusiness({
+          businessname:'aaru group',
+          location:'Nepal',
+          pancardNumber:90090902,
+          description:'Tryinging to do ',
+        })
+      );
+      const res=await request(app)
+      .delete(`/api/v1/business/${created._id}`).expect(200);
+
+      expect(res.body).toMatchObject({
+          message:'Business deleted successfully',
+          ok:true,
+      });
+      //is deleted from DB
+      const deleted=await Business.findById(created._id);
+      expect(deleted).toBeNull();
+    })
+});
+
