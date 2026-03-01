@@ -81,3 +81,5 @@ npm run deploy:frontend    # or: fly deploy ./frontend/suggestion
   Optional: `fly secrets set FRONTEND_FORM_BASE_URL="https://suggestion-web.fly.dev/forms" -a suggestion`
 - Frontend: create app once with `fly apps create suggestion-web`, then `npm run deploy:frontend`.  
   To use a different API URL: `fly deploy ./frontend/suggestion --build-arg VITE_API_URL=https://your-api.fly.dev`
+
+**Auto-deploy on push to main:** `.github/workflows/deploy.yml` deploys both apps when you push to `main`. Add a GitHub Actions secret `FLY_API_TOKEN` (create with `fly auth token`) in the repo **Settings → Secrets and variables → Actions**.
