@@ -5,7 +5,7 @@ export default function SuggestionForm() {
         <h1 className="text-2xl font-bold text-slate-900">Suggestion Form Builder</h1>
         <p className="mt-3 text-sm text-slate-700">
           This page can host your existing dynamic form builder. The new business dashboard is available at
-          `/business-dashboard/dashboard`.
+          `/dashboard/forms`.
         </p>
       </div>
     </div>

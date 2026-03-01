@@ -3,7 +3,7 @@ export interface SidebarItem {
   path: string
 }
 
+/** Sidebar items for business dashboard — forms only. */
 export const sidebarItems: SidebarItem[] = [
-  
-  { label: 'Forms', path: '/business-dashboard/forms' },
+  { label: 'Forms', path: '/dashboard/forms' },
 ]

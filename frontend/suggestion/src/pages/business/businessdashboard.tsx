@@ -1,5 +1,5 @@
 import { Navigate } from 'react-router-dom'
 
 export default function BusinessDashboard() {
-  return <Navigate to="/business-dashboard/forms" replace />
+  return <Navigate to="/dashboard/forms" replace />
 }

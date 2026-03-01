@@ -1,9 +1,12 @@
-// Wrapper for protected routes: redirects to login when not authenticated
 import { Navigate } from 'react-router-dom'
 import type { ReactNode, JSX } from 'react'
 import { useAuth } from '../context/AuthContext'
 
-export default function ProtectedRoute({ children }: { children: ReactNode }): JSX.Element {
+/**
+ * Renders children only when the user is NOT authenticated.
+ * If the user is logged in, redirects to the appropriate dashboard based on role.
+ */
+export default function GuestRoute({ children }: { children: ReactNode }): JSX.Element {
   const { isAuthenticated, isLoading } = useAuth()
 
   if (isLoading) {
@@ -14,5 +17,9 @@ export default function ProtectedRoute({ children }: { children: ReactNode }): J
     )
   }
 
-  return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />
+  if (isAuthenticated) {
+    return <Navigate to="/dashboard" replace />
+  }
+
+  return <>{children}</>
 }

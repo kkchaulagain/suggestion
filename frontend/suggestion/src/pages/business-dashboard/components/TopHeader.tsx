@@ -1,6 +1,7 @@
 import axios from 'axios'
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../../../context/AuthContext'
 import { businessmeapi } from '../../../utils/apipath'
 
 interface TopHeaderProps {
@@ -20,6 +21,7 @@ export default function TopHeader({ title, onOpenSidebar }: TopHeaderProps) {
   const [businessProfile, setBusinessProfile] = useState<BusinessProfile | null>(null)
   const profileMenuRef = useRef<HTMLDivElement>(null)
   const navigate = useNavigate()
+  const { logout, getAuthHeaders } = useAuth()
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -37,10 +39,9 @@ export default function TopHeader({ title, onOpenSidebar }: TopHeaderProps) {
   useEffect(() => {
     const fetchBusinessProfile = async () => {
       try {
-        const token = localStorage.getItem('token')
         const response = await axios.get(businessmeapi, {
           withCredentials: true,
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          headers: getAuthHeaders(),
         })
 
         if (response.data?.success && response.data?.data) {
@@ -52,12 +53,10 @@ export default function TopHeader({ title, onOpenSidebar }: TopHeaderProps) {
     }
 
     fetchBusinessProfile()
-  }, [])
+  }, [getAuthHeaders])
 
   const handleLogout = () => {
-    localStorage.removeItem('token')
-    localStorage.removeItem('role')
-    localStorage.setItem('isLoggedIn', 'false')
+    logout()
     navigate('/login')
   }
 

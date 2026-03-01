@@ -1,76 +1,32 @@
 import { useState } from 'react'
 import type { FormEvent, JSX } from 'react'
-import axios from 'axios' 
-import { loginapi, meapi } from '../utils/apipath'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 
+export default function Login(): JSX.Element {
+  const navigate = useNavigate()
+  const { login: authLogin, error: authError, setError: setAuthError } = useAuth()
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [errors, setErrors] = useState<{
+    email?: string
+    password?: string
+    general?: string
+  }>({})
 
-
-
-
-export default function Login():JSX.Element {
-    const navigate = useNavigate();
-    
-    const [email,setEmail]=useState('');
-    const [password,setPassword]=useState('');
-    const [errors, setErrors] = useState<{
-      email?: string
-      password?: string
-      general?: string
-    }>({})
-    
-    const handelFromSubmit= async(e: FormEvent<HTMLFormElement>)=>
-    {
-         e.preventDefault();
-         setErrors({})
-         try {
-            const data= {email,password}
-            const response =await axios.post(loginapi,data, {
-                withCredentials:true,
-                headers: {
-                    'Content-Type': 'application/json',
-                }
-                
-            })
-            if(response.data.message){
-                const token = response.data?.data?.token || response.data?.token
-                if (token) {
-                  localStorage.setItem('token', token)
-                }
-                localStorage.setItem('isLoggedIn', 'true')
-                let role = response.data?.data?.role || response.data?.user?.role
-                if (!role) {
-                  const meResponse = await axios.get(meapi, {
-                    withCredentials: true,
-                    headers: token ? { Authorization: `Bearer ${token}` } : {},
-                  })
-                  role = meResponse?.data?.data?.role
-                }
-                const normalizedRole = String(role).toLowerCase()
-                const isBusinessDashboardRole = normalizedRole === 'business' || normalizedRole === 'governmentservices'
-                alert(response.data.message)
-                navigate(isBusinessDashboardRole ? '/business-dashboard' : '/dashboard')
-            }
-         } catch (error: any) {
-            localStorage.removeItem('isLoggedIn')
-            const responseData = error?.response?.data
-
-            if (responseData?.field && responseData?.error) {
-              setErrors({ [responseData.field]: responseData.error })
-            } else if (responseData?.errors && typeof responseData.errors === 'object') {
-              const mapped = responseData.errors as Record<string, string>
-              setErrors({
-                email: mapped.email,
-                password: mapped.password,
-                general: mapped.general,
-              })
-            } else if (responseData?.error) {
-              setErrors({ general: responseData.error })
-            } else {
-              setErrors({ general: 'Something went wrong. Please try again.' })
-            }
-         }
+  const handelFromSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setErrors({})
+    setAuthError(null)
+    const result = await authLogin({ email, password })
+    if (result.success) {
+      navigate('/dashboard')
+    } else if (result.error) {
+      setErrors({ general: result.error })
     }
+  }
+
+  const displayError = authError ?? errors.general
 
   return (
     <div className="min-h-screen bg-[radial-gradient(55rem_28rem_at_90%_-20%,#c8efe3_5%,transparent_65%),radial-gradient(42rem_25rem_at_-10%_120%,#ffcfa6_5%,transparent_65%),linear-gradient(140deg,#fffdf8_0%,#f5fbff_100%)] px-6 py-8 grid place-items-center">
@@ -78,7 +34,7 @@ export default function Login():JSX.Element {
         <p className="m-0 text-xs font-bold uppercase tracking-[0.08em] text-teal-700">Suggestion Platform</p>
         <h1 className="mt-2 mb-1 text-3xl sm:text-4xl font-bold leading-tight text-slate-800">Welcome back</h1>
         <p className="mb-5 text-sm text-slate-600">Log in to continue sharing and managing ideas.</p>
-        {errors.general && <p className="mb-3 text-sm text-red-600">{errors.general}</p>}
+        {displayError && <p className="mb-3 text-sm text-red-600">{displayError}</p>}
         <form className="grid gap-2.5" onSubmit={handelFromSubmit} noValidate>
           <label htmlFor="login-email" className="text-xs font-semibold tracking-wide text-slate-800">Email</label>
           <input

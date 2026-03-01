@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { FormEvent, JSX } from 'react'
-import axios from 'axios' 
-import {userapi} from '../utils/apipath'
+import axios from 'axios'
+import { userapi } from '../utils/apipath'
 import { useNavigate } from 'react-router-dom'
 
 type FieldErrors = {
