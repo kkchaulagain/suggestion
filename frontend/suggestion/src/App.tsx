@@ -2,9 +2,16 @@ import './App.css'
 import Signup from './auth/Signup'
 import Login from './auth/login'
 import Dashboard from './pages/Dashboard'
-import BusinessDashboard from './pages/businessdashboard'
+import SuggestionForm from './pages/business/suggestionform'
+
 import ProtectedRoute from './component/ProtectedRoutes'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import BusinessDashboardLayout from './pages/business-dashboard/layout/BusinessDashboardLayout'
+
+
+import FormsPage from './pages/business-dashboard/pages/FormsPage'
+import CreateFormPage from './pages/business-dashboard/pages/CreateFormPage'
+
 
 function App() {
   return (
@@ -25,10 +32,24 @@ function App() {
           path="/business-dashboard"
           element={
             <ProtectedRoute>
-              <BusinessDashboard />
+              <BusinessDashboardLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<Navigate to="forms" replace />} />
+          <Route path="forms" element={<FormsPage />} />
+          <Route path="forms/create" element={<CreateFormPage />} />
+
+        </Route>
+        <Route
+          path="/business-form"
+          element={
+            <ProtectedRoute>
+              <SuggestionForm />
             </ProtectedRoute>
           }
         />
+       
       </Routes>
     </BrowserRouter>
   )

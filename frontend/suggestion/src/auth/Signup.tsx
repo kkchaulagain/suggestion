@@ -16,7 +16,7 @@ type FieldErrors = {
   general?: string
 }
 
-type UserRole = 'user' | 'business' | 'government'
+type UserRole = 'user' | 'business' | 'governmentservices'
 
 export default function Signup(): JSX.Element {
   const navigate = useNavigate()
@@ -199,7 +199,7 @@ export default function Signup(): JSX.Element {
             >
               <option value="user">User</option>
               <option value="business">Business</option>
-              <option value="government">Government</option>
+              <option value="governmentservices">Government</option>
             </select>
             {errors.role && (
               <p className="text-red-500 text-xs mt-0.5">{errors.role}</p>

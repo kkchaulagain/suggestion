@@ -1,9 +1,18 @@
+import type { Request } from 'express';
 const express = require('express');
 const mongoose = require('mongoose');
 const QRCode = require('qrcode');
 const { FeedbackForm } = require('../models/FeedbackForm');
+const Business = require('../models/Business');
+const { isAuthenticated } = require('../middleware/isauthenticated');
+const { isBusinessRole } = require('../middleware/isbusiness');
 const router = express.Router();
 const DEFAULT_FRONTEND_FORM_BASE_URL = 'http://localhost:5173/feedback-forms';
+
+interface AuthenticatedRequest extends Request {
+  id?: string;
+  businessProfile?: any;
+}
 
 function normalizeFieldType(type: any) {
   if (typeof type !== 'string') return type;
@@ -60,9 +69,28 @@ function getFrontendFormUrl(formId: string, frontendBaseUrlOverride?: string) {
   return `${normalizeBaseUrl(baseUrl)}/${encodeURIComponent(formId)}`;
 }
 
-router.post('/', async (req: any, res: any) => {
+async function resolveBusinessProfile(req: AuthenticatedRequest, res: any, next: any) {
+  try {
+    if (!req.id) {
+      return res.status(401).json({ error: 'Unauthorized access' });
+    }
+
+    const businessProfile = await Business.findOne({ owner: req.id }).select('_id owner');
+    if (!businessProfile) {
+      return res.status(404).json({ error: 'Business profile not found' });
+    }
+
+    req.businessProfile = businessProfile;
+    return next();
+  } catch (err) {
+    return res.status(500).json({ error: 'Failed to verify business profile' });
+  }
+}
+
+router.post('/', isAuthenticated, isBusinessRole, resolveBusinessProfile, async (req: AuthenticatedRequest, res: any) => {
   try {
     const payload = buildPayload(req.body || {});
+    payload.businessId = req.businessProfile._id;
     const feedbackForm = await FeedbackForm.create(payload);
     return res.status(201).json({
       message: 'Feedback form created',
@@ -77,9 +105,9 @@ router.post('/', async (req: any, res: any) => {
   }
 });
 
-router.get('/', async (req: any, res: any) => {
+router.get('/', isAuthenticated, isBusinessRole, resolveBusinessProfile, async (req: AuthenticatedRequest, res: any) => {
   try {
-    const feedbackForms = await FeedbackForm.find().sort({ createdAt: -1 });
+    const feedbackForms = await FeedbackForm.find({ businessId: req.businessProfile._id }).sort({ createdAt: -1 });
     return res.status(200).json({ feedbackForms });
   } catch (err) {
     return res.status(500).json({ error: 'Failed to fetch feedback forms' });
@@ -102,7 +130,7 @@ router.get('/:id', async (req: any, res: any) => {
   }
 });
 
-router.post('/:id/qr', async (req: any, res: any) => {
+router.post('/:id/qr', isAuthenticated, isBusinessRole, resolveBusinessProfile, async (req: AuthenticatedRequest, res: any) => {
   if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
     return res.status(400).json({ error: 'Invalid feedback form id' });
   }
@@ -116,7 +144,10 @@ router.post('/:id/qr', async (req: any, res: any) => {
   }
 
   try {
-    const feedbackForm = await FeedbackForm.findById(req.params.id).select('_id');
+    const feedbackForm = await FeedbackForm.findOne({
+      _id: req.params.id,
+      businessId: req.businessProfile._id,
+    }).select('_id');
     if (!feedbackForm) {
       return res.status(404).json({ error: 'Feedback form not found' });
     }
@@ -139,7 +170,7 @@ router.post('/:id/qr', async (req: any, res: any) => {
   }
 });
 
-router.put('/:id', async (req: any, res: any) => {
+router.put('/:id', isAuthenticated, isBusinessRole, resolveBusinessProfile, async (req: AuthenticatedRequest, res: any) => {
   if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
     return res.status(400).json({ error: 'Invalid feedback form id' });
   }
@@ -150,7 +181,10 @@ router.put('/:id', async (req: any, res: any) => {
   }
 
   try {
-    const feedbackForm = await FeedbackForm.findByIdAndUpdate(req.params.id, payload, {
+    const feedbackForm = await FeedbackForm.findOneAndUpdate({
+      _id: req.params.id,
+      businessId: req.businessProfile._id,
+    }, payload, {
       new: true,
       runValidators: true,
     });
@@ -172,13 +206,16 @@ router.put('/:id', async (req: any, res: any) => {
   }
 });
 
-router.delete('/:id', async (req: any, res: any) => {
+router.delete('/:id', isAuthenticated, isBusinessRole, resolveBusinessProfile, async (req: AuthenticatedRequest, res: any) => {
   if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
     return res.status(400).json({ error: 'Invalid feedback form id' });
   }
 
   try {
-    const feedbackForm = await FeedbackForm.findByIdAndDelete(req.params.id);
+    const feedbackForm = await FeedbackForm.findOneAndDelete({
+      _id: req.params.id,
+      businessId: req.businessProfile._id,
+    });
     if (!feedbackForm) {
       return res.status(404).json({ error: 'Feedback form not found' });
     }
