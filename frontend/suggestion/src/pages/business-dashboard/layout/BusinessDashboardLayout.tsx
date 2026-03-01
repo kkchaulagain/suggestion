@@ -5,10 +5,8 @@ import TopHeader from '../components/TopHeader'
 import { sidebarItems } from '../types/navigation'
 
 const pageTitles: Record<string, string> = {
-  
-  '/business-dashboard/forms': 'Forms',
-  '/business-dashboard/forms/create': 'Create Form',
- 
+  '/dashboard/forms': 'Forms',
+  '/dashboard/forms/create': 'Create Form',
 }
 
 export default function BusinessDashboardLayout() {
