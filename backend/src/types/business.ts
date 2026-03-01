@@ -26,3 +26,6 @@ export type GetBusinessesResponse = ApiResponse & {
 export type GetBusinessResponse = ApiResponse & {
   business: BusinessListItem;
 };
+export type UpdateBusinessResponse=ApiResponse &{
+  business:BusinessListItem;
+}

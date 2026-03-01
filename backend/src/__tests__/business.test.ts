@@ -168,7 +168,7 @@ describe('Update /api/v1/business/:id',()=>
       }
     );
   })
- // ❌ Case — empty body sent
+ // empty body sent
 it('should return 400 if no valid fields sent', async () => {
   const created = await Business.create(
     buildBusiness({
@@ -181,7 +181,7 @@ it('should return 400 if no valid fields sent', async () => {
 
   const res = await request(app)
     .put(`/api/v1/business/${created._id}`)
-    .send({})  // ← empty body
+    .send({})  
     .expect(400);
 
   expect(res.body).toMatchObject({
@@ -190,7 +190,7 @@ it('should return 400 if no valid fields sent', async () => {
   });
 });
 
-// ❌ Case — trying to change owner (should be ignored)
+//  trying to change owner 
 it('should not allow owner to be changed', async () => {
   const created = await Business.create(
     buildBusiness({
@@ -208,12 +208,12 @@ it('should not allow owner to be changed', async () => {
     .send({ owner: hackedOwnerId, businessname: 'Hacked Business' })
     .expect(200);
 
-  // owner should still be original — not the hacked one
+  // owner should still be original 
   const updated = await Business.findById(created._id);
   expect(String(updated.owner)).not.toBe(String(hackedOwnerId));
 });
 
-// ✅ Case — valid update
+// valid update
 it('should return 200 and update only sent fields', async () => {
   const created = await Business.create(
     buildBusiness({
@@ -234,7 +234,7 @@ it('should return 200 and update only sent fields', async () => {
     ok: true,
   });
 
-  // location should still be Bhaktapur — we didn't touch it!
+  // location should still be Bhaktapur 
   expect(res.body.business.businessname).toBe('Pashupatinath Arts');
   expect(res.body.business.location).toBe('Bhaktapur');
 });
