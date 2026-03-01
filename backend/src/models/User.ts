@@ -19,7 +19,6 @@ const userSchema = new mongoose.Schema({
     type: String,
     enum: ['business', 'user','governmentservices'],
     default: 'user',
-    
   }
 }, { timestamps: true });
 
