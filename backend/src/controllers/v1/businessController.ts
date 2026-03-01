@@ -1,7 +1,7 @@
 import type { Request, Response } from 'express';
 const Business = require('../../models/Business');
-import type { BusinessDocument, BusinessListItem, GetBusinessesResponse, GetBusinessResponse,UpdateBusinessResponse } from '../../types/business';
-import { ApiResponse } from '../../types/api';
+import type { BusinessDocument, BusinessListItem, GetBusinessesResponse, GetBusinessResponse, } from '../../types/business';
+import type { ApiResponse } from '../../types/api';
 
 function toListItem(doc: BusinessDocument): BusinessListItem {
   return {
