@@ -6,6 +6,7 @@ function getConnectionUri() {
   const isTest = typeof process.env.JEST_WORKER_ID !== 'undefined';
   if (isTest) {
     if (!uri || uri === 'mongodb://localhost:27017/suggestion' || !uri.includes('127.0.0.1')) {
+      /* istanbul ignore next -- defensive guard; should never run when test setup is correct */
       throw new Error(
         'Tests must use in-memory MongoDB. Ensure test setup (setupFilesAfterEnv) runs and sets MONGODB_URI.',
       );
