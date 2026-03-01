@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 const Business = require('../../models/Business');
-import type { BusinessDocument, BusinessListItem, GetBusinessesResponse } from '../../types/business';
+import type { BusinessDocument, BusinessListItem, GetBusinessesResponse, GetBusinessResponse } from '../../types/business';
 
 function toListItem(doc: BusinessDocument): BusinessListItem {
   return {
@@ -28,7 +28,14 @@ async function findBusinessById(req: Request, res: Response): Promise<void> {
   const business = await Business.findById(id);
   if (!business) {
     res.status(404).json({ message: 'Business not found', ok: false });
+    return;
   }
+  const payload: GetBusinessResponse = {
+    message: 'Business found',
+    ok: true,
+    business: toListItem(business),
+  };
+  res.json(payload);
 }
 
 module.exports = { getBusiness,findBusinessById };

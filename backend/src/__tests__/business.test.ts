@@ -61,4 +61,28 @@ describe('GET /api/v1/business/:id', () => {
     expect(res.body).toMatchObject({ message: 'Business not found', ok: false });
     expect(Business.findById).toHaveBeenCalledWith('123');
   });
+  // should return 200 with business if found
+  it('should return 200 with business if found', async () => {
+    const mockDoc = {
+      _id: new mongoose.Types.ObjectId(),
+      ...buildBusiness({
+        businessname: 'Acme Corp',
+        location: 'Lalitpur',
+        pancardNumber: 987654321,
+        description: 'Acme description',
+      }),
+    };
+    Business.findById.mockResolvedValue(mockDoc);
+
+    const res = await request(app).get('/api/v1/business/123').expect(200);
+    expect(res.body).toMatchObject({ message: 'Business found', ok: true });
+    expect(res.body.business).toMatchObject({
+      businessname: 'Acme Corp',
+      location: 'Lalitpur',
+      pancardNumber: 987654321,
+      description: 'Acme description',
+    });
+    expect(res.body.business).toHaveProperty('id', String(mockDoc._id));
+    expect(Business.findById).toHaveBeenCalledWith('123');
+  });
 });
