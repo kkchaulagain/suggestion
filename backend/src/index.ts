@@ -10,8 +10,9 @@ async function start() {
   } catch (err) {
     console.warn('MongoDB not connected:', err instanceof Error ? err.message : err);
   }
-  app.listen(PORT, () => {
-    console.log(`Server running at http://localhost:${PORT}`);
+  const host = process.env.HOST ?? '0.0.0.0';
+  app.listen(Number(PORT), host, () => {
+    console.log(`Server running at http://${host}:${PORT}`);
   });
 }
 

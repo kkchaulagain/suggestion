@@ -8,6 +8,8 @@ A minimal Node.js + Express API with MongoDB and email/password auth.
 npm install
 ```
 
+**Env:** See **[docs/ENV.md](docs/ENV.md)** for how to manage env (local `.env` and Fly.io secrets). Quick start: copy `backend/.env.example` → `backend/.env` and optionally `frontend/suggestion/.env.example` → `frontend/suggestion/.env`; defaults work for local dev.
+
 ## Run
 
 **With Docker (API + MongoDB):**
@@ -58,3 +60,26 @@ Uses in-memory MongoDB by default; set `MONGODB_URI` to use a real DB.
     - `formUrl`: frontend URL with form id appended
     - `qrCodeDataUrl`: PNG QR image in data URL format
   - Uses `FRONTEND_FORM_BASE_URL` env var when set (example: `https://frontend.example.com/forms`)
+
+## Deploy on Fly.io (backend + frontend)
+
+One app per directory; deploy from **repo root** so you never `cd` into subdirs.
+
+| App     | Directory              | Command                    | URL (example)              |
+|---------|------------------------|----------------------------|----------------------------|
+| Backend | `backend/`             | `fly deploy ./backend`     | https://suggestion.fly.dev |
+| Frontend| `frontend/suggestion/` | `fly deploy ./frontend/suggestion` | https://suggestion-web.fly.dev |
+
+**From root (recommended):**
+```bash
+npm run deploy:backend    # or: fly deploy ./backend
+npm run deploy:frontend    # or: fly deploy ./frontend/suggestion
+```
+
+**First-time setup**
+- Backend: `fly secrets set MONGODB_URI="..." JWT_SECRET="..." -a suggestion`  
+  Optional: `fly secrets set FRONTEND_FORM_BASE_URL="https://suggestion-web.fly.dev/forms" -a suggestion`
+- Frontend: create app once with `fly apps create suggestion-web`, then `npm run deploy:frontend`.  
+  To use a different API URL: `fly deploy ./frontend/suggestion --build-arg VITE_API_URL=https://your-api.fly.dev`
+
+**Auto-deploy on push to main:** `.github/workflows/deploy.yml` deploys both apps when you push to `main`. Add a GitHub Actions secret `FLY_API_TOKEN` (create with `fly auth token`) in the repo **Settings → Secrets and variables → Actions**.
