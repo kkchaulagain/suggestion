@@ -1,1 +1,20 @@
-// No database startup – tests use mocks. Set MONGODB_URI if a test needs a real DB.
+const { MongoMemoryServer } = require('mongodb-memory-server');
+
+let mongod: any;
+
+beforeAll(async () => {
+  if (!process.env.MONGODB_URI) {
+    mongod = await MongoMemoryServer.create({
+      instance: {
+        launchTimeout: 60000,
+      },
+    });
+    process.env.MONGODB_URI = mongod.getUri();
+  }
+}, 30000);
+
+afterAll(async () => {
+  if (mongod) {
+    await mongod.stop();
+  }
+});
