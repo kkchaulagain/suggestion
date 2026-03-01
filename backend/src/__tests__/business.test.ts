@@ -50,3 +50,15 @@ describe('GET /api/v1/business', () => {
     expect(Business.find).toHaveBeenCalledTimes(1);
   });
 });
+
+// test for find a business by id
+describe('GET /api/v1/business/:id', () => {
+  // should return 404 if business not found
+  it('should return 404 if business not found', async () => {
+    Business.findById.mockResolvedValue(null);
+
+    const res = await request(app).get('/api/v1/business/123').expect(404);
+    expect(res.body).toMatchObject({ message: 'Business not found', ok: false });
+    expect(Business.findById).toHaveBeenCalledWith('123');
+  });
+});

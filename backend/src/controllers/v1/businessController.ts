@@ -23,5 +23,12 @@ async function getBusiness(req: Request, res: Response): Promise<void> {
   };
   res.json(payload);
 }
+async function findBusinessById(req: Request, res: Response): Promise<void> {
+  const { id } = req.params;
+  const business = await Business.findById(id);
+  if (!business) {
+    res.status(404).json({ message: 'Business not found', ok: false });
+  }
+}
 
-module.exports = { getBusiness };
+module.exports = { getBusiness,findBusinessById };
