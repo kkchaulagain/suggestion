@@ -36,6 +36,7 @@ async function findBusinessById(req: Request, res: Response): Promise<void> {
     business: toListItem(business),
   };
   res.json(payload);
+  return;
 }
 
 module.exports = { getBusiness,findBusinessById };
