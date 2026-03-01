@@ -397,11 +397,11 @@ const spec = {
     },
     '/api/v1/business': {
       get: {
-        summary: 'Business API (v1)',
+        summary: 'List all businesses',
         tags: ['Business'],
         responses: {
           200: {
-            description: 'Business API info',
+            description: 'List of businesses',
             content: {
               'application/json': {
                 schema: {
@@ -409,6 +409,20 @@ const spec = {
                   properties: {
                     message: { type: 'string', example: 'Business API v1' },
                     ok: { type: 'boolean', example: true },
+                    businesses: {
+                      type: 'array',
+                      items: {
+                        type: 'object',
+                        properties: {
+                          id: { type: 'string' },
+                          owner: { type: 'string' },
+                          businessname: { type: 'string' },
+                          location: { type: 'string' },
+                          pancardNumber: { type: 'number' },
+                          description: { type: 'string' },
+                        },
+                      },
+                    },
                   },
                 },
               },

@@ -1,9 +1,8 @@
-import express, { Request, Response } from 'express';
+const express = require('express');
+const { getBusiness } = require('../../controllers/v1/businessController');
 
 const router = express.Router();
 
-router.get('/', (req: Request, res: Response) => {
-  res.json({ message: 'Business API v1', ok: true });
-});
+router.get('/', getBusiness);
 
 module.exports = router;
