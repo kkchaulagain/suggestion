@@ -89,4 +89,34 @@ describe('Feedback Forms API Coverage', () => {
 
     expect(res.body.error).toBe('Failed to verify business profile');
   });
+
+  it('returns 500 when update fails (PUT catch, line 235)', async () => {
+    const ownerId = new mongoose.Types.ObjectId();
+    const business = await Business.create({
+      owner: ownerId,
+      businessname: 'Coverage Biz',
+      location: 'City',
+      pancardNumber: 1234567,
+      description: 'Desc',
+    });
+    mockIsAuthenticated.mockImplementationOnce((req, res, next) => {
+      req.id = ownerId.toString();
+      next();
+    });
+
+    const form = await FeedbackForm.create({
+      businessId: business._id,
+      title: 'To Update',
+      fields: [{ name: 'f1', label: 'F1', type: 'short_text' }],
+    });
+
+    jest.spyOn(FeedbackForm, 'findOneAndUpdate').mockRejectedValueOnce(new Error('DB error'));
+
+    const res = await request(app)
+      .put(`/api/feedback-forms/${form._id}`)
+      .send({ title: 'Updated', fields: [{ name: 'f1', label: 'F1', type: 'long_text' }] })
+      .expect(500);
+
+    expect(res.body.error).toBe('Failed to update feedback form');
+  });
 });
