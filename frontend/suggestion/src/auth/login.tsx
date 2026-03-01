@@ -46,8 +46,10 @@ export default function Login():JSX.Element {
                   })
                   role = meResponse?.data?.data?.role
                 }
+                const normalizedRole = String(role).toLowerCase()
+                const isBusinessDashboardRole = normalizedRole === 'business' || normalizedRole === 'governmentservices'
                 alert(response.data.message)
-                navigate(String(role).toLowerCase() === 'business' ? '/business-dashboard' : '/dashboard')
+                navigate(isBusinessDashboardRole ? '/business-dashboard' : '/dashboard')
             }
          } catch (error: any) {
             localStorage.removeItem('isLoggedIn')

@@ -6,6 +6,7 @@ const FEEDBACK_FIELD_TYPES = [
   'long_text',
   'big_text',
   'image_upload',
+  'radio',
 ];
 
 const feedbackFieldSchema = new mongoose.Schema(
@@ -47,6 +48,12 @@ const feedbackFieldSchema = new mongoose.Schema(
 
 const feedbackFormSchema = new mongoose.Schema(
   {
+    businessId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Business',
+      required: [true, 'Business id is required'],
+      index: true,
+    },
     title: {
       type: String,
       required: [true, 'Form title is required'],

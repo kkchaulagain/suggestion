@@ -3,7 +3,7 @@ import '@testing-library/jest-dom'
 import { MemoryRouter } from 'react-router-dom'
 import axios from 'axios'
 
-import BusinessDashboard from '../pages/businessdashboard'
+import BusinessDashboard from '../pages/business/businessdashboard'
 
 jest.mock('axios')
 const mockedAxios = axios as jest.Mocked<typeof axios>
@@ -55,6 +55,32 @@ describe('BusinessDashboard Component', () => {
     expect(screen.getByText(/jorpati/i)).toBeInTheDocument()
     expect(screen.getByText(/12345678/i)).toBeInTheDocument()
     expect(screen.getByText(/Retail store/i)).toBeInTheDocument()
+  })
+
+  test('form button redirects to business form page', async () => {
+    localStorage.setItem('token', 'fake-token')
+    localStorage.setItem('isLoggedIn', 'true')
+    mockedAxios.get.mockResolvedValueOnce({
+      data: {
+        success: true,
+        data: {
+          businessname: 'Acme Traders',
+          location: 'jorpati',
+          pancardNumber: 12345678,
+          description: 'Retail store',
+        },
+      },
+    } as any)
+
+    renderBusinessDashboard()
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Form/i })).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /Form/i }))
+
+    expect(mockNavigate).toHaveBeenCalledWith('/business-form')
   })
 
   test('logout clears localStorage and navigates to login', async () => {
