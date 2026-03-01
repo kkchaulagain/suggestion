@@ -3,11 +3,11 @@ import Signup from './auth/Signup'
 import Login from './auth/login'
 import Dashboard from './pages/Dashboard'
 import SuggestionForm from './pages/business/suggestionform'
-import FeedbackFormFill from './pages/feedback/FeedbackFormFill'
+
 import ProtectedRoute from './component/ProtectedRoutes'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import BusinessDashboardLayout from './pages/business-dashboard/layout/BusinessDashboardLayout'
-import BusinessDashboardPage from './pages/business-dashboard/pages/BusinessDashboardPage'
+
 
 import FormsPage from './pages/business-dashboard/pages/FormsPage'
 import CreateFormPage from './pages/business-dashboard/pages/CreateFormPage'
@@ -36,8 +36,7 @@ function App() {
             </ProtectedRoute>
           }
         >
-          <Route index element={<Navigate to="dashboard" replace />} />
-          <Route path="dashboard" element={<BusinessDashboardPage />} />
+          <Route index element={<Navigate to="forms" replace />} />
           <Route path="forms" element={<FormsPage />} />
           <Route path="forms/create" element={<CreateFormPage />} />
 
@@ -50,7 +49,7 @@ function App() {
             </ProtectedRoute>
           }
         />
-        <Route path="/feedback-forms/:id" element={<FeedbackFormFill />} />
+       
       </Routes>
     </BrowserRouter>
   )

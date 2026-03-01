@@ -125,4 +125,126 @@ describe('Signup Component', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/login')
   })
 
+  test('shows business-only fields and sanitizes PAN to digits', () => {
+    renderSignup()
+
+    fireEvent.change(screen.getByLabelText(/Account Type/i), {
+      target: { value: 'business' },
+    })
+
+    expect(screen.getByLabelText(/Business Name/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/Location/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/Description/i)).toBeInTheDocument()
+
+    const panInput = screen.getByLabelText(/PAN Card Number/i) as HTMLInputElement
+    fireEvent.change(panInput, { target: { value: 'AB12-34x' } })
+    expect(panInput.value).toBe('1234')
+
+    fireEvent.change(screen.getByLabelText(/Account Type/i), {
+      target: { value: 'user' },
+    })
+
+    expect(screen.queryByLabelText(/Business Name/i)).not.toBeInTheDocument()
+  })
+
+  test('submits business payload with parsed pancard number', async () => {
+    mockedAxios.post.mockResolvedValueOnce({
+      data: { message: 'Business created successfully' },
+    } as any)
+
+    renderSignup()
+
+    fireEvent.change(screen.getByLabelText(/^Name$/i), {
+      target: { value: 'Acme Owner' },
+    })
+    fireEvent.change(screen.getByLabelText(/^Email$/i), {
+      target: { value: 'owner@acme.com' },
+    })
+    fireEvent.change(screen.getByLabelText(/^Password$/i), {
+      target: { value: '12345678' },
+    })
+    fireEvent.change(screen.getByLabelText(/Account Type/i), {
+      target: { value: 'business' },
+    })
+    fireEvent.change(screen.getByLabelText(/Business Name/i), {
+      target: { value: 'Acme Traders' },
+    })
+    fireEvent.change(screen.getByLabelText(/Location/i), {
+      target: { value: 'Kathmandu' },
+    })
+    fireEvent.change(screen.getByLabelText(/Description/i), {
+      target: { value: 'Retail store' },
+    })
+    fireEvent.change(screen.getByLabelText(/PAN Card Number/i), {
+      target: { value: '123456' },
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /Sign Up/i }))
+
+    await waitFor(() => {
+      expect(mockedAxios.post).toHaveBeenCalled()
+    })
+
+    expect(mockedAxios.post).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        role: 'business',
+        businessname: 'Acme Traders',
+        location: 'Kathmandu',
+        description: 'Retail store',
+        pancardNumber: 123456,
+      }),
+      expect.anything(),
+    )
+  })
+
+  test('shows field-level error from single field response shape', async () => {
+    mockedAxios.post.mockRejectedValueOnce({
+      response: {
+        data: {
+          field: 'email',
+          error: 'Email already exists',
+        },
+      },
+    })
+
+    renderSignup()
+    fireEvent.click(screen.getByRole('button', { name: /Sign Up/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText(/Email already exists/i)).toBeInTheDocument()
+    })
+  })
+
+  test('shows general error and fallback unknown error message', async () => {
+    mockedAxios.post.mockRejectedValueOnce({
+      response: {
+        data: {
+          error: 'Registration failed',
+        },
+      },
+    })
+
+    renderSignup()
+    fireEvent.click(screen.getByRole('button', { name: /Sign Up/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText(/Registration failed/i)).toBeInTheDocument()
+    })
+
+    mockedAxios.post.mockRejectedValueOnce(new Error('network error'))
+    fireEvent.click(screen.getByRole('button', { name: /Sign Up/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText(/Something went wrong. Please try again./i)).toBeInTheDocument()
+    })
+  })
+
+  test('navigates to login when clicking Login button', () => {
+    renderSignup()
+
+    fireEvent.click(screen.getByRole('button', { name: /Login/i }))
+    expect(mockNavigate).toHaveBeenCalledWith('/login')
+  })
+
 })

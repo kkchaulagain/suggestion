@@ -80,4 +80,62 @@ describe('Dashboard Component', () => {
     expect(localStorage.getItem('isLoggedIn')).toBeNull()
     expect(mockNavigate).toHaveBeenCalledWith('/login')
   })
+
+  test('shows N/A when backend response is not successful', async () => {
+    localStorage.setItem('isLoggedIn', 'true')
+    localStorage.setItem('token', 'fake-token')
+    mockedAxios.get.mockResolvedValueOnce({
+      data: {
+        success: false,
+        data: {
+          name: 'Ignored Name',
+          email: 'ignored@example.com',
+        },
+      },
+    } as any)
+
+    renderDashboard()
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /Welcome Back/i })).toBeInTheDocument()
+    })
+
+    expect(screen.getAllByText('N/A').length).toBeGreaterThanOrEqual(2)
+  })
+
+  test('shows error UI and retries page reload on non-401 failure', async () => {
+    localStorage.setItem('isLoggedIn', 'true')
+    localStorage.setItem('token', 'fake-token')
+    mockedAxios.get.mockRejectedValueOnce(new Error('request failed'))
+
+    renderDashboard()
+
+    await waitFor(() => {
+      expect(screen.getByText(/Failed to load user data/i)).toBeInTheDocument()
+    })
+
+    expect(screen.getByRole('button', { name: /Retry/i })).toBeInTheDocument()
+  })
+
+  test('handles 401 axios error by clearing auth and navigating to login', async () => {
+    localStorage.setItem('isLoggedIn', 'true')
+    localStorage.setItem('token', 'expired-token')
+
+    const unauthorizedError = {
+      isAxiosError: true,
+      response: { status: 401 },
+    }
+
+    mockedAxios.get.mockRejectedValueOnce(unauthorizedError as any)
+    ;(axios.isAxiosError as unknown as jest.Mock).mockReturnValueOnce(true)
+
+    renderDashboard()
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith('/login')
+    })
+
+    expect(localStorage.getItem('isLoggedIn')).toBeNull()
+    expect(localStorage.getItem('token')).toBeNull()
+  })
 })

@@ -103,6 +103,72 @@ describe('CreateFormPage', () => {
     })
   })
 
+  test('adds option with Enter key and clears options when switching to non-option type', async () => {
+    renderCreateFormPage()
+
+    fireEvent.change(screen.getByPlaceholderText(/Field label/i), {
+      target: { value: 'Satisfaction' },
+    })
+    fireEvent.change(screen.getByRole('combobox'), {
+      target: { value: 'radio' },
+    })
+
+    const optionInput = screen.getByPlaceholderText(/Type an option and press Enter/i)
+    fireEvent.change(optionInput, { target: { value: 'Good' } })
+    fireEvent.keyDown(optionInput, { key: 'Enter', code: 'Enter' })
+
+    expect(screen.getByRole('button', { name: /Remove option Good/i })).toBeInTheDocument()
+
+    fireEvent.change(screen.getByRole('combobox'), {
+      target: { value: 'short_text' },
+    })
+
+    await waitFor(() => {
+      expect(screen.queryByPlaceholderText(/Type an option and press Enter/i)).not.toBeInTheDocument()
+    })
+  })
+
+  test('supports custom field name, placeholder, required flag, and option previews', () => {
+    renderCreateFormPage()
+
+    fireEvent.change(screen.getByPlaceholderText(/Field label/i), {
+      target: { value: 'Service Choice' },
+    })
+    fireEvent.change(screen.getByPlaceholderText(/field_name/i), {
+      target: { value: '1 Service Name' },
+    })
+    fireEvent.change(screen.getByRole('combobox'), {
+      target: { value: 'checkbox' },
+    })
+    fireEvent.change(screen.getByPlaceholderText(/Type an option and press Enter/i), {
+      target: { value: 'Billing' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /^Add$/i }))
+    fireEvent.change(screen.getByPlaceholderText(/Placeholder \(optional\)/i), {
+      target: { value: 'Choose one service' },
+    })
+    fireEvent.click(screen.getByRole('checkbox', { name: /Required field/i }))
+    fireEvent.click(screen.getByRole('button', { name: /Add Field/i }))
+
+    expect(screen.getByText(/Service Choice/i)).toBeInTheDocument()
+    expect(screen.getByText('Billing')).toBeInTheDocument()
+    expect(screen.getByText('*')).toBeInTheDocument()
+
+    fireEvent.change(screen.getByPlaceholderText(/Field label/i), {
+      target: { value: 'Contact Method' },
+    })
+    fireEvent.change(screen.getByRole('combobox'), {
+      target: { value: 'radio' },
+    })
+    fireEvent.change(screen.getByPlaceholderText(/Type an option and press Enter/i), {
+      target: { value: 'Email' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /^Add$/i }))
+    fireEvent.click(screen.getByRole('button', { name: /Add Field/i }))
+
+    expect(screen.getByText('Email')).toBeInTheDocument()
+  })
+
   test('remove button deletes a previewed field', async () => {
     renderCreateFormPage()
 

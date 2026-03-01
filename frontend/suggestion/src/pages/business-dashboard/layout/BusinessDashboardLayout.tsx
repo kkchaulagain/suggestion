@@ -5,13 +5,10 @@ import TopHeader from '../components/TopHeader'
 import { sidebarItems } from '../types/navigation'
 
 const pageTitles: Record<string, string> = {
-  '/business-dashboard/dashboard': 'Dashboard',
-  '/business-dashboard/complaints': 'Complaints',
+  
   '/business-dashboard/forms': 'Forms',
   '/business-dashboard/forms/create': 'Create Form',
-  '/business-dashboard/suggestions': 'Suggestions',
-  '/business-dashboard/users': 'Users',
-  '/business-dashboard/settings': 'Settings',
+ 
 }
 
 export default function BusinessDashboardLayout() {
