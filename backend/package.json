@@ -8,7 +8,8 @@
     "dev": "ts-node-dev --respawn src/index.ts",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:business": "jest --testPathPattern=business.test"
+    "test:business": "jest --testPathPattern=business.test",
+    "lint": "eslint src"
   },
   "keywords": [],
   "author": "",
@@ -24,6 +25,9 @@
     "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "eslint": "^9.39.1",
+    "typescript-eslint": "^8.48.0",
     "@types/cookie-parser": "^1.4.10",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",

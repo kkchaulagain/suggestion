@@ -82,7 +82,7 @@ async function resolveBusinessProfile(req: AuthenticatedRequest, res: any, next:
 
     req.businessProfile = businessProfile;
     return next();
-  } catch (err) {
+  } catch (_err) {
     return res.status(500).json({ error: 'Failed to verify business profile' });
   }
 }
@@ -96,7 +96,7 @@ router.post('/', isAuthenticated, isBusinessRole, resolveBusinessProfile, async 
       message: 'Feedback form created',
       feedbackForm,
     });
-  } catch (err) {
+  } catch (_err) {
     const validationMessage = getValidationErrorMessage(err);
     if (validationMessage) {
       return res.status(400).json({ error: validationMessage });
@@ -109,7 +109,7 @@ router.get('/', isAuthenticated, isBusinessRole, resolveBusinessProfile, async (
   try {
     const feedbackForms = await FeedbackForm.find({ businessId: req.businessProfile._id }).sort({ createdAt: -1 });
     return res.status(200).json({ feedbackForms });
-  } catch (err) {
+  } catch (_err) {
     return res.status(500).json({ error: 'Failed to fetch feedback forms' });
   }
 });
@@ -125,7 +125,7 @@ router.get('/:id', async (req: any, res: any) => {
       return res.status(404).json({ error: 'Feedback form not found' });
     }
     return res.status(200).json({ feedbackForm });
-  } catch (err) {
+  } catch (_err) {
     return res.status(500).json({ error: 'Failed to fetch feedback form' });
   }
 });
@@ -165,7 +165,7 @@ router.post('/:id/qr', isAuthenticated, isBusinessRole, resolveBusinessProfile, 
       formUrl,
       qrCodeDataUrl,
     });
-  } catch (err) {
+  } catch (_err) {
     return res.status(500).json({ error: 'Failed to generate feedback form QR' });
   }
 });
@@ -197,7 +197,7 @@ router.put('/:id', isAuthenticated, isBusinessRole, resolveBusinessProfile, asyn
       message: 'Feedback form updated',
       feedbackForm,
     });
-  } catch (err) {
+  } catch (_err) {
     const validationMessage = getValidationErrorMessage(err);
     if (validationMessage) {
       return res.status(400).json({ error: validationMessage });
@@ -220,7 +220,7 @@ router.delete('/:id', isAuthenticated, isBusinessRole, resolveBusinessProfile, a
       return res.status(404).json({ error: 'Feedback form not found' });
     }
     return res.status(200).json({ message: 'Feedback form deleted' });
-  } catch (err) {
+  } catch (_err) {
     return res.status(500).json({ error: 'Failed to delete feedback form' });
   }
 });

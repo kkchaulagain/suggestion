@@ -47,7 +47,7 @@ describe('TopHeader', () => {
       } as any)
 
     render(
-      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <MemoryRouter>
         <AuthProvider>
           <TopHeader title="Forms" onOpenSidebar={jest.fn()} />
         </AuthProvider>
@@ -84,7 +84,7 @@ describe('TopHeader', () => {
       .mockRejectedValueOnce(new Error('request failed'))
 
     render(
-      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <MemoryRouter>
         <AuthProvider>
           <TopHeader title="Forms" onOpenSidebar={jest.fn()} />
         </AuthProvider>
@@ -116,7 +116,7 @@ describe('BusinessDashboardLayout and page', () => {
       .mockResolvedValueOnce({ data: { success: true, data: {} } } as any)
 
     render(
-      <MemoryRouter initialEntries={['/dashboard/unknown']} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <MemoryRouter initialEntries={['/dashboard/unknown']}>
         <AuthProvider>
           <Routes>
             <Route path="/dashboard" element={<BusinessDashboardLayout />}>
@@ -148,7 +148,7 @@ describe('BusinessDashboardLayout and page', () => {
       .mockResolvedValueOnce({ data: { feedbackForms: [] } } as any)
 
     render(
-      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <MemoryRouter>
         <AuthProvider>
           <FormsPage />
         </AuthProvider>

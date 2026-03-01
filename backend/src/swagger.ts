@@ -1,5 +1,5 @@
 const swaggerUi = require('swagger-ui-express');
-const express = require('express');
+const _express = require('express');
 import type { Request, Response } from 'express';
 
 const spec = {

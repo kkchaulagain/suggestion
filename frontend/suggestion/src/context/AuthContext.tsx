@@ -67,7 +67,7 @@ function persistToken(token: string | null): void {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [token, setTokenState] = useState<string | null>(readStoredToken)
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(() => !!readStoredToken())
   const [error, setErrorState] = useState<string | null>(null)
 
   const setToken = useCallback((newToken: string | null) => {
@@ -101,17 +101,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [],
   )
 
-  // Restore session from stored token on mount
+  // Restore session from stored token on mount (token and isLoading already set from initial state)
   useEffect(() => {
     const stored = readStoredToken()
-    if (!stored) {
-      setIsLoading(false)
-      return
-    }
+    if (!stored) return
 
     let cancelled = false
-    setTokenState(stored)
-    setIsLoading(true)
 
     axios
       .get(meapi, {

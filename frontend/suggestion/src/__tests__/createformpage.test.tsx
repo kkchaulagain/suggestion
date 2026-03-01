@@ -23,7 +23,7 @@ jest.mock('react-router-dom', () => ({
 
 function renderCreateFormPage() {
   return render(
-    <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+    <MemoryRouter>
       <CreateFormPage />
     </MemoryRouter>,
   )

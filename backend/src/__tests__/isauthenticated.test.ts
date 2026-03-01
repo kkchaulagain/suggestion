@@ -1,6 +1,6 @@
-const request = require('supertest');
+const _request = require('supertest');
 const { connect, disconnect } = require('../db');
-const app = require('../app');
+const _app = require('../app');
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 import { isAuthenticated } from '../middleware/isauthenticated';
