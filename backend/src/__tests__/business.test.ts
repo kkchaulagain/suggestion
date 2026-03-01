@@ -149,7 +149,7 @@ describe('Update /api/v1/business/:id',()=>
   afterEach(async()=>{
     try {
       await Business.deleteMany({});
-    } catch (error) {
+    } catch  {
       
     }
   });
