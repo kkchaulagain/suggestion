@@ -1,0 +1,9 @@
+{
+  "name": "suggestion",
+  "private": true,
+  "description": "Suggestion app – backend API + frontend",
+  "scripts": {
+    "deploy:backend": "fly deploy ./backend",
+    "deploy:frontend": "fly deploy ./frontend/suggestion"
+  }
+}

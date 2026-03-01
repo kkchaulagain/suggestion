@@ -1,4 +1,6 @@
-export const userapi="http://localhost:3001/api/auth/register";
-export const loginapi="http://localhost:3001/api/auth/login";
-export const meapi="http://localhost:3001/api/auth/me";
-export const businessmeapi="http://localhost:3001/api/auth/business";
+const base = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
+
+export const userapi = `${base}/api/auth/register`;
+export const loginapi = `${base}/api/auth/login`;
+export const meapi = `${base}/api/auth/me`;
+export const businessmeapi = `${base}/api/auth/business`;
