@@ -42,6 +42,10 @@ const feedbackFieldSchema = new mongoose.Schema(
       trim: true,
       maxlength: 300,
     },
+    options: {
+      type: [String],
+      default: undefined,
+    },
   },
   { _id: false },
 );
