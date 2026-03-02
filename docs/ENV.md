@@ -39,8 +39,8 @@ cp backend/.env.example backend/.env
 
 ```bash
 fly secrets set MONGODB_URI="mongodb+srv://..." JWT_SECRET="your-secret" -a suggestion
-# Optional: QR form base URL
-fly secrets set FRONTEND_FORM_BASE_URL="https://suggestion-web.fly.dev/forms" -a suggestion
+# Optional: base URL for form link and QR (frontend URL where /feedback-forms is served)
+fly secrets set FRONTEND_FORM_BASE_URL="https://suggestion-web.fly.dev/feedback-forms" -a suggestion
 ```
 
 List: `fly secrets list -a suggestion`

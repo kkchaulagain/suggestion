@@ -11,6 +11,8 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 
 import FormsPage from './pages/business-dashboard/pages/FormsPage'
 import CreateFormPage from './pages/business-dashboard/pages/CreateFormPage'
+import FormRenderLayout from './pages/feedback-form-render/FormRenderLayout'
+import FormRenderPage from './pages/feedback-form-render/FormRenderPage'
 
 function App() {
   return (
@@ -66,6 +68,10 @@ function App() {
               </ProtectedRoute>
             }
           />
+          {/* Public form render: no auth, minimal layout */}
+          <Route path="/feedback-forms" element={<FormRenderLayout />}>
+            <Route path=":formId" element={<FormRenderPage />} />
+          </Route>
         </Routes>
       </AuthProvider>
     </BrowserRouter>

@@ -98,6 +98,33 @@ describe('Feedback Forms API', () => {
     expect(res.body.error).toContain('not supported');
   });
 
+  it('persists and returns field options for checkbox and radio (GET by id)', async () => {
+    const { authHeader } = await createBusinessAuth();
+
+    const createRes = await request(app)
+      .post('/api/feedback-forms')
+      .set(authHeader)
+      .send({
+        title: 'Survey with options',
+        fields: [
+          { name: 'choice', label: 'Choose one', type: 'radio', options: ['Yes', 'No', 'Maybe'] },
+          { name: 'tags', label: 'Select tags', type: 'checkbox', options: ['Tag A', 'Tag B'] },
+        ],
+      })
+      .expect(201);
+
+    const formId = createRes.body.feedbackForm._id;
+    const getRes = await request(app).get(`/api/feedback-forms/${formId}`).expect(200);
+
+    expect(getRes.body.feedbackForm.title).toBe('Survey with options');
+    const fields = getRes.body.feedbackForm.fields;
+    expect(fields).toHaveLength(2);
+    const radioField = fields.find((f) => f.type === 'radio');
+    expect(radioField?.options).toEqual(['Yes', 'No', 'Maybe']);
+    const checkboxField = fields.find((f) => f.type === 'checkbox');
+    expect(checkboxField?.options).toEqual(['Tag A', 'Tag B']);
+  });
+
   it('lists saved feedback forms', async () => {
     const { authHeader, businessId } = await createBusinessAuth();
 
