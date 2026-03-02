@@ -1,7 +1,7 @@
 # Backend API – deploy with: fly deploy ./backend  (from repo root)
 # See https://fly.io/docs/reference/configuration/
 app = "suggestion"
-primary_region = "iad"
+primary_region = "bom"
 
 [build]
 

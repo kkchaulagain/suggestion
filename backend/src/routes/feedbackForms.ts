@@ -247,6 +247,56 @@ router.get('/', isAuthenticated, isBusinessRole, resolveBusinessProfile, async (
   }
 });
 
+router.get('/submissions', isAuthenticated, isBusinessRole, resolveBusinessProfile, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const businessId = req.businessProfile!._id;
+    const formIdRaw = req.query.formId;
+    const dateFromRaw = req.query.dateFrom;
+    const dateToRaw = req.query.dateTo;
+    if (formIdRaw && typeof formIdRaw === 'string' && !mongoose.Types.ObjectId.isValid(formIdRaw)) {
+      return res.status(400).json({ error: 'Invalid form id' });
+    }
+    const query: Record<string, unknown> = { businessId };
+    if (formIdRaw && typeof formIdRaw === 'string') {
+      query.formId = new mongoose.Types.ObjectId(formIdRaw);
+    }
+    const dateFrom = dateFromRaw && typeof dateFromRaw === 'string' ? new Date(dateFromRaw) : null;
+    const dateTo = dateToRaw && typeof dateToRaw === 'string' ? new Date(dateToRaw) : null;
+    if (dateFrom && !Number.isNaN(dateFrom.getTime())) {
+      query.submittedAt = query.submittedAt || {};
+      (query.submittedAt as Record<string, Date>).$gte = dateFrom;
+    }
+    if (dateTo && !Number.isNaN(dateTo.getTime())) {
+      query.submittedAt = query.submittedAt || {};
+      (query.submittedAt as Record<string, Date>).$lte = dateTo;
+    }
+    const page = Math.max(1, parseInt(String(req.query.page), 10) || 1);
+    const pageSize = Math.min(50, Math.max(1, parseInt(String(req.query.pageSize), 10) || 20));
+    const skip = (page - 1) * pageSize;
+    const [submissions, total] = await Promise.all([
+      FeedbackSubmission.find(query).sort({ submittedAt: -1 }).skip(skip).limit(pageSize).lean(),
+      FeedbackSubmission.countDocuments(query),
+    ]);
+    const formIds = [...new Set(
+      (submissions as { formId?: { toString: () => string } }[]).map((s) => s.formId?.toString()).filter(Boolean) as string[],
+    )];
+    const formTitles: Record<string, string> = {};
+    if (formIds.length > 0) {
+      const forms = await FeedbackForm.find({ _id: { $in: formIds.map((id) => new mongoose.Types.ObjectId(id)) } }).select('_id title').lean();
+      for (const f of forms as { _id: { toString: () => string }; title: string }[]) {
+        formTitles[f._id.toString()] = f.title || '';
+      }
+    }
+    const submissionsWithTitle = (submissions as { formId?: { toString: () => string }; [key: string]: unknown }[]).map((s) => {
+      const id = s.formId ? s.formId.toString() : '';
+      return { ...s, formId: id, formTitle: formTitles[id] ?? '' };
+    });
+    return res.status(200).json({ submissions: submissionsWithTitle, total });
+  } catch (_err) {
+    return res.status(500).json({ error: 'Failed to fetch submissions' });
+  }
+});
+
 router.get('/:id/submissions', isAuthenticated, isBusinessRole, resolveBusinessProfile, async (req: AuthenticatedRequest, res: Response) => {
   const id = req.params.id;
   if (!mongoose.Types.ObjectId.isValid(id)) {

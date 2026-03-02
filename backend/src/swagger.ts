@@ -221,6 +221,52 @@ const spec = {
         },
       },
     },
+    '/api/feedback-forms/submissions': {
+      get: {
+        summary: 'List all submissions for the business',
+        tags: ['Feedback Forms'],
+        description: 'Authenticated; returns submissions across all forms for the current business. Filter by formId, dateFrom, dateTo. Paginated.',
+        parameters: [
+          { in: 'query', name: 'page', schema: { type: 'integer', default: 1 }, description: 'Page number (1-based)' },
+          { in: 'query', name: 'pageSize', schema: { type: 'integer', default: 20 }, description: 'Items per page (max 50)' },
+          { in: 'query', name: 'formId', schema: { type: 'string' }, description: 'Filter by feedback form id' },
+          { in: 'query', name: 'dateFrom', schema: { type: 'string', format: 'date-time' }, description: 'Only submissions with submittedAt >= dateFrom' },
+          { in: 'query', name: 'dateTo', schema: { type: 'string', format: 'date-time' }, description: 'Only submissions with submittedAt <= dateTo' },
+        ],
+        responses: {
+          200: {
+            description: 'Paginated list of submissions with formTitle',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    submissions: {
+                      type: 'array',
+                      items: {
+                        allOf: [
+                          { $ref: '#/components/schemas/FeedbackSubmission' },
+                          { type: 'object', properties: { formTitle: { type: 'string', description: 'Form title at list time' } } },
+                        ],
+                      },
+                    },
+                    total: { type: 'integer', description: 'Total count matching filters' },
+                  },
+                },
+              },
+            },
+          },
+          400: {
+            description: 'Invalid formId',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } },
+          },
+          401: {
+            description: 'Unauthorized',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } },
+          },
+        },
+      },
+    },
     '/api/feedback-forms/{id}': {
       parameters: [
         {

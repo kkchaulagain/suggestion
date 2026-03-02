@@ -1,5 +1,6 @@
 # Frontend – deploy with: fly deploy ./frontend/suggestion  (from repo root)
 app = "suggestion-web"
+primary_region = "bom"
 
 [build]
   [build.args]
