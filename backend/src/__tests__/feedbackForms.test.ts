@@ -99,7 +99,7 @@ describe('Feedback Forms API', () => {
   });
 
   it('persists and returns field options for checkbox and radio (GET by id)', async () => {
-    const { authHeader, businessId } = await createBusinessAuth();
+    const { authHeader } = await createBusinessAuth();
 
     const createRes = await request(app)
       .post('/api/feedback-forms')
