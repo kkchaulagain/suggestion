@@ -5,3 +5,4 @@ export const loginapi = `${base}/api/auth/login`;
 export const meapi = `${base}/api/auth/me`;
 export const businessmeapi = `${base}/api/auth/business`;
 export const feedbackFormsApi = `${base}/api/feedback-forms`;
+export const businessesListApi = `${base}/api/v1/business`;
