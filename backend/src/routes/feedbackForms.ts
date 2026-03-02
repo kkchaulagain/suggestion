@@ -4,6 +4,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const QRCode = require('qrcode');
 const { FeedbackForm } = require('../models/FeedbackForm');
+const { FeedbackSubmission } = require('../models/FeedbackSubmission');
 const Business = require('../models/Business');
 const { isAuthenticated } = require('../middleware/isauthenticated');
 const { isBusinessRole } = require('../middleware/isbusiness');
@@ -103,6 +104,104 @@ function getFrontendFormUrl(formId: string, frontendBaseUrlOverride?: string) {
   return `${normalizeBaseUrl(baseUrl)}/${encodeURIComponent(formId)}`;
 }
 
+interface FormFieldDoc {
+  name: string;
+  label: string;
+  type: string;
+  required?: boolean;
+  options?: string[];
+}
+
+interface FormSnapshotField {
+  name: string;
+  label: string;
+  type: string;
+  options?: string[];
+}
+
+function buildFormSnapshot(form: { fields: FormFieldDoc[] }): FormSnapshotField[] {
+  if (!Array.isArray(form.fields)) return [];
+  return form.fields.map((f) => ({
+    name: f.name,
+    label: f.label,
+    type: f.type,
+    ...(Array.isArray(f.options) && f.options.length > 0 ? { options: f.options } : {}),
+  }));
+}
+
+type SubmissionBody = Record<string, string | string[]>;
+
+function validateSubmissionPayload(
+  form: { fields: FormFieldDoc[] },
+  body: unknown
+): { valid: true; responses: SubmissionBody } | { valid: false; error: string } {
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    return { valid: false, error: 'Request body must be an object with field names as keys' };
+  }
+  const raw = body as Record<string, unknown>;
+  const formFieldNames = new Set((form.fields || []).map((f) => f.name));
+  const responses: SubmissionBody = {};
+
+  for (const field of form.fields || []) {
+    const name = field.name;
+    const value = raw[name];
+
+    if (field.required) {
+      if (value === undefined || value === null) {
+        return { valid: false, error: `${field.label} is required` };
+      }
+      if (field.type === 'checkbox') {
+        const arr = Array.isArray(value) ? value : [value];
+        const strArr = arr.filter((v) => typeof v === 'string').map((v) => String(v).trim());
+        if (strArr.length === 0) {
+          return { valid: false, error: `${field.label} is required` };
+        }
+        responses[name] = strArr;
+      } else {
+        const str = typeof value === 'string' ? value.trim() : String(value ?? '').trim();
+        if (str === '') {
+          return { valid: false, error: `${field.label} is required` };
+        }
+        responses[name] = str;
+      }
+    } else {
+      if (value === undefined || value === null) {
+        responses[name] = field.type === 'checkbox' ? [] : '';
+      } else if (field.type === 'checkbox') {
+        const arr = Array.isArray(value) ? value : [value];
+        responses[name] = arr.filter((v) => typeof v === 'string').map((v) => String(v).trim());
+      } else {
+        responses[name] = typeof value === 'string' ? value.trim() : String(value ?? '').trim();
+      }
+    }
+  }
+
+  for (const key of Object.keys(raw)) {
+    if (!formFieldNames.has(key)) continue;
+    if (responses[key] !== undefined) continue;
+    const value = raw[key];
+    const field = form.fields.find((f) => f.name === key);
+    if (!field) continue;
+    if (field.required) {
+      if (value === undefined || value === null) {
+        return { valid: false, error: `${field.label} is required` };
+      }
+    }
+    if (field.type === 'checkbox') {
+      responses[key] = Array.isArray(value)
+        ? (value as string[]).map((v) => String(v).trim())
+        : value !== undefined && value !== null && value !== ''
+          ? [String(value).trim()]
+          : [];
+    } else {
+      responses[key] =
+        typeof value === 'string' ? value.trim() : value !== undefined && value !== null ? String(value).trim() : '';
+    }
+  }
+
+  return { valid: true, responses };
+}
+
 async function resolveBusinessProfile(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   try {
     if (!req.id) {
@@ -145,6 +244,60 @@ router.get('/', isAuthenticated, isBusinessRole, resolveBusinessProfile, async (
     return res.status(200).json({ feedbackForms });
   } catch (_err) {
     return res.status(500).json({ error: 'Failed to fetch feedback forms' });
+  }
+});
+
+router.get('/:id/submissions', isAuthenticated, isBusinessRole, resolveBusinessProfile, async (req: AuthenticatedRequest, res: Response) => {
+  const id = req.params.id;
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ error: 'Invalid feedback form id' });
+  }
+  try {
+    const form = await FeedbackForm.findOne({
+      _id: id,
+      businessId: req.businessProfile!._id,
+    }).select('_id');
+    if (!form) {
+      return res.status(404).json({ error: 'Feedback form not found' });
+    }
+    const page = Math.max(1, parseInt(String(req.query.page), 10) || 1);
+    const pageSize = Math.min(50, Math.max(1, parseInt(String(req.query.pageSize), 10) || 20));
+    const skip = (page - 1) * pageSize;
+    const [submissions, total] = await Promise.all([
+      FeedbackSubmission.find({ formId: id }).sort({ submittedAt: -1 }).skip(skip).limit(pageSize).lean(),
+      FeedbackSubmission.countDocuments({ formId: id }),
+    ]);
+    return res.status(200).json({ submissions, total });
+  } catch (_err) {
+    return res.status(500).json({ error: 'Failed to fetch submissions' });
+  }
+});
+
+router.post('/:id/submit', async (req: Request, res: Response) => {
+  const id = req.params.id;
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ error: 'Invalid feedback form id' });
+  }
+  try {
+    const form = await FeedbackForm.findById(id);
+    if (!form) {
+      return res.status(404).json({ error: 'Feedback form not found' });
+    }
+    const validation = validateSubmissionPayload(form, req.body);
+    if (!validation.valid) {
+      return res.status(400).json({ error: validation.error });
+    }
+    const formSnapshot = buildFormSnapshot(form);
+    const doc = await FeedbackSubmission.create({
+      formId: form._id,
+      businessId: form.businessId,
+      formSnapshot,
+      responses: validation.responses,
+      submittedAt: new Date(),
+    });
+    return res.status(201).json({ message: 'Submission received', submissionId: doc._id });
+  } catch (_err) {
+    return res.status(500).json({ error: 'Failed to save submission' });
   }
 });
 

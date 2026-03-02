@@ -346,6 +346,130 @@ const spec = {
         },
       },
     },
+    '/api/feedback-forms/{id}/submit': {
+      parameters: [
+        {
+          in: 'path',
+          name: 'id',
+          required: true,
+          schema: { type: 'string' },
+          description: 'Feedback form id',
+        },
+      ],
+      post: {
+        summary: 'Submit a feedback form response',
+        tags: ['Feedback Forms'],
+        description: 'Public endpoint; no authentication required. Request body is an object with field names as keys and submitted values (string or array of strings for checkbox).',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                additionalProperties: true,
+                description: 'Keys are form field names; values are strings or string arrays for checkbox fields.',
+                example: { comment: 'Great service', rating: '5' },
+              },
+            },
+          },
+        },
+        responses: {
+          201: {
+            description: 'Submission received',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    message: { type: 'string', example: 'Submission received' },
+                    submissionId: { type: 'string', description: 'MongoDB ObjectId of the created submission' },
+                  },
+                },
+              },
+            },
+          },
+          400: {
+            description: 'Invalid form id or validation error (e.g. missing required field)',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Error' },
+              },
+            },
+          },
+          404: {
+            description: 'Feedback form not found',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Error' },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/feedback-forms/{id}/submissions': {
+      parameters: [
+        {
+          in: 'path',
+          name: 'id',
+          required: true,
+          schema: { type: 'string' },
+          description: 'Feedback form id',
+        },
+        {
+          in: 'query',
+          name: 'page',
+          schema: { type: 'integer', default: 1 },
+          description: 'Page number (1-based)',
+        },
+        {
+          in: 'query',
+          name: 'pageSize',
+          schema: { type: 'integer', default: 20 },
+          description: 'Items per page (max 50)',
+        },
+      ],
+      get: {
+        summary: 'List submissions for a feedback form',
+        tags: ['Feedback Forms'],
+        description: 'Authenticated; form must belong to the current business. Use each submission\'s formSnapshot to interpret responses for display/analysis.',
+        responses: {
+          200: {
+            description: 'List of submissions',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    submissions: {
+                      type: 'array',
+                      items: { $ref: '#/components/schemas/FeedbackSubmission' },
+                    },
+                    total: { type: 'integer', description: 'Total count of submissions for the form' },
+                  },
+                },
+              },
+            },
+          },
+          401: {
+            description: 'Unauthorized',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Error' },
+              },
+            },
+          },
+          404: {
+            description: 'Feedback form not found or not owned by business',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Error' },
+              },
+            },
+          },
+        },
+      },
+    },
     '/api/feedback-forms/{id}/qr': {
       parameters: [
         {
@@ -513,6 +637,33 @@ const spec = {
         type: 'object',
         properties: {
           error: { type: 'string' },
+        },
+      },
+      FeedbackSubmission: {
+        type: 'object',
+        properties: {
+          _id: { type: 'string' },
+          formId: { type: 'string' },
+          businessId: { type: 'string' },
+          formSnapshot: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                name: { type: 'string' },
+                label: { type: 'string' },
+                type: { type: 'string' },
+                options: { type: 'array', items: { type: 'string' } },
+              },
+            },
+            description: 'Field definitions at submit time; use for display and analysis',
+          },
+          responses: {
+            type: 'object',
+            additionalProperties: true,
+            description: 'Field name to value (string or string[] for checkbox)',
+          },
+          submittedAt: { type: 'string', format: 'date-time' },
         },
       },
     },

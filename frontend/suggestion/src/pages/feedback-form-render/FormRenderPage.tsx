@@ -37,6 +37,24 @@ function validateRequired(
   return null
 }
 
+function buildSubmitPayload(
+  fields: FeedbackFormField[],
+  values: FormValues
+): Record<string, string | string[]> {
+  const payload: Record<string, string | string[]> = {}
+  for (const field of fields) {
+    const v = values[field.name]
+    if (field.type === 'checkbox') {
+      payload[field.name] = Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : []
+    } else if (field.type === 'image_upload') {
+      payload[field.name] = typeof v === 'string' ? v : ''
+    } else {
+      payload[field.name] = typeof v === 'string' ? v : (v !== undefined && v !== null ? String(v) : '')
+    }
+  }
+  return payload
+}
+
 export default function FormRenderPage() {
   const { formId } = useParams<{ formId: string }>()
   const [config, setConfig] = useState<FeedbackFormConfig | null>(null)
@@ -45,6 +63,7 @@ export default function FormRenderPage() {
   const [values, setValues] = useState<FormValues>({})
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [submitted, setSubmitted] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
 
   const loadForm = useCallback(async () => {
     if (!formId) {
@@ -101,18 +120,30 @@ export default function FormRenderPage() {
   )
 
   const handleSubmit = useCallback(
-    (e: React.FormEvent) => {
+    async (e: React.FormEvent) => {
       e.preventDefault()
-      if (!config) return
+      if (!config || !formId) return
       const requiredError = validateRequired(config.fields, values)
       if (requiredError) {
         setSubmitError(requiredError)
         return
       }
       setSubmitError(null)
-      setSubmitted(true)
+      setSubmitting(true)
+      try {
+        const payload = buildSubmitPayload(config.fields, values)
+        await axios.post(`${feedbackFormsApi}/${formId}/submit`, payload)
+        setSubmitted(true)
+      } catch (err) {
+        const msg = axios.isAxiosError(err)
+          ? (err.response?.data?.error as string | undefined)
+          : (err as { response?: { data?: { error?: string } } })?.response?.data?.error
+        setSubmitError(msg ?? 'Failed to submit. Please try again.')
+      } finally {
+        setSubmitting(false)
+      }
     },
-    [config, values]
+    [config, formId, values]
   )
 
   if (loading) {
@@ -254,9 +285,10 @@ export default function FormRenderPage() {
 
         <button
           type="submit"
-          className="w-full rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
+          disabled={submitting}
+          className="w-full rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed"
         >
-          Submit
+          {submitting ? 'Submitting...' : 'Submit'}
         </button>
       </form>
     </div>
