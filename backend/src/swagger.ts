@@ -57,6 +57,43 @@ const spec = {
         },
       },
     },
+    '/api/upload': {
+      post: {
+        summary: 'Upload image (R2)',
+        description: 'Upload a single image file. Requires R2 env vars. Used by feedback form image_upload fields.',
+        tags: ['Upload'],
+        requestBody: {
+          content: {
+            'multipart/form-data': {
+              schema: {
+                type: 'object',
+                properties: {
+                  file: { type: 'string', format: 'binary', description: 'Image file (JPEG, PNG, GIF, WebP; max 5MB)' },
+                },
+                required: ['file'],
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Upload success',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    url: { type: 'string', description: 'Public URL of the uploaded file' },
+                  },
+                },
+              },
+            },
+          },
+          400: { description: 'No file or invalid file' },
+          503: { description: 'Upload service not configured (R2 env missing)' },
+        },
+      },
+    },
     '/api/auth/register': {
       post: {
         summary: 'Register a new user',

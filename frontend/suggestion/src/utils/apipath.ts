@@ -6,4 +6,5 @@ export const meapi = `${base}/api/auth/me`;
 export const businessmeapi = `${base}/api/auth/business`;
 export const feedbackFormsApi = `${base}/api/feedback-forms`;
 export const feedbackFormSubmissionsApi = `${base}/api/feedback-forms/submissions`;
+export const uploadApi = `${base}/api/upload`;
 export const businessesListApi = `${base}/api/v1/business`;

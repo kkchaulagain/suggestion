@@ -1,8 +1,17 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import axios from 'axios'
-import { feedbackFormsApi } from '../../utils/apipath'
+import { feedbackFormsApi, uploadApi } from '../../utils/apipath'
 import type { FeedbackFormConfig, FeedbackFormField } from './types'
+
+async function uploadImage(file: File): Promise<string> {
+  const formData = new FormData()
+  formData.append('file', file)
+  const { data } = await axios.post<{ url: string }>(uploadApi, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+  return data.url
+}
 
 type FormValues = Record<string, string | string[] | File | undefined>
 
@@ -131,7 +140,16 @@ export default function FormRenderPage() {
       setSubmitError(null)
       setSubmitting(true)
       try {
-        const payload = buildSubmitPayload(config.fields, values)
+        const resolvedValues = { ...values }
+        for (const field of config.fields) {
+          if (field.type === 'image_upload') {
+            const v = values[field.name]
+            if (v instanceof File) {
+              resolvedValues[field.name] = await uploadImage(v)
+            }
+          }
+        }
+        const payload = buildSubmitPayload(config.fields, resolvedValues)
         await axios.post(`${feedbackFormsApi}/${formId}/submit`, payload)
         setSubmitted(true)
       } catch (err) {
