@@ -1,0 +1,52 @@
+---
+description: Best practices, efficient coding, consistency, and TDD approach
+alwaysApply: true
+---
+
+# Coding Standards & TDD
+
+## Principles
+
+- **Efficiency**: Prefer clear, minimal code. Avoid over-engineering and unnecessary abstractions.
+- **Consistency**: Match existing patterns, naming, and structure in the codebase.
+- **DRY**: Extract shared logic into reusable functions/modules; avoid copy-paste.
+- **TDD**: Write or update tests first (red), then implement (green), then refactor.
+
+## Practices
+
+1. **Before writing code**: Add or update tests that define the expected behavior.
+2. **Naming**: Use consistent, descriptive names (same style as surrounding code).
+3. **Functions**: Single responsibility; keep small and testable.
+4. **Duplication**: If logic appears more than once, extract to a shared helper/utility and test it.
+5. **Refactor**: After tests pass, simplify and remove redundancy without changing behavior.
+
+## TDD Workflow
+
+```
+Red → Green → Refactor
+```
+
+- **Red**: Write a failing test for the next behavior.
+- **Green**: Implement the minimum code to make the test pass.
+- **Refactor**: Clean up implementation and tests; ensure tests still pass.
+
+## Examples
+
+**Redundant vs DRY:**
+
+```typescript
+// ❌ Redundant
+const fullName1 = user.firstName + " " + user.lastName;
+const fullName2 = profile.firstName + " " + profile.lastName;
+
+// ✅ Reusable, testable
+function fullName(person: { firstName: string; lastName: string }) {
+  return `${person.firstName} ${person.lastName}`;
+}
+```
+
+**TDD order:**
+
+1. Write test: `expect(fullName({ firstName: "Jane", lastName: "Doe" })).toBe("Jane Doe");`
+2. Implement `fullName` until the test passes.
+3. Refactor if needed; re-run tests.
