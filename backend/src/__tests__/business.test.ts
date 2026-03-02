@@ -144,4 +144,99 @@ describe('Delete /api/v1/bussines/:id',()=>
       expect(deleted).toBeNull();
     })
 });
+describe('Update /api/v1/business/:id',()=>
+{
+  afterEach(async()=>{
+    try {
+      await Business.deleteMany({});
+    } catch (_e)  {
+      
+      //igonre 
+    }
+  });
+  //if business not found 
+  it('should return 404 if not found',async()=>
+  {
+    const nonExistId=new mongoose.Types.ObjectId();
+    const res=await request(app)
+    .put(`/api/v1/business/${nonExistId}`)
+    .send({ businessname: 'Himalayan Traders' })
+    .expect(404);
+    expect(res.body).toMatchObject(
+      {
+        message:'Business not found',
+        ok:false,
+      }
+    );
+  })
+ // empty body sent
+it('should return 400 if no valid fields sent', async () => {
+  const created = await Business.create(
+    buildBusiness({
+      businessname: 'Himalayan Traders',
+      location: 'Kathmandu',
+      pancardNumber: 123456789,
+      description: 'Trading company in Kathmandu',
+    })
+  );
 
+  const res = await request(app)
+    .put(`/api/v1/business/${created._id}`)
+    .send({})  
+    .expect(400);
+
+  expect(res.body).toMatchObject({
+    message: 'No valid fields to update',
+    ok: false,
+  });
+});
+
+//  trying to change owner 
+it('should not allow owner to be changed', async () => {
+  const created = await Business.create(
+    buildBusiness({
+      businessname: 'Everest Enterprises',
+      location: 'Pokhara',
+      pancardNumber: 987654321,
+      description: 'Trekking and tourism company',
+    })
+  );
+
+  const hackedOwnerId = new mongoose.Types.ObjectId();
+
+  await request(app)
+    .put(`/api/v1/business/${created._id}`)
+    .send({ owner: hackedOwnerId, businessname: 'Hacked Business' })
+    .expect(200);
+
+  // owner should still be original 
+  const updated = await Business.findById(created._id);
+  expect(String(updated.owner)).not.toBe(String(hackedOwnerId));
+});
+
+// valid update
+it('should return 200 and update only sent fields', async () => {
+  const created = await Business.create(
+    buildBusiness({
+      businessname: 'Pashupatinath Handicrafts',
+      location: 'Bhaktapur',
+      pancardNumber: 456789123,
+      description: 'Traditional handicrafts from Bhaktapur',
+    })
+  );
+
+  const res = await request(app)
+    .put(`/api/v1/business/${created._id}`)
+    .send({ businessname: 'Pashupatinath Arts' })  // only updating name
+    .expect(200);
+
+  expect(res.body).toMatchObject({
+    message: 'Business updated successfully',
+    ok: true,
+  });
+
+  // location should still be Bhaktapur 
+  expect(res.body.business.businessname).toBe('Pashupatinath Arts');
+  expect(res.body.business.location).toBe('Bhaktapur');
+});
+})
