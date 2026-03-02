@@ -134,7 +134,14 @@ export default function FormsPage() {
                   alt={`QR for ${form.title}`}
                   className="h-36 w-36 rounded border border-white bg-white"
                 />
-                <p className="mt-2 break-all text-xs text-slate-700">{qrByFormId[form._id].formUrl}</p>
+                <a
+                  href={qrByFormId[form._id].formUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-2 block break-all text-xs text-emerald-700 underline hover:text-emerald-800"
+                >
+                  {qrByFormId[form._id].formUrl}
+                </a>
               </div>
             ) : null}
           </div>
