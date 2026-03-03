@@ -7,11 +7,21 @@ const router = express.Router();
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_MIMES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+type UploadedFile = {
+  buffer: Buffer;
+  mimetype: string;
+  originalname: string;
+};
+type UploadRequest = Request & { file?: UploadedFile };
 
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: MAX_FILE_SIZE },
-  fileFilter(_req: Request, file: Express.Multer.File, cb: (err: Error | null, accept?: boolean) => void) {
+  fileFilter(
+    _req: Request,
+    file: { mimetype: string },
+    cb: (err: Error | null, accept?: boolean) => void,
+  ) {
     if (ALLOWED_MIMES.includes(file.mimetype)) {
       cb(null, true);
     } else {
@@ -20,7 +30,7 @@ const upload = multer({
   },
 });
 
-router.post('/', upload.single('file'), async (req: Request, res: Response) => {
+router.post('/', upload.single('file'), async (req: UploadRequest, res: Response) => {
   if (!isR2Configured()) {
     return res.status(503).json({ error: 'Upload service is not configured' });
   }
