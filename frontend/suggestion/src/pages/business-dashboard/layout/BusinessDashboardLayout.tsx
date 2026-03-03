@@ -7,6 +7,7 @@ import { sidebarItems } from '../types/navigation'
 const pageTitles: Record<string, string> = {
   '/dashboard/forms': 'Forms',
   '/dashboard/forms/create': 'Create Form',
+  '/dashboard/submissions': 'Submissions',
   '/dashboard/businesses': 'Businesses',
 }
 

@@ -3,12 +3,13 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    env_file:
+      - ./backend/.env
     ports:
       - "3001:3000"
     environment:
       - PORT=3000
       - MONGODB_URI=mongodb://mongodb:27017/suggestion
-      - JWT_SECRET=your-secret-key-change-in-production
       - FRONTEND_FORM_BASE_URL=http://localhost:3002/feedback-forms
     depends_on:
       - mongodb

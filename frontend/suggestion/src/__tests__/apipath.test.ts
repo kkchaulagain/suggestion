@@ -1,4 +1,13 @@
-import { userapi, loginapi, meapi, businessmeapi } from '../utils/apipath'
+import {
+  userapi,
+  loginapi,
+  meapi,
+  businessmeapi,
+  feedbackFormsApi,
+  feedbackFormSubmissionsApi,
+  uploadApi,
+  businessesListApi,
+} from '../utils/apipath'
 
 describe('apipath', () => {
   const base = process.env.VITE_API_URL ?? 'http://localhost:3001'
@@ -17,5 +26,21 @@ describe('apipath', () => {
 
   it('exports businessmeapi with correct base and path', () => {
     expect(businessmeapi).toBe(`${base}/api/auth/business`)
+  })
+
+  it('exports feedbackFormsApi with correct path', () => {
+    expect(feedbackFormsApi).toBe(`${base}/api/feedback-forms`)
+  })
+
+  it('exports feedbackFormSubmissionsApi with correct path', () => {
+    expect(feedbackFormSubmissionsApi).toBe(`${base}/api/feedback-forms/submissions`)
+  })
+
+  it('exports uploadApi with correct path', () => {
+    expect(uploadApi).toBe(`${base}/api/upload`)
+  })
+
+  it('exports businessesListApi with correct path', () => {
+    expect(businessesListApi).toBe(`${base}/api/v1/business`)
   })
 })

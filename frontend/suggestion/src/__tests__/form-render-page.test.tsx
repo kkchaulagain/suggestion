@@ -224,4 +224,52 @@ describe('FormRenderPage', () => {
     })
     expect(screen.queryByText(/Optional description/i)).not.toBeInTheDocument()
   })
+
+  test('submits form with image: uploads file then submits with url', async () => {
+    const formWithImage = {
+      feedbackForm: {
+        _id: 'form-img',
+        title: 'With Photo',
+        description: '',
+        fields: [
+          { name: 'comment', label: 'Comment', type: 'short_text', required: false },
+          { name: 'photo', label: 'Photo', type: 'image_upload', required: false },
+        ],
+      },
+    }
+    mockedAxios.get.mockResolvedValueOnce({ data: formWithImage })
+    mockedAxios.post
+      .mockResolvedValueOnce({ data: { url: 'https://cdn.example.com/photo.jpg' } })
+      .mockResolvedValueOnce({ data: { message: 'Submission received' } })
+
+    renderFormRenderPage('form-img')
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /With Photo/i })).toBeInTheDocument()
+    })
+
+    const fileInput = document.querySelector('input[type="file"][accept="image/*"]')
+    if (fileInput) {
+      fireEvent.change(fileInput, { target: { files: [new File(['x'], 'pic.jpg', { type: 'image/jpeg' })] } })
+    }
+    fireEvent.click(screen.getByRole('button', { name: /Submit/i }))
+
+    await waitFor(() => {
+      expect(mockedAxios.post).toHaveBeenCalledTimes(2)
+      expect(mockedAxios.post).toHaveBeenNthCalledWith(
+        1,
+        expect.stringMatching(/\/api\/upload$/),
+        expect.any(FormData),
+        expect.any(Object),
+      )
+      expect(mockedAxios.post).toHaveBeenNthCalledWith(
+        2,
+        expect.stringMatching(/\/submit$/),
+        expect.objectContaining({ photo: 'https://cdn.example.com/photo.jpg' }),
+      )
+    })
+    await waitFor(() => {
+      expect(screen.getByText(/Thank you/i)).toBeInTheDocument()
+    })
+  })
 })

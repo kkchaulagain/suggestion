@@ -11,6 +11,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 
 import FormsPage from './pages/business-dashboard/pages/FormsPage'
 import CreateFormPage from './pages/business-dashboard/pages/CreateFormPage'
+import SubmissionsPage from './pages/business-dashboard/pages/SubmissionsPage'
 import BusinessesPage from './pages/business-dashboard/pages/BusinessesPage'
 import FormRenderLayout from './pages/feedback-form-render/FormRenderLayout'
 import FormRenderPage from './pages/feedback-form-render/FormRenderPage'
@@ -56,6 +57,7 @@ function App() {
             <Route index element={<DashboardIndex />} />
             <Route path="forms" element={<FormsPage />} />
             <Route path="forms/create" element={<CreateFormPage />} />
+            <Route path="submissions" element={<SubmissionsPage />} />
             <Route path="businesses" element={<BusinessesPage />} />
           </Route>
           {/* Legacy: redirect old business-dashboard URLs to main dashboard */}

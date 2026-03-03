@@ -3,6 +3,7 @@ const express = require('express');
 const cookieParser = require('cookie-parser');
 const authRoutes = require('./routes/auth');
 const feedbackFormRoutes = require('./routes/feedbackForms');
+const uploadRoutes = require('./routes/upload');
 const v1Routes = require('./routes/v1');
 const { setupSwagger } = require('./swagger');
 
@@ -28,6 +29,7 @@ app.get('/health', (req: Request, res: Response) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/feedback-forms', feedbackFormRoutes);
+app.use('/api/upload', uploadRoutes);
 app.use('/api/v1', v1Routes);
 
 

@@ -50,6 +50,16 @@ jest.mock('../pages/business-dashboard/pages/CreateFormPage', () => ({
   default: () => <div>Create Form Page</div>,
 }))
 
+jest.mock('../pages/business-dashboard/pages/SubmissionsPage', () => ({
+  __esModule: true,
+  default: () => <div>Submissions Page</div>,
+}))
+
+jest.mock('../pages/business-dashboard/pages/BusinessesPage', () => ({
+  __esModule: true,
+  default: () => <div>Businesses Page</div>,
+}))
+
 const App = require('../App').default
 
 describe('ProtectedRoute component', () => {
@@ -159,6 +169,23 @@ describe('App routing', () => {
     await waitFor(() => {
       expect(screen.getByText('Business Layout')).toBeInTheDocument()
       expect(screen.getByText('Forms Listing Page')).toBeInTheDocument()
+    })
+  })
+
+  test('renders submissions route at /dashboard/submissions when business user', async () => {
+    localStorage.setItem('auth_token', 'fake-token')
+    mockedAxios.get.mockResolvedValue({
+      data: {
+        success: true,
+        data: { _id: '1', name: 'Test', email: 't@t.com', role: 'business' },
+      },
+    })
+    window.history.pushState({}, '', '/dashboard/submissions')
+    render(<App />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Business Layout')).toBeInTheDocument()
+      expect(screen.getByText('Submissions Page')).toBeInTheDocument()
     })
   })
 

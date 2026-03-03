@@ -1,0 +1,49 @@
+---
+description: Frontend component-based architecture, reusable components, and attractive UX
+globs: frontend/**/*.tsx
+alwaysApply: false
+---
+
+# Frontend: Components & UX
+
+## Component-Based Architecture
+
+- Build the UI from **small, single-responsibility components**; compose pages from them.
+- Prefer **functional components** with hooks; keep components focused and testable.
+- Colocate component-specific styles and types next to the component when they aren’t shared.
+
+## Reusable Components
+
+- Extract repeated UI and behavior into **shared components** (e.g. `Button`, `Card`, `Input`, `Modal`).
+- Design components to be **configurable via props** (variants, size, disabled, etc.), not hardcoded.
+- Place shared components in a dedicated folder (e.g. `components/` or `component/`) and use them across pages.
+
+```tsx
+// ❌ BAD – one-off, not reusable
+<div className="rounded bg-blue-500 p-2 text-white" onClick={...}>Submit</div>
+
+// ✅ GOOD – reusable, configurable
+<Button variant="primary" size="md" onClick={onSubmit}>Submit</Button>
+```
+
+## Attractive Design & Good UX
+
+- Use a **consistent design system**: spacing scale, typography, and a limited color palette.
+- Prefer **clear hierarchy**: headings, contrast, and whitespace so content is scannable.
+- Give **immediate feedback**: loading states, disabled states, and success/error messages for actions.
+- Keep **interactions obvious**: visible focus states, hover feedback, and clear primary actions.
+- Ensure **accessibility**: semantic HTML, ARIA when needed, keyboard navigation, and sufficient color contrast.
+
+```tsx
+// ❌ BAD – no feedback, flat layout
+<button onClick={submit}>Save</button>
+
+// ✅ GOOD – loading state, hierarchy, accessible
+<Button
+  onClick={submit}
+  disabled={isSubmitting}
+  aria-busy={isSubmitting}
+>
+  {isSubmitting ? 'Saving…' : 'Save'}
+</Button>
+```
