@@ -170,6 +170,27 @@ describe('SubmissionsPage', () => {
     })
   })
 
+  it('applies formId from URL and fetches submissions for that form', async () => {
+    mockedAxios.get
+      .mockResolvedValueOnce({ data: { feedbackForms: [{ _id: 'f-from-url', title: 'Form From URL' }] } })
+      .mockResolvedValueOnce({ data: { submissions: [], total: 0 } })
+
+    render(
+      <MemoryRouter initialEntries={['/dashboard/submissions?formId=f-from-url']}>
+        <SubmissionsPage />
+      </MemoryRouter>,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText(/No submissions found/i)).toBeInTheDocument()
+    })
+
+    expect(mockedAxios.get).toHaveBeenCalledTimes(2)
+    const submissionsCall = mockedAxios.get.mock.calls.find((call) => String(call[0]).includes('submissions'))
+    expect(submissionsCall).toBeDefined()
+    expect(submissionsCall![0]).toMatch(/\?.*formId=f-from-url/)
+  })
+
   it('Previous/Next pagination buttons work', async () => {
     const manySubmissions = Array.from({ length: 20 }, (_, i) => ({
       _id: `sub-${i}`,
