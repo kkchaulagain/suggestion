@@ -218,6 +218,44 @@ describe('Feedback Submissions API', () => {
       expect((await FeedbackSubmission.findById(res.body.submissionId).lean()).responses.comment).toBe('Optional text');
     });
 
+    it('accepts required checkbox with valid string values', async () => {
+      const { businessId } = await createBusinessAuth();
+      const form = await FeedbackForm.create({
+        businessId,
+        title: 'Required CB',
+        fields: [{ name: 'colors', label: 'Colors', type: 'checkbox', options: ['R', 'G', 'B'], required: true }],
+      });
+
+      const res = await request(app)
+        .post(`/api/feedback-forms/${form._id}/submit`)
+        .send({ colors: ['R', 'B'] })
+        .expect(201);
+
+      const sub = await FeedbackSubmission.findById(res.body.submissionId).lean();
+      expect(sub.responses.colors).toEqual(['R', 'B']);
+    });
+
+    it('defaults optional missing fields to empty value', async () => {
+      const { businessId } = await createBusinessAuth();
+      const form = await FeedbackForm.create({
+        businessId,
+        title: 'Optional defaults',
+        fields: [
+          { name: 'tags', label: 'Tags', type: 'checkbox', options: ['A'], required: false },
+          { name: 'note', label: 'Note', type: 'short_text', required: false },
+        ],
+      });
+
+      const res = await request(app)
+        .post(`/api/feedback-forms/${form._id}/submit`)
+        .send({})
+        .expect(201);
+
+      const sub = await FeedbackSubmission.findById(res.body.submissionId).lean();
+      expect(sub.responses.tags).toEqual([]);
+      expect(sub.responses.note).toBe('');
+    });
+
     it('returns 500 when submission save fails', async () => {
       const { businessId } = await createBusinessAuth();
       const form = await FeedbackForm.create({

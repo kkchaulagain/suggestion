@@ -142,6 +142,32 @@ describe('BusinessDashboardLayout and page', () => {
     })
   })
 
+  test('renders Submissions as page title when at /dashboard/submissions', async () => {
+    localStorage.setItem('auth_token', 'fake-token')
+    mockedAxios.get
+      .mockResolvedValueOnce({
+        data: { success: true, data: { _id: '1', name: 'Test', email: 't@t.com', role: 'business' } },
+      })
+      .mockResolvedValueOnce({ data: { success: true, data: {} } })
+
+    render(
+      <MemoryRouter initialEntries={['/dashboard/submissions']}>
+        <AuthProvider>
+          <Routes>
+            <Route path="/dashboard" element={<BusinessDashboardLayout />}>
+              <Route path="submissions" element={<div>Submissions content</div>} />
+            </Route>
+          </Routes>
+        </AuthProvider>
+      </MemoryRouter>,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /Submissions/i })).toBeInTheDocument()
+    })
+    expect(screen.getByText(/Submissions content/i)).toBeInTheDocument()
+  })
+
   interface FormsListResponse { data: { feedbackForms: Array<{ _id?: string; title?: string; fields?: Array<{ name: string; label: string; type: string }> }> } }
   test('renders FormsPage static sections', async () => {
     localStorage.setItem('auth_token', 'fake-token')

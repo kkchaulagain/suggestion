@@ -154,4 +154,112 @@ describe('Feedback Forms API Coverage', () => {
 
     expect(res.body.error).toBe('Failed to fetch feedback form');
   });
+
+  it('returns 400 with validation message when create fails Mongoose validation (getValidationErrorMessage)', async () => {
+    const ownerId = new mongoose.Types.ObjectId();
+    await Business.create({
+      owner: ownerId,
+      businessname: 'Biz',
+      location: 'City',
+      pancardNumber: 1234567,
+      description: 'Desc',
+    });
+    mockIsAuthenticated.mockImplementationOnce((req, res, next) => {
+      req.id = ownerId.toString();
+      next();
+    });
+
+    const res = await request(app)
+      .post('/api/feedback-forms')
+      .send({
+        title: 'Test',
+        fields: [{ name: '1invalid', label: 'Field', type: 'short_text' }],
+      })
+      .expect(400);
+
+    expect(res.body.error).toMatch(/field name|required|supported/i);
+  });
+
+  it('returns 400 when PUT payload is empty (at least one field required)', async () => {
+    const ownerId = new mongoose.Types.ObjectId();
+    const business = await Business.create({
+      owner: ownerId,
+      businessname: 'Biz',
+      location: 'City',
+      pancardNumber: 1234567,
+      description: 'Desc',
+    });
+    mockIsAuthenticated.mockImplementationOnce((req, res, next) => {
+      req.id = ownerId.toString();
+      next();
+    });
+    const form = await FeedbackForm.create({
+      businessId: business._id,
+      title: 'Form',
+      fields: [{ name: 'f1', label: 'F1', type: 'short_text' }],
+    });
+
+    const res = await request(app)
+      .put(`/api/feedback-forms/${form._id}`)
+      .send({})
+      .expect(400);
+
+    expect(res.body.error).toMatch(/at least one field|required/i);
+  });
+
+  it('returns 500 when QR generation fails (QR catch)', async () => {
+    const ownerId = new mongoose.Types.ObjectId();
+    const business = await Business.create({
+      owner: ownerId,
+      businessname: 'Biz',
+      location: 'City',
+      pancardNumber: 1234567,
+      description: 'Desc',
+    });
+    mockIsAuthenticated.mockImplementationOnce((req, res, next) => {
+      req.id = ownerId.toString();
+      next();
+    });
+    const form = await FeedbackForm.create({
+      businessId: business._id,
+      title: 'Form',
+      fields: [{ name: 'f1', label: 'F1', type: 'short_text' }],
+    });
+    const QRCode = require('qrcode');
+    jest.spyOn(QRCode, 'toDataURL').mockRejectedValueOnce(new Error('QR error'));
+
+    const res = await request(app)
+      .post(`/api/feedback-forms/${form._id}/qr`)
+      .send({})
+      .expect(500);
+
+    expect(res.body.error).toMatch(/generate|QR|feedback form/i);
+  });
+
+  it('returns 500 when delete fails (DELETE catch)', async () => {
+    const ownerId = new mongoose.Types.ObjectId();
+    const business = await Business.create({
+      owner: ownerId,
+      businessname: 'Biz',
+      location: 'City',
+      pancardNumber: 1234567,
+      description: 'Desc',
+    });
+    mockIsAuthenticated.mockImplementationOnce((req, res, next) => {
+      req.id = ownerId.toString();
+      next();
+    });
+    const form = await FeedbackForm.create({
+      businessId: business._id,
+      title: 'Form',
+      fields: [{ name: 'f1', label: 'F1', type: 'short_text' }],
+    });
+    jest.spyOn(FeedbackForm, 'findOneAndDelete').mockRejectedValueOnce(new Error('DB error'));
+
+    const res = await request(app)
+      .delete(`/api/feedback-forms/${form._id}`)
+      .expect(500);
+
+    expect(res.body.error).toMatch(/delete|failed/i);
+  });
 });

@@ -176,29 +176,6 @@ function validateSubmissionPayload(
     }
   }
 
-  for (const key of Object.keys(raw)) {
-    if (!formFieldNames.has(key)) continue;
-    if (responses[key] !== undefined) continue;
-    const value = raw[key];
-    const field = form.fields.find((f) => f.name === key);
-    if (!field) continue;
-    if (field.required) {
-      if (value === undefined || value === null) {
-        return { valid: false, error: `${field.label} is required` };
-      }
-    }
-    if (field.type === 'checkbox') {
-      responses[key] = Array.isArray(value)
-        ? (value as string[]).map((v) => String(v).trim())
-        : value !== undefined && value !== null && value !== ''
-          ? [String(value).trim()]
-          : [];
-    } else {
-      responses[key] =
-        typeof value === 'string' ? value.trim() : value !== undefined && value !== null ? String(value).trim() : '';
-    }
-  }
-
   return { valid: true, responses };
 }
 

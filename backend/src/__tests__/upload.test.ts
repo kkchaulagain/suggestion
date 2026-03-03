@@ -77,6 +77,17 @@ describe('POST /api/upload', () => {
       });
   });
 
+  it('rejects non-image file (fileFilter)', async () => {
+    mockIsR2Configured.mockReturnValue(true);
+
+    const res = await request(app)
+      .post('/api/upload')
+      .attach('file', Buffer.from('not an image'), { filename: 'file.txt', contentType: 'text/plain' })
+      .expect(500);
+
+    expect(mockUploadToR2).not.toHaveBeenCalled();
+  });
+
   it('returns 500 when R2 throws', async () => {
     mockIsR2Configured.mockReturnValue(true);
     mockUploadToR2.mockRejectedValue(new Error('R2 error'));
