@@ -15,6 +15,7 @@ import SubmissionsPage from './pages/business-dashboard/pages/SubmissionsPage'
 import BusinessesPage from './pages/business-dashboard/pages/BusinessesPage'
 import FormRenderLayout from './pages/feedback-form-render/FormRenderLayout'
 import FormRenderPage from './pages/feedback-form-render/FormRenderPage'
+import ProfilePage from './pages/business-dashboard/pages/ProfilePage'
 
 function App() {
   return (
@@ -59,6 +60,7 @@ function App() {
             <Route path="forms/create" element={<CreateFormPage />} />
             <Route path="submissions" element={<SubmissionsPage />} />
             <Route path="businesses" element={<BusinessesPage />} />
+            <Route path="profile" element={<ProfilePage />} />
           </Route>
           {/* Legacy: redirect old business-dashboard URLs to main dashboard */}
           <Route path="/business-dashboard" element={<Navigate to="/dashboard" replace />} />

@@ -9,6 +9,7 @@ const pageTitles: Record<string, string> = {
   '/dashboard/forms/create': 'Create Form',
   '/dashboard/submissions': 'Submissions',
   '/dashboard/businesses': 'Businesses',
+  '/dashboard/profile': 'Profile',
 }
 
 export default function BusinessDashboardLayout() {
