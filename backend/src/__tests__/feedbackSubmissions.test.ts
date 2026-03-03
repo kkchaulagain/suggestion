@@ -152,6 +152,90 @@ describe('Feedback Submissions API', () => {
 
       expect(res.body.error).toBeTruthy();
     });
+
+    it('returns 400 when required checkbox has empty array', async () => {
+      const { businessId } = await createBusinessAuth();
+      const form = await FeedbackForm.create({
+        businessId,
+        title: 'Checkbox required',
+        fields: [{ name: 'agree', label: 'I agree', type: 'checkbox', required: true }],
+      });
+
+      const res = await request(app)
+        .post(`/api/feedback-forms/${form._id}/submit`)
+        .send({ agree: [] })
+        .expect(400);
+
+      expect(res.body.error).toMatch(/required/);
+    });
+
+    it('returns 400 when required short_text is empty string', async () => {
+      const { businessId } = await createBusinessAuth();
+      const form = await FeedbackForm.create({
+        businessId,
+        title: 'Text required',
+        fields: [{ name: 'comment', label: 'Comment', type: 'short_text', required: true }],
+      });
+
+      const res = await request(app)
+        .post(`/api/feedback-forms/${form._id}/submit`)
+        .send({ comment: '   ' })
+        .expect(400);
+
+      expect(res.body.error).toMatch(/required/);
+    });
+
+    it('accepts optional checkbox with single value (normalized to array)', async () => {
+      const { businessId } = await createBusinessAuth();
+      const form = await FeedbackForm.create({
+        businessId,
+        title: 'Optional tags',
+        fields: [{ name: 'tags', label: 'Tags', type: 'checkbox', options: ['A', 'B'], required: false }],
+      });
+
+      const res = await request(app)
+        .post(`/api/feedback-forms/${form._id}/submit`)
+        .send({ tags: 'A' })
+        .expect(201);
+
+      const submission = await FeedbackSubmission.findById(res.body.submissionId).lean();
+      expect(submission.responses.tags).toEqual(['A']);
+    });
+
+    it('accepts optional non-checkbox field with value', async () => {
+      const { businessId } = await createBusinessAuth();
+      const form = await FeedbackForm.create({
+        businessId,
+        title: 'Optional comment',
+        fields: [{ name: 'comment', label: 'Comment', type: 'short_text', required: false }],
+      });
+
+      const res = await request(app)
+        .post(`/api/feedback-forms/${form._id}/submit`)
+        .send({ comment: 'Optional text' })
+        .expect(201);
+
+      expect((await FeedbackSubmission.findById(res.body.submissionId).lean()).responses.comment).toBe('Optional text');
+    });
+
+    it('returns 500 when submission save fails', async () => {
+      const { businessId } = await createBusinessAuth();
+      const form = await FeedbackForm.create({
+        businessId,
+        title: 'Survey',
+        fields: [{ name: 'comment', label: 'Comment', type: 'short_text' }],
+      });
+
+      const createSpy = jest.spyOn(FeedbackSubmission, 'create').mockRejectedValueOnce(new Error('DB error'));
+
+      const res = await request(app)
+        .post(`/api/feedback-forms/${form._id}/submit`)
+        .send({ comment: 'Hi' })
+        .expect(500);
+
+      expect(res.body.error).toMatch(/save submission|failed/i);
+      createSpy.mockRestore();
+    });
   });
 
   describe('GET /api/feedback-forms/:id/submissions', () => {
@@ -251,6 +335,190 @@ describe('Feedback Submissions API', () => {
 
       expect(res.body.submissions).toHaveLength(2);
       expect(res.body.total).toBe(5);
+    });
+
+    it('returns 500 when fetch fails', async () => {
+      const { authHeader, businessId } = await createBusinessAuth();
+      const form = await FeedbackForm.create({
+        businessId,
+        title: 'Survey',
+        fields: [{ name: 'comment', label: 'Comment', type: 'short_text' }],
+      });
+
+      const findSpy = jest.spyOn(FeedbackSubmission, 'find').mockReturnValueOnce({
+        sort: () => ({ skip: () => ({ limit: () => ({ lean: () => Promise.reject(new Error('DB error')) }) }) }),
+      } as never);
+
+      const res = await request(app)
+        .get(`/api/feedback-forms/${form._id}/submissions`)
+        .set(authHeader)
+        .expect(500);
+
+      expect(res.body.error).toMatch(/submissions|failed/i);
+      findSpy.mockRestore();
+    });
+  });
+
+  describe('GET /api/feedback-forms/submissions (business submissions list)', () => {
+    it('returns submissions with formTitle for business', async () => {
+      const { authHeader, businessId } = await createBusinessAuth();
+      const form = await FeedbackForm.create({
+        businessId,
+        title: 'My Survey',
+        fields: [{ name: 'comment', label: 'Comment', type: 'short_text' }],
+      });
+      await FeedbackSubmission.create({
+        formId: form._id,
+        businessId,
+        formSnapshot: [{ name: 'comment', label: 'Comment', type: 'short_text' }],
+        responses: { comment: 'First' },
+      });
+
+      const res = await request(app)
+        .get('/api/feedback-forms/submissions')
+        .set(authHeader)
+        .expect(200);
+
+      expect(res.body.submissions).toHaveLength(1);
+      expect(res.body.total).toBe(1);
+      expect(res.body.submissions[0].formTitle).toBe('My Survey');
+      expect(res.body.submissions[0].formId).toBe(form._id.toString());
+    });
+
+    it('filters by formId when provided', async () => {
+      const { authHeader, businessId } = await createBusinessAuth();
+      const form1 = await FeedbackForm.create({
+        businessId,
+        title: 'Form 1',
+        fields: [{ name: 'c', label: 'C', type: 'short_text' }],
+      });
+      const form2 = await FeedbackForm.create({
+        businessId,
+        title: 'Form 2',
+        fields: [{ name: 'c', label: 'C', type: 'short_text' }],
+      });
+      await FeedbackSubmission.create({
+        formId: form1._id,
+        businessId,
+        formSnapshot: [{ name: 'c', label: 'C', type: 'short_text' }],
+        responses: { c: 'a' },
+      });
+      await FeedbackSubmission.create({
+        formId: form2._id,
+        businessId,
+        formSnapshot: [{ name: 'c', label: 'C', type: 'short_text' }],
+        responses: { c: 'b' },
+      });
+
+      const res = await request(app)
+        .get('/api/feedback-forms/submissions')
+        .query({ formId: form1._id.toString() })
+        .set(authHeader)
+        .expect(200);
+
+      expect(res.body.submissions).toHaveLength(1);
+      expect(res.body.submissions[0].formTitle).toBe('Form 1');
+    });
+
+    it('returns 400 when formId query is invalid', async () => {
+      const { authHeader } = await createBusinessAuth();
+
+      const res = await request(app)
+        .get('/api/feedback-forms/submissions')
+        .query({ formId: 'not-valid-id' })
+        .set(authHeader)
+        .expect(400);
+
+      expect(res.body.error).toMatch(/invalid form id/i);
+    });
+
+    it('filters by dateFrom and dateTo', async () => {
+      const { authHeader, businessId } = await createBusinessAuth();
+      const form = await FeedbackForm.create({
+        businessId,
+        title: 'Survey',
+        fields: [{ name: 'c', label: 'C', type: 'short_text' }],
+      });
+      const oldDate = new Date('2024-01-01');
+      const midDate = new Date('2024-06-15');
+      const newDate = new Date('2024-12-31');
+      await FeedbackSubmission.create({
+        formId: form._id,
+        businessId,
+        formSnapshot: [{ name: 'c', label: 'C', type: 'short_text' }],
+        responses: { c: 'old' },
+        submittedAt: oldDate,
+      });
+      await FeedbackSubmission.create({
+        formId: form._id,
+        businessId,
+        formSnapshot: [{ name: 'c', label: 'C', type: 'short_text' }],
+        responses: { c: 'mid' },
+        submittedAt: midDate,
+      });
+      await FeedbackSubmission.create({
+        formId: form._id,
+        businessId,
+        formSnapshot: [{ name: 'c', label: 'C', type: 'short_text' }],
+        responses: { c: 'new' },
+        submittedAt: newDate,
+      });
+
+      const res = await request(app)
+        .get('/api/feedback-forms/submissions')
+        .query({ dateFrom: '2024-06-01', dateTo: '2024-07-01' })
+        .set(authHeader)
+        .expect(200);
+
+      expect(res.body.submissions).toHaveLength(1);
+      expect(res.body.submissions[0].responses.c).toBe('mid');
+    });
+
+    it('applies page and pageSize', async () => {
+      const { authHeader, businessId } = await createBusinessAuth();
+      const form = await FeedbackForm.create({
+        businessId,
+        title: 'Survey',
+        fields: [{ name: 'c', label: 'C', type: 'short_text' }],
+      });
+      for (let i = 0; i < 5; i++) {
+        await FeedbackSubmission.create({
+          formId: form._id,
+          businessId,
+          formSnapshot: [{ name: 'c', label: 'C', type: 'short_text' }],
+          responses: { c: `Sub ${i}` },
+        });
+      }
+
+      const res = await request(app)
+        .get('/api/feedback-forms/submissions')
+        .query({ page: 2, pageSize: 2 })
+        .set(authHeader)
+        .expect(200);
+
+      expect(res.body.submissions).toHaveLength(2);
+      expect(res.body.total).toBe(5);
+    });
+
+    it('returns 500 when list submissions fails', async () => {
+      const { authHeader, businessId } = await createBusinessAuth();
+      await FeedbackForm.create({
+        businessId,
+        title: 'Survey',
+        fields: [{ name: 'c', label: 'C', type: 'short_text' }],
+      });
+
+      const findSpy = jest.spyOn(FeedbackSubmission, 'find').mockReturnValueOnce({
+        sort: () => ({ skip: () => ({ limit: () => ({ lean: () => Promise.reject(new Error('DB error')) }) }) }),
+      } as never);
+
+      const res = await request(app)
+        .get('/api/feedback-forms/submissions')
+        .set(authHeader)
+        .expect(500);
+
+      expect(res.body.error).toMatch(/submissions|failed/i);
+      findSpy.mockRestore();
     });
   });
 });

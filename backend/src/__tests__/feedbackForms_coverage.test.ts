@@ -119,4 +119,39 @@ describe('Feedback Forms API Coverage', () => {
 
     expect(res.body.error).toBe('Failed to update feedback form');
   });
+
+  it('returns 500 when listing feedback forms fails (GET / catch)', async () => {
+    const ownerId = new mongoose.Types.ObjectId();
+    await Business.create({
+      owner: ownerId,
+      businessname: 'Biz',
+      location: 'City',
+      pancardNumber: 1234567,
+      description: 'Desc',
+    });
+    mockIsAuthenticated.mockImplementationOnce((req, res, next) => {
+      req.id = ownerId.toString();
+      next();
+    });
+
+    jest.spyOn(FeedbackForm, 'find').mockReturnValueOnce({
+      sort: () => Promise.reject(new Error('DB error')),
+    } as never);
+
+    const res = await request(app)
+      .get('/api/feedback-forms')
+      .expect(500);
+
+    expect(res.body.error).toBe('Failed to fetch feedback forms');
+  });
+
+  it('returns 500 when fetching feedback form by id fails (GET /:id catch)', async () => {
+    jest.spyOn(FeedbackForm, 'findById').mockRejectedValueOnce(new Error('DB error'));
+
+    const res = await request(app)
+      .get(`/api/feedback-forms/${new mongoose.Types.ObjectId()}`)
+      .expect(500);
+
+    expect(res.body.error).toBe('Failed to fetch feedback form');
+  });
 });
