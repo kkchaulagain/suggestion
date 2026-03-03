@@ -139,7 +139,6 @@ function validateSubmissionPayload(
     return { valid: false, error: 'Request body must be an object with field names as keys' };
   }
   const raw = body as Record<string, unknown>;
-  const formFieldNames = new Set((form.fields || []).map((f) => f.name));
   const responses: SubmissionBody = {};
 
   for (const field of form.fields || []) {

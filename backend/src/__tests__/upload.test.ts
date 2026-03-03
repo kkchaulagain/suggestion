@@ -80,7 +80,7 @@ describe('POST /api/upload', () => {
   it('rejects non-image file (fileFilter)', async () => {
     mockIsR2Configured.mockReturnValue(true);
 
-    const res = await request(app)
+    await request(app)
       .post('/api/upload')
       .attach('file', Buffer.from('not an image'), { filename: 'file.txt', contentType: 'text/plain' })
       .expect(500);
