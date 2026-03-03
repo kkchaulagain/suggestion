@@ -132,4 +132,29 @@ describe('FormsPage', () => {
       expect(screen.getByText(/Failed to generate QR\./i)).toBeInTheDocument()
     })
   })
+
+  test('View Responses navigates to submissions with formId param', async () => {
+    mockedAxios.get.mockResolvedValueOnce({
+      data: {
+        feedbackForms: [
+          {
+            _id: 'form-abc-123',
+            title: 'Feedback Form',
+            businessId: 'b1',
+            fields: [{ name: 'q', label: 'Question', type: 'short_text', required: false }],
+          },
+        ],
+      },
+    } as FormsListApiResponse)
+
+    renderFormsPage()
+
+    await waitFor(() => {
+      expect(screen.getByText(/Feedback Form/i)).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /View Responses/i }))
+
+    expect(mockNavigate).toHaveBeenCalledWith('/dashboard/submissions?formId=form-abc-123')
+  })
 })

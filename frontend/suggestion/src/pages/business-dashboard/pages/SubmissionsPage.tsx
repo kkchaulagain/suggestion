@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import axios from 'axios'
 import { useAuth } from '../../../context/AuthContext'
 import { feedbackFormsApi, feedbackFormSubmissionsApi } from '../../../utils/apipath'
@@ -80,6 +81,9 @@ function ResponseDetailModal({
 }
 
 export default function SubmissionsPage() {
+  const [searchParams] = useSearchParams()
+  const formIdFromUrl = searchParams.get('formId') ?? ''
+
   const [forms, setForms] = useState<FeedbackForm[]>([])
   const [submissions, setSubmissions] = useState<Submission[]>([])
   const [total, setTotal] = useState(0)
@@ -87,14 +91,23 @@ export default function SubmissionsPage() {
   const [error, setError] = useState('')
   const [page, setPage] = useState(1)
   const [pageSize] = useState(20)
-  const [formId, setFormId] = useState('')
+  const [formId, setFormId] = useState(formIdFromUrl)
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
-  const [formIdApplied, setFormIdApplied] = useState('')
+  const [formIdApplied, setFormIdApplied] = useState(formIdFromUrl)
   const [dateFromApplied, setDateFromApplied] = useState('')
   const [dateToApplied, setDateToApplied] = useState('')
   const [viewSubmission, setViewSubmission] = useState<Submission | null>(null)
   const { getAuthHeaders } = useAuth()
+
+  // When URL formId changes (e.g. navigating from Saved Forms), sync filter and applied state
+  useEffect(() => {
+    if (formIdFromUrl) {
+      setFormId(formIdFromUrl)
+      setFormIdApplied(formIdFromUrl)
+      setPage(1)
+    }
+  }, [formIdFromUrl])
 
   const authHeaders = useMemo(
     () => ({

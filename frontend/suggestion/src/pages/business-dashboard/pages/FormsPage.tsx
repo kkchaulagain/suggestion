@@ -108,13 +108,22 @@ export default function FormsPage() {
                 <p className="text-xs text-slate-500">Business ID: {form.businessId}</p>
                 {form.description ? <p className="mt-1 text-sm text-slate-600">{form.description}</p> : null}
               </div>
-              <button
-                type="button"
-                onClick={() => void handleGenerateQr(form._id)}
-                className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white"
-              >
-                Generate QR
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => navigate(`/dashboard/submissions?formId=${encodeURIComponent(form._id)}`)}
+                  className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                >
+                  View Responses
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleGenerateQr(form._id)}
+                  className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white"
+                >
+                  Generate QR
+                </button>
+              </div>
             </div>
 
             <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-slate-500">Fields</p>
