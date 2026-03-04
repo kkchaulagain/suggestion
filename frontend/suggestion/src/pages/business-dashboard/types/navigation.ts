@@ -8,4 +8,5 @@ export const sidebarItems: SidebarItem[] = [
   { label: 'Forms', path: '/dashboard/forms' },
   { label: 'Submissions', path: '/dashboard/submissions' },
   { label: 'Businesses', path: '/dashboard/businesses' },
+  { label: 'Profile', path: '/dashboard/profile' },
 ]
