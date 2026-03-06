@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import axios from 'axios'
 import { feedbackFormsApi, uploadApi } from '../../utils/apipath'
 import type { FeedbackFormConfig, FeedbackFormField } from './types'
-import { Button, Label } from '../../components/ui'
+import { Button, Label, ErrorMessage } from '../../components/ui'
 
 async function uploadImage(file: File): Promise<string> {
   const formData = new FormData()
@@ -298,7 +298,7 @@ export default function FormRenderPage() {
         ))}
 
         {submitError ? (
-          <p className="text-sm text-rose-600">{submitError}</p>
+          <ErrorMessage message={submitError} />
         ) : null}
 
         <Button type="submit" variant="primary" size="md" disabled={submitting} className="w-full">

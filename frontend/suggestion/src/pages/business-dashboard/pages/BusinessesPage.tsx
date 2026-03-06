@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import axios from 'axios'
 import { useAuth } from '../../../context/AuthContext'
 import { businessesListApi } from '../../../utils/apipath'
-import { Button, Label } from '../../../components/ui'
+import { Button, Label, ErrorMessage } from '../../../components/ui'
 
 interface BusinessListItem {
   id: string
@@ -170,7 +170,7 @@ export default function BusinessesPage() {
         ))}
       </div>
 
-      {error ? <p className="mt-4 text-sm text-rose-600">{error}</p> : null}
+      {error ? <ErrorMessage message={error} className="mt-4" /> : null}
 
       {modalMode && selectedBusiness ? (
         <div
@@ -266,7 +266,7 @@ export default function BusinessesPage() {
                     className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900"
                   />
                 </div>
-                {modalError ? <p className="text-sm text-rose-600">{modalError}</p> : null}
+                {modalError ? <ErrorMessage message={modalError} /> : null}
                 <div className="flex justify-end gap-2">
                   <Button type="button" variant="secondary" size="sm" onClick={closeModal}>
                     Cancel

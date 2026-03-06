@@ -2,7 +2,7 @@ import { useState } from 'react'
 import type { FormEvent, JSX } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { Button, Label } from '../components/ui'
+import { Button, Label, ErrorMessage } from '../components/ui'
 
 export default function Login(): JSX.Element {
   const navigate = useNavigate()
@@ -35,7 +35,7 @@ export default function Login(): JSX.Element {
         <p className="m-0 text-xs font-bold uppercase tracking-[0.08em] text-teal-700">Suggestion Platform</p>
         <h1 className="mt-2 mb-1 text-3xl sm:text-4xl font-bold leading-tight text-slate-800">Welcome back</h1>
         <p className="mb-5 text-sm text-slate-600">Log in to continue sharing and managing ideas.</p>
-        {displayError && <p className="mb-3 text-sm text-red-600">{displayError}</p>}
+        {displayError ? <ErrorMessage message={displayError} className="mb-3" /> : null}
         <form className="grid gap-2.5" onSubmit={handelFromSubmit} noValidate>
           <Label htmlFor="login-email" size="sm" className="tracking-wide text-slate-800">Email</Label>
           <input
@@ -52,7 +52,7 @@ export default function Login(): JSX.Element {
               setErrors((prev) => ({ ...prev, email: undefined, general: undefined }))
             }}
           />
-          {errors.email && <p className="text-xs text-red-600">{errors.email}</p>}
+          {errors.email ? <ErrorMessage message={errors.email} size="sm" /> : null}
           <Label htmlFor="login-password" size="sm" className="tracking-wide text-slate-800">Password</Label>
           <input
             id="login-password"
@@ -68,7 +68,7 @@ export default function Login(): JSX.Element {
               setErrors((prev) => ({ ...prev, password: undefined, general: undefined }))
             }}
           />
-          {errors.password && <p className="text-xs text-red-600">{errors.password}</p>}
+          {errors.password ? <ErrorMessage message={errors.password} size="sm" /> : null}
           <Button type="submit" variant="primary" size="lg" className="mt-2 w-full">
             Login
           </Button>
