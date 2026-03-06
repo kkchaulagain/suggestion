@@ -3,7 +3,7 @@ import type { FormEvent, JSX } from 'react'
 import axios from 'axios'
 import { userapi } from '../utils/apipath'
 import { useNavigate } from 'react-router-dom'
-import { Button, Input, Label, ErrorMessage } from '../components/ui'
+import { Button, Input, Label, Textarea, ErrorMessage } from '../components/ui'
 
 type FieldErrors = {
   name?: string
@@ -200,30 +200,18 @@ export default function Signup(): JSX.Element {
                 error={errors.location}
               />
 
-              {/* Description */}
-              <div className="flex flex-col gap-1">
-                <Label htmlFor="description" size="md" className="text-gray-700">
-                  Description <span className="text-gray-400">(required for business)</span>
-                </Label>
-                <textarea
-                  id="description"
-                  value={description}
-                  onChange={(e) => {
-                    setDescription(e.target.value)
-                    setErrors((prev) => ({ ...prev, description: undefined }))
-                  }}
-                  placeholder="Describe your business"
-                  rows={3}
-                  className={`border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 transition resize-none ${
-                    errors.description
-                      ? 'border-red-400 focus:ring-red-200'
-                      : 'border-gray-300 focus:ring-blue-200'
-                  }`}
-                />
-                {errors.description ? (
-                  <ErrorMessage message={errors.description} size="sm" className="mt-0.5" />
-                ) : null}
-              </div>
+              <Textarea
+                id="description"
+                label={<>Description <span className="text-gray-400">(required for business)</span></>}
+                value={description}
+                onChange={(v) => {
+                  setDescription(v)
+                  setErrors((prev) => ({ ...prev, description: undefined }))
+                }}
+                placeholder="Describe your business"
+                rows={3}
+                error={errors.description}
+              />
 
               {/* PAN Card Number */}
               <Input

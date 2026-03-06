@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import axios from 'axios'
 import { feedbackFormsApi, uploadApi } from '../../utils/apipath'
 import type { FeedbackFormConfig, FeedbackFormField } from './types'
-import { Button, Card, Input, Label, ErrorMessage } from '../../components/ui'
+import { Button, Card, Input, Label, Textarea, ErrorMessage } from '../../components/ui'
 
 async function uploadImage(file: File): Promise<string> {
   const formData = new FormData()
@@ -222,14 +222,12 @@ export default function FormRenderPage() {
             ) : null}
 
             {field.type === 'big_text' ? (
-              <textarea
+              <Textarea
                 id={`field-${field.name}`}
-                name={field.name}
                 value={(values[field.name] as string) ?? ''}
-                onChange={(e) => updateValue(field.name, e.target.value)}
+                onChange={(v) => updateValue(field.name, v)}
                 placeholder={field.placeholder}
                 rows={4}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-emerald-600"
                 required={field.required}
               />
             ) : null}

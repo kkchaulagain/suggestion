@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import axios from 'axios'
 import { useAuth } from '../../../context/AuthContext'
 import { businessesListApi } from '../../../utils/apipath'
-import { Button, Card, Input, Label, ErrorMessage } from '../../../components/ui'
+import { Button, Card, Input, Textarea, ErrorMessage } from '../../../components/ui'
 
 interface BusinessListItem {
   id: string
@@ -239,18 +239,13 @@ export default function BusinessesPage() {
                     setEditForm((f) => ({ ...f, pancardNumber: Number(v) || 0 }))
                   }
                 />
-                <div>
-                  <Label htmlFor="edit-description" size="sm" className="font-semibold text-slate-700">
-                    Description
-                  </Label>
-                  <textarea
-                    id="edit-description"
-                    value={editForm.description}
-                    onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))}
-                    rows={3}
-                    className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900"
-                  />
-                </div>
+                <Textarea
+                  id="edit-description"
+                  label="Description"
+                  value={editForm.description}
+                  onChange={(v) => setEditForm((f) => ({ ...f, description: v }))}
+                  rows={3}
+                />
                 {modalError ? <ErrorMessage message={modalError} /> : null}
                 <div className="flex justify-end gap-2">
                   <Button type="button" variant="secondary" size="sm" onClick={closeModal}>

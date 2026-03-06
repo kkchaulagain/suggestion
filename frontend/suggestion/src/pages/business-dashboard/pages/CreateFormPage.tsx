@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { useAuth } from '../../../context/AuthContext'
 import { feedbackFormsApi } from '../../../utils/apipath'
-import { Button, Card, Input, ErrorMessage } from '../../../components/ui'
+import { Button, Card, Input, ErrorMessage, Textarea } from '../../../components/ui'
 
 type FeedbackFieldType = 'checkbox' | 'radio' | 'short_text' | 'long_text' | 'big_text' | 'image_upload'
 
@@ -170,12 +170,12 @@ export default function CreateFormPage() {
             onChange={setTitle}
             placeholder="Form title"
           />
-          <textarea
+          <Textarea
+            id="form-description"
             value={description}
-            onChange={(event) => setDescription(event.target.value)}
+            onChange={setDescription}
             placeholder="Form description"
             rows={3}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-emerald-600"
           />
         </div>
 
@@ -317,11 +317,14 @@ export default function CreateFormPage() {
                     </Button>
                   </div>
                   {field.type === 'big_text' ? (
-                    <textarea
-                      disabled
-                      rows={4}
+                    <Textarea
+                      id={`preview-${field.name}`}
+                      value=""
+                      onChange={() => {}}
                       placeholder={field.placeholder || 'Long answer...'}
-                      className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                      rows={4}
+                      disabled
+                      className="mt-2"
                     />
                   ) : null}
                   {field.type === 'short_text' || field.type === 'long_text' ? (
