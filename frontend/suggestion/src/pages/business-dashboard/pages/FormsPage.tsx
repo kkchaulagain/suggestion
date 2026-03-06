@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { useAuth } from '../../../context/AuthContext'
 import { feedbackFormsApi } from '../../../utils/apipath'
-import { Button, Card, ErrorMessage } from '../../../components/ui'
+import { Button, Card, Tag, ErrorMessage } from '../../../components/ui'
 
 interface FeedbackField {
   name: string
@@ -119,10 +119,10 @@ export default function FormsPage() {
             <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-slate-500">Fields</p>
             <div className="mt-2 flex flex-wrap gap-2">
               {form.fields.map((field) => (
-                <span key={`${form._id}-${field.name}`} className="rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-700">
+                <Tag key={`${form._id}-${field.name}`}>
                   {field.label} ({field.type})
                   {field.options && field.options.length > 0 ? `: ${field.options.join(', ')}` : ''}
-                </span>
+                </Tag>
               ))}
             </div>
 
