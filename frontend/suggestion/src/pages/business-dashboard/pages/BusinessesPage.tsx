@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import axios from 'axios'
+import { Check, Eye, Pencil, RefreshCw, Trash2, X } from 'lucide-react'
 import { useAuth } from '../../../context/AuthContext'
 import { businessesListApi } from '../../../utils/apipath'
 import { Button, Card, Input, Textarea, ErrorMessage, Modal } from '../../../components/ui'
@@ -132,6 +133,7 @@ export default function BusinessesPage() {
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">Registered Businesses</h3>
         <Button type="button" variant="secondary" size="sm" onClick={() => void loadBusinesses()}>
+          <RefreshCw className="h-4 w-4" />
           Refresh
         </Button>
       </div>
@@ -158,12 +160,15 @@ export default function BusinessesPage() {
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <Button type="button" variant="secondary" size="sm" onClick={() => openView(business)}>
+                  <Eye className="h-4 w-4" />
                   View
                 </Button>
                 <Button type="button" variant="secondary" size="sm" onClick={() => openEdit(business)}>
+                  <Pencil className="h-4 w-4" />
                   Edit
                 </Button>
                 <Button type="button" variant="danger" size="sm" onClick={() => void handleDelete(business)}>
+                  <Trash2 className="h-4 w-4" />
                   Delete
                 </Button>
               </div>
@@ -241,9 +246,11 @@ export default function BusinessesPage() {
                 {modalError ? <ErrorMessage message={modalError} /> : null}
                 <div className="flex justify-end gap-2">
                   <Button type="button" variant="secondary" size="sm" onClick={closeModal}>
+                    <X className="h-4 w-4" />
                     Cancel
                   </Button>
                   <Button type="submit" variant="primary" size="sm" disabled={saving}>
+                    <Check className="h-4 w-4" />
                     {saving ? 'Saving...' : 'Save'}
                   </Button>
                 </div>
@@ -253,6 +260,7 @@ export default function BusinessesPage() {
             {modalMode === 'view' ? (
               <div className="flex justify-end">
                 <Button type="button" variant="secondary" size="sm" onClick={closeModal}>
+                  <X className="h-4 w-4" />
                   Close
                 </Button>
               </div>
