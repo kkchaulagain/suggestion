@@ -1,0 +1,75 @@
+import type { ReactNode, SelectHTMLAttributes } from 'react'
+import Label from './Label'
+import ErrorMessage from './ErrorMessage'
+
+export interface SelectOption {
+  value: string
+  label: string
+}
+
+export interface SelectProps extends Omit<SelectHTMLAttributes<HTMLSelectElement>, 'value' | 'onChange'> {
+  id: string
+  label?: ReactNode
+  value: string
+  onChange: (value: string) => void
+  options: SelectOption[]
+  placeholder?: string
+  error?: string
+  disabled?: boolean
+  required?: boolean
+}
+
+const baseClasses =
+  'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20'
+const errorClasses =
+  'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-200'
+
+export default function Select({
+  id,
+  label,
+  value,
+  onChange,
+  options,
+  placeholder,
+  error,
+  disabled = false,
+  required = false,
+  className = '',
+  ...rest
+}: SelectProps) {
+  const selectClasses = error
+    ? `${baseClasses} ${errorClasses} ${className}`.trim()
+    : `${baseClasses} ${className}`.trim()
+
+  return (
+    <div className="space-y-1">
+      {label ? (
+        <Label htmlFor={id} size="md" required={required}>
+          {label}
+        </Label>
+      ) : null}
+      <select
+        id={id}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        disabled={disabled}
+        required={required}
+        className={selectClasses}
+        aria-invalid={!!error}
+        {...rest}
+      >
+        {placeholder != null ? (
+          <option value="">{placeholder}</option>
+        ) : null}
+        {options.map((opt) => (
+          <option key={opt.value} value={opt.value}>
+            {opt.label}
+          </option>
+        ))}
+      </select>
+      {error ? (
+        <ErrorMessage message={error} size="sm" className="mt-0.5" />
+      ) : null}
+    </div>
+  )
+}
