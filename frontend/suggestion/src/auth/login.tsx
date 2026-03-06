@@ -2,7 +2,7 @@ import { useState } from 'react'
 import type { FormEvent, JSX } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { Button } from '../components/ui'
+import { Button, Label } from '../components/ui'
 
 export default function Login(): JSX.Element {
   const navigate = useNavigate()
@@ -37,7 +37,7 @@ export default function Login(): JSX.Element {
         <p className="mb-5 text-sm text-slate-600">Log in to continue sharing and managing ideas.</p>
         {displayError && <p className="mb-3 text-sm text-red-600">{displayError}</p>}
         <form className="grid gap-2.5" onSubmit={handelFromSubmit} noValidate>
-          <label htmlFor="login-email" className="text-xs font-semibold tracking-wide text-slate-800">Email</label>
+          <Label htmlFor="login-email" size="sm" className="tracking-wide text-slate-800">Email</Label>
           <input
             id="login-email"
             className={`w-full rounded-xl border bg-white px-3 py-2.5 text-sm text-slate-800 outline-none transition ${
@@ -53,7 +53,7 @@ export default function Login(): JSX.Element {
             }}
           />
           {errors.email && <p className="text-xs text-red-600">{errors.email}</p>}
-          <label htmlFor="login-password" className="text-xs font-semibold tracking-wide text-slate-800">Password</label>
+          <Label htmlFor="login-password" size="sm" className="tracking-wide text-slate-800">Password</Label>
           <input
             id="login-password"
             className={`w-full rounded-xl border bg-white px-3 py-2.5 text-sm text-slate-800 outline-none transition ${
