@@ -7,6 +7,7 @@ import TopHeader from '../pages/business-dashboard/components/TopHeader'
 import BusinessDashboardLayout from '../pages/business-dashboard/layout/BusinessDashboardLayout'
 import FormsPage from '../pages/business-dashboard/pages/FormsPage'
 import { AuthProvider } from '../context/AuthContext'
+import { ThemeProvider } from '../context/ThemeContext'
 
 jest.mock('axios')
 const mockedAxios = axios as jest.Mocked<typeof axios>
@@ -51,9 +52,11 @@ describe('TopHeader', () => {
 
     render(
       <MemoryRouter>
-        <AuthProvider>
-          <TopHeader title="Forms" onOpenSidebar={jest.fn()} />
-        </AuthProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <TopHeader title="Forms" onOpenSidebar={jest.fn()} />
+          </AuthProvider>
+        </ThemeProvider>
       </MemoryRouter>,
     )
 
@@ -88,9 +91,11 @@ describe('TopHeader', () => {
 
     render(
       <MemoryRouter>
-        <AuthProvider>
-          <TopHeader title="Forms" onOpenSidebar={jest.fn()} />
-        </AuthProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <TopHeader title="Forms" onOpenSidebar={jest.fn()} />
+          </AuthProvider>
+        </ThemeProvider>
       </MemoryRouter>,
     )
 
@@ -120,13 +125,15 @@ describe('BusinessDashboardLayout and page', () => {
 
     render(
       <MemoryRouter initialEntries={['/dashboard/unknown']}>
-        <AuthProvider>
-          <Routes>
-            <Route path="/dashboard" element={<BusinessDashboardLayout />}>
-              <Route path="unknown" element={<div>Unknown Page</div>} />
-            </Route>
-          </Routes>
-        </AuthProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <Routes>
+              <Route path="/dashboard" element={<BusinessDashboardLayout />}>
+                <Route path="unknown" element={<div>Unknown Page</div>} />
+              </Route>
+            </Routes>
+          </AuthProvider>
+        </ThemeProvider>
       </MemoryRouter>,
     )
 
@@ -152,13 +159,15 @@ describe('BusinessDashboardLayout and page', () => {
 
     render(
       <MemoryRouter initialEntries={['/dashboard/submissions']}>
-        <AuthProvider>
-          <Routes>
-            <Route path="/dashboard" element={<BusinessDashboardLayout />}>
-              <Route path="submissions" element={<div>Submissions content</div>} />
-            </Route>
-          </Routes>
-        </AuthProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <Routes>
+              <Route path="/dashboard" element={<BusinessDashboardLayout />}>
+                <Route path="submissions" element={<div>Submissions content</div>} />
+              </Route>
+            </Routes>
+          </AuthProvider>
+        </ThemeProvider>
       </MemoryRouter>,
     )
 

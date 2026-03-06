@@ -27,17 +27,17 @@ export default function Modal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 dark:bg-black/50"
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-title"
       onClick={onClose}
     >
       <div
-        className={`w-full rounded-2xl border border-slate-200 bg-white p-6 shadow-xl ${sizeClasses[size]}`}
+        className={`w-full rounded-2xl border border-slate-200 bg-white p-6 shadow-xl dark:border-slate-700 dark:bg-slate-800 ${sizeClasses[size]}`}
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 id="modal-title" className="text-lg font-bold text-slate-900">
+        <h2 id="modal-title" className="text-lg font-bold text-slate-900 dark:text-slate-100">
           {title}
         </h2>
         <div className="mt-4">{children}</div>

@@ -17,8 +17,8 @@ export default function Pagination({
   const hasNext = page < totalPages
 
   return (
-    <div className="mt-4 flex items-center justify-between border-t border-slate-200 pt-3">
-      <p className="text-sm text-slate-600">
+    <div className="mt-4 flex items-center justify-between border-t border-slate-200 dark:border-slate-700 pt-3">
+      <p className="text-sm text-slate-600 dark:text-slate-400">
         Page {page} of {totalPages} ({totalItems} total)
       </p>
       <div className="flex gap-2">
