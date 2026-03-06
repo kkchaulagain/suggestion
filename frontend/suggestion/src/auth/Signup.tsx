@@ -3,7 +3,7 @@ import type { FormEvent, JSX } from 'react'
 import axios from 'axios'
 import { userapi } from '../utils/apipath'
 import { useNavigate } from 'react-router-dom'
-import { Button, Input, Select, Textarea, ErrorMessage } from '../components/ui'
+import { Button, Input, Select, Textarea, ErrorMessage, ThemeToggle } from '../components/ui'
 
 type FieldErrors = {
   name?: string
@@ -86,11 +86,14 @@ export default function Signup(): JSX.Element {
   const isBusiness = role === 'business'
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="bg-white p-8 rounded-xl shadow-md w-full max-w-md">
-        <h1 className="text-2xl font-bold mb-1 text-center">Suggestion Platform</h1>
-        <h2 className="text-lg font-semibold mb-1 text-center">Create account</h2>
-        <p className="text-sm text-gray-500 text-center mb-6">
+    <div className="relative min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-900">
+      <div className="absolute right-4 top-4">
+        <ThemeToggle />
+      </div>
+      <div className="bg-white p-8 rounded-xl shadow-md w-full max-w-md dark:bg-slate-800 dark:border dark:border-slate-700">
+        <h1 className="text-2xl font-bold mb-1 text-center text-slate-900 dark:text-slate-100">Suggestion Platform</h1>
+        <h2 className="text-lg font-semibold mb-1 text-center text-slate-800 dark:text-slate-200">Create account</h2>
+        <p className="text-sm text-gray-500 dark:text-slate-400 text-center mb-6">
           Join the workspace and start submitting smart suggestions.
         </p>
 

@@ -3,8 +3,8 @@ import type { ReactNode } from 'react'
 export type TagVariant = 'default' | 'emerald'
 
 const variantClasses: Record<TagVariant, string> = {
-  default: 'rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-700',
-  emerald: 'rounded-full bg-emerald-100 px-2.5 py-1 text-xs text-emerald-800',
+  default: 'rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-700 dark:bg-slate-700 dark:text-slate-200',
+  emerald: 'rounded-full bg-emerald-100 px-2.5 py-1 text-xs text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300',
 }
 
 export interface TagProps {
@@ -34,7 +34,7 @@ export default function Tag({
           type="button"
           onClick={onRemove}
           aria-label={removeLabel}
-          className="ml-0.5 rounded p-0.5 font-medium text-emerald-600 hover:text-rose-600 focus:outline-none focus:ring-2 focus:ring-rose-400"
+          className="ml-0.5 rounded p-0.5 font-medium text-emerald-600 hover:text-rose-600 focus:outline-none focus:ring-2 focus:ring-rose-400 dark:text-emerald-400 dark:hover:text-rose-400"
         >
           ×
         </button>
