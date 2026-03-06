@@ -3,6 +3,7 @@ import type { FormEvent, JSX } from 'react'
 import axios from 'axios'
 import { userapi } from '../utils/apipath'
 import { useNavigate } from 'react-router-dom'
+import { Button } from '../components/ui'
 
 type FieldErrors = {
   name?: string
@@ -314,22 +315,16 @@ export default function Signup(): JSX.Element {
             </>
           )}
 
-          <button
-            type="submit"
-            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg text-sm transition"
-          >
+          <Button type="submit" variant="primary" size="md" className="w-full">
             Sign Up
-          </button>
+          </Button>
         </form>
 
         <p className="text-sm text-center text-gray-500 mt-4">
           Already have an account?{' '}
-          <button
-            onClick={() => navigate('/login')}
-            className="text-blue-600 hover:underline font-medium"
-          >
+          <Button type="button" variant="ghost" className="!p-0 text-emerald-600 hover:underline font-medium" onClick={() => navigate('/login')}>
             Login
-          </button>
+          </Button>
         </p>
       </div>
     </div>

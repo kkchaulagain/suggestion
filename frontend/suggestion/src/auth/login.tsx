@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { FormEvent, JSX } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { Button } from '../components/ui'
 
 export default function Login(): JSX.Element {
   const navigate = useNavigate()
@@ -68,10 +69,14 @@ export default function Login(): JSX.Element {
             }}
           />
           {errors.password && <p className="text-xs text-red-600">{errors.password}</p>}
-          <button className="mt-2 rounded-xl bg-gradient-to-r from-teal-700 to-teal-500 px-4 py-3 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:brightness-105 active:translate-y-0" type='submit'>Login</button>
+          <Button type="submit" variant="primary" size="lg" className="mt-2 w-full">
+            Login
+          </Button>
           <p className="mt-2 text-sm text-slate-500">
             New here?{' '}
-            <button className="border-none bg-transparent p-0 font-bold text-teal-700 hover:underline" type="button" onClick={() => navigate('/signup')}>Create account</button>
+            <Button type="button" variant="ghost" className="!p-0 font-bold text-teal-700 hover:underline" onClick={() => navigate('/signup')}>
+              Create account
+            </Button>
           </p>
         </form>
       </div>
