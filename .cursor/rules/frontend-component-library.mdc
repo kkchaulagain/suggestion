@@ -1,0 +1,43 @@
+---
+description: Standard UI component library and props for the frontend; use these components and props when building or refactoring UI.
+globs: frontend/**/*.tsx
+alwaysApply: false
+---
+
+# Frontend: Standard Component Library
+
+When building or refactoring UI, use these **shared components** and their **props** as the standard. Prefer composing from them instead of one-off markup.
+
+## Where components live
+
+- **`components/ui/`** (or `components/shared/`): `Button`, `Card`, `Input`, `Textarea`, `Select`, `Label`, `ErrorMessage`, `Tag`, `Modal`, `DropdownMenu`.
+- **`components/forms/`**: `FormFieldRenderer` (dynamic field by type from form config).
+- **`components/layout/`** (or page-level): `PageHeader`, `Pagination`, `DataTable`, `EmptyState`, `QRDisplay`, `FormCard` / `ListItemCard`.
+
+## Standard components and props
+
+| Component | Key props |
+|-----------|-----------|
+| **Button** | `variant: 'primary' \| 'secondary' \| 'danger' \| 'ghost'`, `size`, `disabled`, `onClick`, `children` |
+| **Card** | `children`, `className`, optional `padding` |
+| **PageHeader** | `title`, `actions` (ReactNode) |
+| **Input** | `id`, `label`, `type`, `value`, `onChange`, `placeholder`, `error`, `disabled`, `required` |
+| **Textarea** | `id`, `label`, `value`, `onChange`, `placeholder`, `rows`, `error`, `disabled`, `required` |
+| **Select** | `id`, `label`, `value`, `onChange`, `options: { value, label }[]`, `error`, `placeholder` |
+| **Modal** | `isOpen`, `onClose`, `title`, `children`, optional `size` |
+| **DataTable** | `columns: { key, header }[]`, `rows`, `emptyMessage`, `loading` |
+| **Pagination** | `page`, `totalPages`, `totalItems`, `onPageChange` |
+| **EmptyState** | `type: 'loading' \| 'empty' \| 'error'`, `message` |
+| **Tag / Chip** | `children`, optional `onRemove`, optional `variant` |
+| **QRDisplay** | `imageDataUrl`, `formUrl`, optional `title` |
+| **FormCard / ListItemCard** | `title`, `subtitle`, `description`, `meta`, `actions`, `children` |
+| **FormFieldRenderer** | `field` (FeedbackFormField), `value`, `onChange`, optional `disabled`, `error` |
+| **Label** | `htmlFor`, `children`, optional `required` |
+| **ErrorMessage** | `message`, optional `className` |
+
+## Rules
+
+1. **Prefer shared components** over inline `<button>`, `<input>`, custom cards, or ad-hoc modals.
+2. **Control via props** — use the props above (variants, sizes, callbacks) rather than hardcoding styles or behavior.
+3. **Consistency** — use the same component for the same purpose (e.g. primary actions → `Button variant="primary"`).
+4. **Extract when repeating** — if the same UI pattern appears in more than one page, add or use a component from this list (or extend the list and this rule).
