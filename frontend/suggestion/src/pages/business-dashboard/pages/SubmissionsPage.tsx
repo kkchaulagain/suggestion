@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import axios from 'axios'
 import { useAuth } from '../../../context/AuthContext'
 import { feedbackFormsApi, feedbackFormSubmissionsApi } from '../../../utils/apipath'
-import { Button, Card, Label, ErrorMessage } from '../../../components/ui'
+import { Button, Card, Input, Label, ErrorMessage } from '../../../components/ui'
 
 interface FormSnapshotField {
   name: string
@@ -192,30 +192,20 @@ export default function SubmissionsPage() {
             ))}
           </select>
         </div>
-        <div>
-          <Label htmlFor="filter-dateFrom" size="sm">
-            From
-          </Label>
-          <input
-            id="filter-dateFrom"
-            type="date"
-            value={dateFrom}
-            onChange={(e) => setDateFrom(e.target.value)}
-            className="mt-1 rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900"
-          />
-        </div>
-        <div>
-          <Label htmlFor="filter-dateTo" size="sm">
-            To
-          </Label>
-          <input
-            id="filter-dateTo"
-            type="date"
-            value={dateTo}
-            onChange={(e) => setDateTo(e.target.value)}
-            className="mt-1 rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900"
-          />
-        </div>
+        <Input
+          id="filter-dateFrom"
+          label="From"
+          type="date"
+          value={dateFrom}
+          onChange={setDateFrom}
+        />
+        <Input
+          id="filter-dateTo"
+          label="To"
+          type="date"
+          value={dateTo}
+          onChange={setDateTo}
+        />
         <Button type="button" variant="primary" size="md" onClick={handleApplyFilters}>
           Apply
         </Button>

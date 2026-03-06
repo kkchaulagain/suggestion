@@ -2,7 +2,7 @@ import { useState } from 'react'
 import type { FormEvent, JSX } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { Button, Label, ErrorMessage } from '../components/ui'
+import { Button, Input, ErrorMessage } from '../components/ui'
 
 export default function Login(): JSX.Element {
   const navigate = useNavigate()
@@ -37,38 +37,30 @@ export default function Login(): JSX.Element {
         <p className="mb-5 text-sm text-slate-600">Log in to continue sharing and managing ideas.</p>
         {displayError ? <ErrorMessage message={displayError} className="mb-3" /> : null}
         <form className="grid gap-2.5" onSubmit={handelFromSubmit} noValidate>
-          <Label htmlFor="login-email" size="sm" className="tracking-wide text-slate-800">Email</Label>
-          <input
+          <Input
             id="login-email"
-            className={`w-full rounded-xl border bg-white px-3 py-2.5 text-sm text-slate-800 outline-none transition ${
-              errors.email
-                ? 'border-red-400 focus:border-red-500 focus:ring-3 focus:ring-red-200'
-                : 'border-slate-300 focus:border-teal-600 focus:ring-3 focus:ring-teal-600/20'
-            }`}
+            label="Email"
             type="email"
             value={email}
-            onChange={(e) => {
-              setEmail(e.target.value)
+            onChange={(v) => {
+              setEmail(v)
               setErrors((prev) => ({ ...prev, email: undefined, general: undefined }))
             }}
+            error={errors.email}
+            className="rounded-xl border-teal-600/20 focus:border-teal-600 focus:ring-teal-600/20"
           />
-          {errors.email ? <ErrorMessage message={errors.email} size="sm" /> : null}
-          <Label htmlFor="login-password" size="sm" className="tracking-wide text-slate-800">Password</Label>
-          <input
+          <Input
             id="login-password"
-            className={`w-full rounded-xl border bg-white px-3 py-2.5 text-sm text-slate-800 outline-none transition ${
-              errors.password
-                ? 'border-red-400 focus:border-red-500 focus:ring-3 focus:ring-red-200'
-                : 'border-slate-300 focus:border-teal-600 focus:ring-3 focus:ring-teal-600/20'
-            }`}
+            label="Password"
             type="password"
             value={password}
-            onChange={(e) => {
-              setPassword(e.target.value)
+            onChange={(v) => {
+              setPassword(v)
               setErrors((prev) => ({ ...prev, password: undefined, general: undefined }))
             }}
+            error={errors.password}
+            className="rounded-xl border-teal-600/20 focus:border-teal-600 focus:ring-teal-600/20"
           />
-          {errors.password ? <ErrorMessage message={errors.password} size="sm" /> : null}
           <Button type="submit" variant="primary" size="lg" className="mt-2 w-full">
             Login
           </Button>
