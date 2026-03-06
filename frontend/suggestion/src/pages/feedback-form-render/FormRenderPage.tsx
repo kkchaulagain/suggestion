@@ -3,7 +3,10 @@ import { useParams, Link } from 'react-router-dom'
 import axios from 'axios'
 import { feedbackFormsApi, uploadApi } from '../../utils/apipath'
 import type { FeedbackFormConfig, FeedbackFormField } from './types'
-import { Button, Card, Input, Label, Textarea, ErrorMessage } from '../../components/ui'
+import { Button, Card, ErrorMessage } from '../../components/ui'
+import { EmptyState } from '../../components/layout'
+import { FormFieldRenderer } from '../../components/forms'
+import type { FormFieldConfig } from '../../components/forms'
 
 async function uploadImage(file: File): Promise<string> {
   const formData = new FormData()
@@ -114,21 +117,6 @@ export default function FormRenderPage() {
     setSubmitError(null)
   }, [])
 
-  const handleCheckboxChange = useCallback(
-    (fieldName: string, optionValue: string, checked: boolean) => {
-      setValues((prev) => {
-        const current = prev[fieldName]
-        const arr = Array.isArray(current) ? [...current] : []
-        if (checked) {
-          return { ...prev, [fieldName]: [...arr, optionValue] }
-        }
-        return { ...prev, [fieldName]: arr.filter((o) => o !== optionValue) }
-      })
-      setSubmitError(null)
-    },
-    []
-  )
-
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault()
@@ -168,7 +156,7 @@ export default function FormRenderPage() {
   if (loading) {
     return (
       <div className="flex min-h-[40vh] items-center justify-center">
-        <p className="text-slate-600">Loading form...</p>
+        <EmptyState type="loading" message="Loading form..." />
       </div>
     )
   }
@@ -206,90 +194,12 @@ export default function FormRenderPage() {
 
       <form onSubmit={handleSubmit} className="mt-6 space-y-5" noValidate>
         {config.fields.map((field) => (
-          <div key={field.name} className="space-y-2">
-            <Label htmlFor={`field-${field.name}`} size="md" required={field.required} className="text-slate-800">
-              {field.label}
-            </Label>
-
-            {field.type === 'short_text' || field.type === 'long_text' ? (
-              <Input
-                id={`field-${field.name}`}
-                value={(values[field.name] as string) ?? ''}
-                onChange={(v) => updateValue(field.name, v)}
-                placeholder={field.placeholder}
-                required={field.required}
-              />
-            ) : null}
-
-            {field.type === 'big_text' ? (
-              <Textarea
-                id={`field-${field.name}`}
-                value={(values[field.name] as string) ?? ''}
-                onChange={(v) => updateValue(field.name, v)}
-                placeholder={field.placeholder}
-                rows={4}
-                required={field.required}
-              />
-            ) : null}
-
-            {field.type === 'checkbox' && field.options?.length ? (
-              <div className="space-y-2">
-                {field.options.map((option) => (
-                  <label
-                    key={`${field.name}-${option}`}
-                    className="flex cursor-pointer items-center gap-2 text-sm text-slate-700"
-                  >
-                    <input
-                      type="checkbox"
-                      name={field.name}
-                      checked={(values[field.name] as string[] | undefined)?.includes(option) ?? false}
-                      onChange={(e) =>
-                        handleCheckboxChange(field.name, option, e.target.checked)
-                      }
-                      className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
-                    />
-                    {option}
-                  </label>
-                ))}
-              </div>
-            ) : null}
-
-            {field.type === 'radio' && field.options?.length ? (
-              <div className="space-y-2">
-                {field.options.map((option) => (
-                  <label
-                    key={`${field.name}-${option}`}
-                    className="flex cursor-pointer items-center gap-2 text-sm text-slate-700"
-                  >
-                    <input
-                      type="radio"
-                      name={field.name}
-                      value={option}
-                      checked={(values[field.name] as string | undefined) === option}
-                      onChange={(e) => updateValue(field.name, e.target.value)}
-                      className="border-slate-300 text-emerald-600 focus:ring-emerald-500"
-                      required={field.required}
-                    />
-                    {option}
-                  </label>
-                ))}
-              </div>
-            ) : null}
-
-            {field.type === 'image_upload' ? (
-              <input
-                id={`field-${field.name}`}
-                type="file"
-                name={field.name}
-                accept="image/*"
-                onChange={(e) => {
-                  const file = e.target.files?.[0]
-                  updateValue(field.name, file)
-                }}
-                className="w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-emerald-50 file:px-3 file:py-2 file:text-sm file:font-medium file:text-emerald-700"
-              />
-            ) : null}
-          </div>
+          <FormFieldRenderer
+            key={field.name}
+            field={field as FormFieldConfig}
+            value={values[field.name]}
+            onChange={updateValue}
+          />
         ))}
 
         {submitError ? (

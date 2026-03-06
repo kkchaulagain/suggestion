@@ -4,6 +4,7 @@ import axios from 'axios'
 import { useAuth } from '../../../context/AuthContext'
 import { feedbackFormsApi } from '../../../utils/apipath'
 import { Button, Card, Tag, ErrorMessage } from '../../../components/ui'
+import { PageHeader, EmptyState, FormCard, QRDisplay } from '../../../components/layout'
 
 interface FeedbackField {
   name: string
@@ -75,33 +76,35 @@ export default function FormsPage() {
 
   return (
     <Card>
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-bold text-slate-900">Saved Forms</h3>
-        <div className="flex items-center gap-2">
-          <Button type="button" variant="secondary" size="sm" onClick={() => void loadForms()}>
-            Refresh
-          </Button>
-          <Button type="button" variant="primary" size="sm" onClick={() => navigate('/dashboard/forms/create')}>
-            Make Form
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title="Saved Forms"
+        actions={
+          <>
+            <Button type="button" variant="secondary" size="sm" onClick={() => void loadForms()}>
+              Refresh
+            </Button>
+            <Button type="button" variant="primary" size="sm" onClick={() => navigate('/dashboard/forms/create')}>
+              Make Form
+            </Button>
+          </>
+        }
+      />
 
-      {loading ? <p className="mt-4 text-sm text-slate-500">Loading forms...</p> : null}
-      {!loading && savedForms.length === 0 ? (
-        <p className="mt-4 text-sm text-slate-500">No forms saved for this business yet.</p>
+      {loading ? (
+        <EmptyState type="loading" message="Loading forms..." />
+      ) : savedForms.length === 0 ? (
+        <EmptyState type="empty" message="No forms saved for this business yet." />
       ) : null}
 
       <div className="mt-4 space-y-4">
         {savedForms.map((form) => (
-          <div key={form._id} className="rounded-xl border border-slate-200 p-4">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <p className="text-base font-semibold text-slate-900">{form.title}</p>
-                <p className="text-xs text-slate-500">Business ID: {form.businessId}</p>
-                {form.description ? <p className="mt-1 text-sm text-slate-600">{form.description}</p> : null}
-              </div>
-              <div className="flex items-center gap-2">
+          <FormCard
+            key={form._id}
+            title={form.title}
+            subtitle={`Business ID: ${form.businessId}`}
+            description={form.description}
+            actions={
+              <>
                 <Button
                   type="button"
                   variant="secondary"
@@ -113,9 +116,9 @@ export default function FormsPage() {
                 <Button type="button" variant="primary" size="sm" onClick={() => void handleGenerateQr(form._id)}>
                   Generate QR
                 </Button>
-              </div>
-            </div>
-
+              </>
+            }
+          >
             <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-slate-500">Fields</p>
             <div className="mt-2 flex flex-wrap gap-2">
               {form.fields.map((field) => (
@@ -125,25 +128,14 @@ export default function FormsPage() {
                 </Tag>
               ))}
             </div>
-
             {qrByFormId[form._id] ? (
-              <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3">
-                <img
-                  src={qrByFormId[form._id].qrCodeDataUrl}
-                  alt={`QR for ${form.title}`}
-                  className="h-36 w-36 rounded border border-white bg-white"
-                />
-                <a
-                  href={qrByFormId[form._id].formUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-2 block break-all text-xs text-emerald-700 underline hover:text-emerald-800"
-                >
-                  {qrByFormId[form._id].formUrl}
-                </a>
-              </div>
+              <QRDisplay
+                imageDataUrl={qrByFormId[form._id].qrCodeDataUrl}
+                formUrl={qrByFormId[form._id].formUrl}
+                title={form.title}
+              />
             ) : null}
-          </div>
+          </FormCard>
         ))}
       </div>
 

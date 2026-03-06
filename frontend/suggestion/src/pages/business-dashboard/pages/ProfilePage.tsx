@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Button, Card, Input } from '../../../components/ui'
+import { Button, Card, Input, Modal } from '../../../components/ui'
 
 export default function ProfilePage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -56,31 +56,30 @@ export default function ProfilePage() {
       </div>
 
 
-      {isDialogOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
-            <h2 className="text-xl font-bold text-slate-900 mb-4">Edit Profile</h2>
-            <div className="space-y-4">
-              <Input
-                id="edit-profile-name"
-                label="Name"
-                type="text"
-                value=""
-                onChange={() => {}}
-                placeholder="Enter the name"
-              />
-            </div>
-            <div className="mt-6 flex gap-3">
-              <Button type="button" variant="secondary" size="lg" onClick={() => setIsDialogOpen(false)} className="flex-1">
-                Cancel
-              </Button>
-              <Button type="button" variant="primary" size="lg" onClick={() => setIsDialogOpen(false)} className="flex-1">
-                Save Changes
-              </Button>
-            </div>
-          </div>
+      <Modal
+        isOpen={isDialogOpen}
+        onClose={() => setIsDialogOpen(false)}
+        title="Edit Profile"
+      >
+        <div className="space-y-4">
+          <Input
+            id="edit-profile-name"
+            label="Name"
+            type="text"
+            value=""
+            onChange={() => {}}
+            placeholder="Enter the name"
+          />
         </div>
-      )}
+        <div className="mt-6 flex gap-3">
+          <Button type="button" variant="secondary" size="lg" onClick={() => setIsDialogOpen(false)} className="flex-1">
+            Cancel
+          </Button>
+          <Button type="button" variant="primary" size="lg" onClick={() => setIsDialogOpen(false)} className="flex-1">
+            Save Changes
+          </Button>
+        </div>
+      </Modal>
     </div>
   );
 }

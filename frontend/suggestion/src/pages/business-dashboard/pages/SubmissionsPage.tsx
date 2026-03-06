@@ -3,7 +3,8 @@ import { useSearchParams } from 'react-router-dom'
 import axios from 'axios'
 import { useAuth } from '../../../context/AuthContext'
 import { feedbackFormsApi, feedbackFormSubmissionsApi } from '../../../utils/apipath'
-import { Button, Card, Input, Select, ErrorMessage } from '../../../components/ui'
+import { Button, Card, Input, Select, ErrorMessage, Modal } from '../../../components/ui'
+import { DataTable } from '../../../components/layout'
 
 interface FormSnapshotField {
   name: string
@@ -43,18 +44,9 @@ function ResponseDetailModal({
   onClose: () => void
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4" onClick={onClose}>
-      <div
-        className="max-h-[90vh] w-full max-w-lg overflow-auto rounded-xl border border-slate-200 bg-white p-6 shadow-lg"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-slate-900">{submission.formTitle || 'Response'}</h3>
-          <Button type="button" variant="secondary" size="md" onClick={onClose}>
-            Close
-          </Button>
-        </div>
-        <p className="mt-1 text-xs text-slate-500">{formatSubmittedAt(submission.submittedAt)}</p>
+    <Modal isOpen onClose={onClose} title={submission.formTitle || 'Response'} size="lg">
+      <div className="max-h-[70vh] overflow-auto">
+        <p className="text-xs text-slate-500">{formatSubmittedAt(submission.submittedAt)}</p>
         <dl className="mt-4 space-y-3">
           {submission.formSnapshot.map((field) => {
             const value = submission.responses[field.name]
@@ -72,8 +64,11 @@ function ResponseDetailModal({
             )
           })}
         </dl>
+        <Button type="button" variant="secondary" size="md" onClick={onClose} className="mt-4">
+          Close
+        </Button>
       </div>
-    </div>
+    </Modal>
   )
 }
 
@@ -166,8 +161,6 @@ export default function SubmissionsPage() {
   }, [formId, dateFrom, dateTo])
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
-  const hasPrev = page > 1
-  const hasNext = page < totalPages
 
   return (
     <Card>
@@ -203,69 +196,42 @@ export default function SubmissionsPage() {
 
       {error ? <ErrorMessage message={error} className="mt-3" /> : null}
 
-      {loading ? (
-        <p className="mt-4 text-sm text-slate-500">Loading submissions...</p>
-      ) : submissions.length === 0 ? (
-        <p className="mt-4 text-sm text-slate-500">No submissions found.</p>
-      ) : (
-        <>
-          <div className="mt-4 overflow-x-auto">
-            <table className="w-full min-w-[400px] border-collapse text-sm">
-              <thead>
-                <tr className="border-b border-slate-200 text-left">
-                  <th className="py-2 pr-4 font-semibold text-slate-700">Form</th>
-                  <th className="py-2 pr-4 font-semibold text-slate-700">Submitted at</th>
-                  <th className="py-2 font-semibold text-slate-700">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {submissions.map((s) => (
-                  <tr key={s._id} className="border-b border-slate-100">
-                    <td className="py-3 pr-4 text-slate-900">{s.formTitle || s.formId}</td>
-                    <td className="py-3 pr-4 text-slate-600">{formatSubmittedAt(s.submittedAt)}</td>
-                    <td className="py-3">
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => setViewSubmission(s)}
-                      >
-                        View
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="mt-4 flex items-center justify-between border-t border-slate-200 pt-3">
-            <p className="text-sm text-slate-600">
-              Page {page} of {totalPages} ({total} total)
-            </p>
-            <div className="flex gap-2">
+      <DataTable<Submission>
+        columns={[
+          {
+            key: 'formTitle',
+            header: 'Form',
+            render: (row) => row.formTitle || row.formId,
+          },
+          {
+            key: 'submittedAt',
+            header: 'Submitted at',
+            render: (row) => formatSubmittedAt(row.submittedAt),
+          },
+          {
+            key: '_id',
+            header: 'Actions',
+            render: (row) => (
               <Button
                 type="button"
                 variant="secondary"
-                size="md"
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={!hasPrev}
+                size="sm"
+                onClick={() => setViewSubmission(row)}
               >
-                Previous
+                View
               </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                size="md"
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={!hasNext}
-              >
-                Next
-              </Button>
-            </div>
-          </div>
-        </>
-      )}
+            ),
+          },
+        ]}
+        rows={submissions}
+        emptyMessage="No submissions found."
+        loading={loading}
+        loadingMessage="Loading submissions..."
+        page={page}
+        totalPages={totalPages}
+        totalItems={total}
+        onPageChange={setPage}
+      />
 
       {viewSubmission ? (
         <ResponseDetailModal submission={viewSubmission} onClose={() => setViewSubmission(null)} />
