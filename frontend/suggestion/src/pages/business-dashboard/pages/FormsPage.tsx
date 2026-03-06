@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { useAuth } from '../../../context/AuthContext'
 import { feedbackFormsApi } from '../../../utils/apipath'
-import { Button, ErrorMessage } from '../../../components/ui'
+import { Button, Card, ErrorMessage } from '../../../components/ui'
 
 interface FeedbackField {
   name: string
@@ -74,7 +74,7 @@ export default function FormsPage() {
   }
 
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <Card>
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-bold text-slate-900">Saved Forms</h3>
         <div className="flex items-center gap-2">
@@ -148,6 +148,6 @@ export default function FormsPage() {
       </div>
 
       {error ? <ErrorMessage message={error} className="mt-4" /> : null}
-    </section>
+    </Card>
   )
 }

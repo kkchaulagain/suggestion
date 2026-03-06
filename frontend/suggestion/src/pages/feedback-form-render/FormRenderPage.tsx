@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import axios from 'axios'
 import { feedbackFormsApi, uploadApi } from '../../utils/apipath'
 import type { FeedbackFormConfig, FeedbackFormField } from './types'
-import { Button, Label, ErrorMessage } from '../../components/ui'
+import { Button, Card, Label, ErrorMessage } from '../../components/ui'
 
 async function uploadImage(file: File): Promise<string> {
   const formData = new FormData()
@@ -175,7 +175,7 @@ export default function FormRenderPage() {
 
   if (error || !config) {
     return (
-      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+      <Card className="rounded-xl">
         <h1 className="text-lg font-semibold text-slate-900">Form not found</h1>
         <p className="mt-2 text-sm text-slate-600">{error ?? 'Invalid or missing form link.'}</p>
         <Link
@@ -184,21 +184,21 @@ export default function FormRenderPage() {
         >
           Go to home
         </Link>
-      </div>
+      </Card>
     )
   }
 
   if (submitted) {
     return (
-      <div className="rounded-xl border border-slate-200 bg-white p-8 shadow-sm text-center">
+      <Card padding="lg" className="rounded-xl text-center">
         <h2 className="text-xl font-semibold text-slate-900">Thank you</h2>
         <p className="mt-2 text-slate-600">Your response has been recorded.</p>
-      </div>
+      </Card>
     )
   }
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+    <Card className="rounded-xl sm:p-8">
       <h1 className="text-xl font-bold text-slate-900">{config.title}</h1>
       {config.description ? (
         <p className="mt-2 text-sm text-slate-600">{config.description}</p>
@@ -305,6 +305,6 @@ export default function FormRenderPage() {
           {submitting ? 'Submitting...' : 'Submit'}
         </Button>
       </form>
-    </div>
+    </Card>
   )
 }

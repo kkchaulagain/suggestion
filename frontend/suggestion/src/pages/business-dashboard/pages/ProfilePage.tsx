@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Button, Label } from '../../../components/ui'
+import { Button, Card, Label } from '../../../components/ui'
 
 export default function ProfilePage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -9,7 +9,7 @@ export default function ProfilePage() {
       <div className="grid gap-6 md:grid-cols-3">
         <div className="md:col-span-2 space-y-6">
           
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <Card>
             <div className="flex items-center justify-between mb-6 border-b border-slate-100 pb-2">
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
                 Personal Details
@@ -40,10 +40,9 @@ export default function ProfilePage() {
                 </p>
               </div>
             </div>
-          </section>
+          </Card>
 
-        
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <Card>
             <div className="flex flex-col sm:flex-row gap-4">
               <Button type="button" variant="secondary" size="lg" className="flex-1">
                 Change Password
@@ -52,7 +51,7 @@ export default function ProfilePage() {
                 Log Out
               </Button>
             </div>
-          </section>
+          </Card>
         </div>
       </div>
 

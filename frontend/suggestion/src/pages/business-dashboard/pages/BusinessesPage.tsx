@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import axios from 'axios'
 import { useAuth } from '../../../context/AuthContext'
 import { businessesListApi } from '../../../utils/apipath'
-import { Button, Label, ErrorMessage } from '../../../components/ui'
+import { Button, Card, Label, ErrorMessage } from '../../../components/ui'
 
 interface BusinessListItem {
   id: string
@@ -127,7 +127,7 @@ export default function BusinessesPage() {
   }
 
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <Card>
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-bold text-slate-900">Registered Businesses</h3>
         <Button type="button" variant="secondary" size="sm" onClick={() => void loadBusinesses()}>
@@ -288,6 +288,6 @@ export default function BusinessesPage() {
           </div>
         </div>
       ) : null}
-    </section>
+    </Card>
   )
 }
