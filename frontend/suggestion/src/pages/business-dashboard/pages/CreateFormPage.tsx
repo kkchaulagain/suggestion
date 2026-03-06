@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { useAuth } from '../../../context/AuthContext'
 import { feedbackFormsApi } from '../../../utils/apipath'
-import { Button } from '../../../components/ui'
+import { Button, ErrorMessage } from '../../../components/ui'
 
 type FeedbackFieldType = 'checkbox' | 'radio' | 'short_text' | 'long_text' | 'big_text' | 'image_upload'
 
@@ -272,7 +272,7 @@ export default function CreateFormPage() {
           </div>
         </div>
 
-        {error ? <p className="mt-3 text-sm text-rose-600">{error}</p> : null}
+        {error ? <ErrorMessage message={error} className="mt-3" /> : null}
 
         <Button
           type="button"

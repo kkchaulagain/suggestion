@@ -3,7 +3,7 @@ import type { FormEvent, JSX } from 'react'
 import axios from 'axios'
 import { userapi } from '../utils/apipath'
 import { useNavigate } from 'react-router-dom'
-import { Button, Label } from '../components/ui'
+import { Button, Label, ErrorMessage } from '../components/ui'
 
 type FieldErrors = {
   name?: string
@@ -94,9 +94,9 @@ export default function Signup(): JSX.Element {
           Join the workspace and start submitting smart suggestions.
         </p>
 
-        {errors.general && (
-          <p className="text-red-500 text-sm text-center mb-4">{errors.general}</p>
-        )}
+        {errors.general ? (
+          <ErrorMessage message={errors.general} className="text-center mb-4" />
+        ) : null}
 
         <form onSubmit={handleFormSubmit} noValidate className="flex flex-col gap-4">
           {/* Name */}
@@ -119,9 +119,9 @@ export default function Signup(): JSX.Element {
                   : 'border-gray-300 focus:ring-blue-200'
               }`}
             />
-            {errors.name && (
-              <p className="text-red-500 text-xs mt-0.5">{errors.name}</p>
-            )}
+            {errors.name ? (
+              <ErrorMessage message={errors.name} size="sm" className="mt-0.5" />
+            ) : null}
           </div>
 
           {/* Email */}
@@ -144,9 +144,9 @@ export default function Signup(): JSX.Element {
                   : 'border-gray-300 focus:ring-blue-200'
               }`}
             />
-            {errors.email && (
-              <p className="text-red-500 text-xs mt-0.5">{errors.email}</p>
-            )}
+            {errors.email ? (
+              <ErrorMessage message={errors.email} size="sm" className="mt-0.5" />
+            ) : null}
           </div>
 
           {/* Password */}
@@ -169,9 +169,9 @@ export default function Signup(): JSX.Element {
                   : 'border-gray-300 focus:ring-blue-200'
               }`}
             />
-            {errors.password && (
-              <p className="text-red-500 text-xs mt-0.5">{errors.password}</p>
-            )}
+            {errors.password ? (
+              <ErrorMessage message={errors.password} size="sm" className="mt-0.5" />
+            ) : null}
           </div>
 
           {/* Role Selection */}
@@ -202,9 +202,9 @@ export default function Signup(): JSX.Element {
               <option value="business">Business</option>
               <option value="governmentservices">Government</option>
             </select>
-            {errors.role && (
-              <p className="text-red-500 text-xs mt-0.5">{errors.role}</p>
-            )}
+            {errors.role ? (
+              <ErrorMessage message={errors.role} size="sm" className="mt-0.5" />
+            ) : null}
           </div>
 
           {/* Business Fields - Conditional Rendering */}
@@ -230,9 +230,9 @@ export default function Signup(): JSX.Element {
                     : 'border-gray-300 focus:ring-blue-200'
                 }`}
               />
-              {errors.businessname && (
-                <p className="text-red-500 text-xs mt-0.5">{errors.businessname}</p>
-              )}
+              {errors.businessname ? (
+                <ErrorMessage message={errors.businessname} size="sm" className="mt-0.5" />
+              ) : null}
             </div>
 
               
@@ -256,9 +256,9 @@ export default function Signup(): JSX.Element {
                       : 'border-gray-300 focus:ring-blue-200'
                   }`}
                 />
-                {errors.location && (
-                  <p className="text-red-500 text-xs mt-0.5">{errors.location}</p>
-                )}
+                {errors.location ? (
+                  <ErrorMessage message={errors.location} size="sm" className="mt-0.5" />
+                ) : null}
               </div>
 
               {/* Description */}
@@ -281,9 +281,9 @@ export default function Signup(): JSX.Element {
                       : 'border-gray-300 focus:ring-blue-200'
                   }`}
                 />
-                {errors.description && (
-                  <p className="text-red-500 text-xs mt-0.5">{errors.description}</p>
-                )}
+                {errors.description ? (
+                  <ErrorMessage message={errors.description} size="sm" className="mt-0.5" />
+                ) : null}
               </div>
 
               {/* PAN Card Number */}
@@ -308,9 +308,9 @@ export default function Signup(): JSX.Element {
                       : 'border-gray-300 focus:ring-blue-200'
                   }`}
                 />
-                {errors.pancardNumber && (
-                  <p className="text-red-500 text-xs mt-0.5">{errors.pancardNumber}</p>
-                )}
+                {errors.pancardNumber ? (
+                  <ErrorMessage message={errors.pancardNumber} size="sm" className="mt-0.5" />
+                ) : null}
               </div>
             </>
           )}
