@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { useAuth } from '../../../context/AuthContext'
 import { feedbackFormsApi } from '../../../utils/apipath'
-import { Button, Card, Input, ErrorMessage, Textarea } from '../../../components/ui'
+import { Button, Card, Input, Select, ErrorMessage, Textarea } from '../../../components/ui'
 
 type FeedbackFieldType = 'checkbox' | 'radio' | 'short_text' | 'long_text' | 'big_text' | 'image_upload'
 
@@ -197,17 +197,13 @@ export default function CreateFormPage() {
               onChange={(v) => setFieldName(toFieldName(v))}
               placeholder="field_name"
             />
-            <select
+            <Select
+              id="field-type"
+              label="Type"
               value={fieldType}
-              onChange={(event) => handleFieldTypeChange(event.target.value as FeedbackFieldType)}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-emerald-600"
-            >
-              {fieldTypeOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+              onChange={(value) => handleFieldTypeChange(value as FeedbackFieldType)}
+              options={fieldTypeOptions}
+            />
 
             {isOptionType ? (
               <div className="space-y-2 rounded-lg border border-slate-200 bg-white p-3">
