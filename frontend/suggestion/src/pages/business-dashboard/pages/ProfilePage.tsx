@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Button, Card, Input, Label } from '../../../components/ui'
+import { Button, Card, Input } from '../../../components/ui'
 
 export default function ProfilePage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
