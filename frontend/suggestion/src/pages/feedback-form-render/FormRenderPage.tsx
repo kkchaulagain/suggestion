@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import axios from 'axios'
 import { feedbackFormsApi, uploadApi } from '../../utils/apipath'
 import type { FeedbackFormConfig, FeedbackFormField } from './types'
-import { Button } from '../../components/ui'
+import { Button, Label } from '../../components/ui'
 
 async function uploadImage(file: File): Promise<string> {
   const formData = new FormData()
@@ -207,10 +207,9 @@ export default function FormRenderPage() {
       <form onSubmit={handleSubmit} className="mt-6 space-y-5" noValidate>
         {config.fields.map((field) => (
           <div key={field.name} className="space-y-2">
-            <label htmlFor={`field-${field.name}`} className="block text-sm font-medium text-slate-800">
+            <Label htmlFor={`field-${field.name}`} size="md" required={field.required} className="text-slate-800">
               {field.label}
-              {field.required ? <span className="ml-1 text-rose-600">*</span> : null}
-            </label>
+            </Label>
 
             {field.type === 'short_text' || field.type === 'long_text' ? (
               <input

@@ -3,7 +3,7 @@ import type { FormEvent, JSX } from 'react'
 import axios from 'axios'
 import { userapi } from '../utils/apipath'
 import { useNavigate } from 'react-router-dom'
-import { Button } from '../components/ui'
+import { Button, Label } from '../components/ui'
 
 type FieldErrors = {
   name?: string
@@ -101,9 +101,9 @@ export default function Signup(): JSX.Element {
         <form onSubmit={handleFormSubmit} noValidate className="flex flex-col gap-4">
           {/* Name */}
           <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-gray-700" htmlFor="name">
+            <Label htmlFor="name" size="md" className="text-gray-700">
               Name
-            </label>
+            </Label>
             <input
               id="name"
               type="text"
@@ -126,9 +126,9 @@ export default function Signup(): JSX.Element {
 
           {/* Email */}
           <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-gray-700" htmlFor="email">
+            <Label htmlFor="email" size="md" className="text-gray-700">
               Email
-            </label>
+            </Label>
             <input
               id="email"
               type="email"
@@ -151,9 +151,9 @@ export default function Signup(): JSX.Element {
 
           {/* Password */}
           <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-gray-700" htmlFor="password">
+            <Label htmlFor="password" size="md" className="text-gray-700">
               Password
-            </label>
+            </Label>
             <input
               id="password"
               type="password"
@@ -176,9 +176,9 @@ export default function Signup(): JSX.Element {
 
           {/* Role Selection */}
           <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-gray-700" htmlFor="role">
+            <Label htmlFor="role" size="md" className="text-gray-700">
               Account Type
-            </label>
+            </Label>
             <select
               id="role"
               value={role}
@@ -212,9 +212,9 @@ export default function Signup(): JSX.Element {
             <>
             {/* Business Name */}
             <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium text-gray-700" htmlFor="businessname">
+              <Label htmlFor="businessname" size="md" className="text-gray-700">
                 Business Name
-              </label>
+              </Label>
               <input
                 id="businessname"
                 type="text"
@@ -238,9 +238,9 @@ export default function Signup(): JSX.Element {
               
               {/* Location */}
               <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-gray-700" htmlFor="location">
+                <Label htmlFor="location" size="md" className="text-gray-700">
                   Location <span className="text-gray-400">(required for business)</span>
-                </label>
+                </Label>
                 <input
                   id="location"
                   type="text"
@@ -263,9 +263,9 @@ export default function Signup(): JSX.Element {
 
               {/* Description */}
               <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-gray-700" htmlFor="description">
+                <Label htmlFor="description" size="md" className="text-gray-700">
                   Description <span className="text-gray-400">(required for business)</span>
-                </label>
+                </Label>
                 <textarea
                   id="description"
                   value={description}
@@ -288,9 +288,9 @@ export default function Signup(): JSX.Element {
 
               {/* PAN Card Number */}
               <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-gray-700" htmlFor="pancardNumber">
+                <Label htmlFor="pancardNumber" size="md" className="text-gray-700">
                   PAN Card Number <span className="text-gray-400">(required for business)</span>
-                </label>
+                </Label>
                 <input
                   id="pancardNumber"
                   type="text"

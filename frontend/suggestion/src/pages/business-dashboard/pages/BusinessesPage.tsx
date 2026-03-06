@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import axios from 'axios'
 import { useAuth } from '../../../context/AuthContext'
 import { businessesListApi } from '../../../utils/apipath'
-import { Button } from '../../../components/ui'
+import { Button, Label } from '../../../components/ui'
 
 interface BusinessListItem {
   id: string
@@ -217,9 +217,9 @@ export default function BusinessesPage() {
                 }}
               >
                 <div>
-                  <label htmlFor="edit-businessname" className="block text-xs font-semibold text-slate-700">
+                  <Label htmlFor="edit-businessname" size="sm" className="font-semibold text-slate-700">
                     Business name
-                  </label>
+                  </Label>
                   <input
                     id="edit-businessname"
                     type="text"
@@ -229,9 +229,9 @@ export default function BusinessesPage() {
                   />
                 </div>
                 <div>
-                  <label htmlFor="edit-location" className="block text-xs font-semibold text-slate-700">
+                  <Label htmlFor="edit-location" size="sm" className="font-semibold text-slate-700">
                     Location
-                  </label>
+                  </Label>
                   <input
                     id="edit-location"
                     type="text"
@@ -241,9 +241,9 @@ export default function BusinessesPage() {
                   />
                 </div>
                 <div>
-                  <label htmlFor="edit-pancard" className="block text-xs font-semibold text-slate-700">
+                  <Label htmlFor="edit-pancard" size="sm" className="font-semibold text-slate-700">
                     PAN number
-                  </label>
+                  </Label>
                   <input
                     id="edit-pancard"
                     type="number"
@@ -255,9 +255,9 @@ export default function BusinessesPage() {
                   />
                 </div>
                 <div>
-                  <label htmlFor="edit-description" className="block text-xs font-semibold text-slate-700">
+                  <Label htmlFor="edit-description" size="sm" className="font-semibold text-slate-700">
                     Description
-                  </label>
+                  </Label>
                   <textarea
                     id="edit-description"
                     value={editForm.description}

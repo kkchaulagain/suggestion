@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Button } from '../../../components/ui'
+import { Button, Label } from '../../../components/ui'
 
 export default function ProfilePage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -63,11 +63,14 @@ export default function ProfilePage() {
             <h2 className="text-xl font-bold text-slate-900 mb-4">Edit Profile</h2>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Name</label>
-                <input 
-                  type="text" 
+                <Label htmlFor="edit-profile-name" size="md" className="mb-1 text-slate-700">
+                  Name
+                </Label>
+                <input
+                  id="edit-profile-name"
+                  type="text"
                   placeholder="Enter the name"
-                  className="w-full rounded-xl border border-slate-200 px-4 py-2.5 outline-none"
+                  className="mt-1 w-full rounded-xl border border-slate-200 px-4 py-2.5 outline-none"
                 />
               </div>
             </div>

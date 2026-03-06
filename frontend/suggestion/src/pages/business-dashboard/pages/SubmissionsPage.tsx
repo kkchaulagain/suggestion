@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import axios from 'axios'
 import { useAuth } from '../../../context/AuthContext'
 import { feedbackFormsApi, feedbackFormSubmissionsApi } from '../../../utils/apipath'
-import { Button } from '../../../components/ui'
+import { Button, Label } from '../../../components/ui'
 
 interface FormSnapshotField {
   name: string
@@ -175,9 +175,9 @@ export default function SubmissionsPage() {
 
       <div className="mt-4 flex flex-wrap items-end gap-3">
         <div>
-          <label htmlFor="filter-form" className="block text-xs font-medium text-slate-600">
+          <Label htmlFor="filter-form" size="sm">
             Form
-          </label>
+          </Label>
           <select
             id="filter-form"
             value={formId}
@@ -193,9 +193,9 @@ export default function SubmissionsPage() {
           </select>
         </div>
         <div>
-          <label htmlFor="filter-dateFrom" className="block text-xs font-medium text-slate-600">
+          <Label htmlFor="filter-dateFrom" size="sm">
             From
-          </label>
+          </Label>
           <input
             id="filter-dateFrom"
             type="date"
@@ -205,9 +205,9 @@ export default function SubmissionsPage() {
           />
         </div>
         <div>
-          <label htmlFor="filter-dateTo" className="block text-xs font-medium text-slate-600">
+          <Label htmlFor="filter-dateTo" size="sm">
             To
-          </label>
+          </Label>
           <input
             id="filter-dateTo"
             type="date"
