@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { FormEvent, JSX } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Loader2, Lock, Mail } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { Button, Input, ErrorMessage, ThemeToggle } from '../components/ui'
 
@@ -9,6 +10,7 @@ export default function Login(): JSX.Element {
   const { login: authLogin, error: authError, setError: setAuthError } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [errors, setErrors] = useState<{
     email?: string
     password?: string
@@ -19,11 +21,16 @@ export default function Login(): JSX.Element {
     e.preventDefault()
     setErrors({})
     setAuthError(null)
-    const result = await authLogin({ email, password })
-    if (result.success) {
-      navigate('/dashboard')
-    } else if (result.error) {
-      setErrors({ general: result.error })
+    setIsSubmitting(true)
+    try {
+      const result = await authLogin({ email, password })
+      if (result.success) {
+        navigate('/dashboard')
+      } else if (result.error) {
+        setErrors({ general: result.error })
+      }
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -40,32 +47,39 @@ export default function Login(): JSX.Element {
         <p className="mb-5 text-sm text-slate-600 dark:text-slate-300">Log in to continue sharing and managing ideas.</p>
         {displayError ? <ErrorMessage message={displayError} className="mb-3" /> : null}
         <form className="grid gap-2.5" onSubmit={handelFromSubmit} noValidate>
-          <Input
-            id="login-email"
-            label="Email"
-            type="email"
-            value={email}
-            onChange={(v) => {
-              setEmail(v)
-              setErrors((prev) => ({ ...prev, email: undefined, general: undefined }))
-            }}
-            error={errors.email}
-            className="rounded-xl border-teal-600/20 focus:border-teal-600 focus:ring-teal-600/20"
-          />
-          <Input
-            id="login-password"
-            label="Password"
-            type="password"
-            value={password}
-            onChange={(v) => {
-              setPassword(v)
-              setErrors((prev) => ({ ...prev, password: undefined, general: undefined }))
-            }}
-            error={errors.password}
-            className="rounded-xl border-teal-600/20 focus:border-teal-600 focus:ring-teal-600/20"
-          />
-          <Button type="submit" variant="primary" size="lg" className="mt-2 w-full">
-            Login
+          <div className="relative">
+            <Mail className="pointer-events-none absolute left-3 top-8 h-4 w-4 text-slate-400 dark:text-slate-500" aria-hidden />
+            <Input
+              id="login-email"
+              label="Email"
+              type="email"
+              value={email}
+              onChange={(v) => {
+                setEmail(v)
+                setErrors((prev) => ({ ...prev, email: undefined, general: undefined }))
+              }}
+              error={errors.email}
+              className="pl-9 rounded-xl border-teal-600/20 focus:border-teal-600 focus:ring-teal-600/20"
+            />
+          </div>
+          <div className="relative">
+            <Lock className="pointer-events-none absolute left-3 top-8 h-4 w-4 text-slate-400 dark:text-slate-500" aria-hidden />
+            <Input
+              id="login-password"
+              label="Password"
+              type="password"
+              value={password}
+              onChange={(v) => {
+                setPassword(v)
+                setErrors((prev) => ({ ...prev, password: undefined, general: undefined }))
+              }}
+              error={errors.password}
+              className="pl-9 rounded-xl border-teal-600/20 focus:border-teal-600 focus:ring-teal-600/20"
+            />
+          </div>
+          <Button type="submit" variant="primary" size="lg" className="mt-2 w-full" disabled={isSubmitting}>
+            {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            {isSubmitting ? 'Logging in...' : 'Login'}
           </Button>
           <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
             New here?{' '}

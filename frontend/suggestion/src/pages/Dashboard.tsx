@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom'
+import { LogOut } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { Button } from '../components/ui'
 
@@ -26,6 +27,7 @@ const Dashboard = () => {
           </div>
         </div>
         <Button type="button" variant="danger" size="lg" className="mt-6 w-full" onClick={handleLogout}>
+          <LogOut className="h-4 w-4" />
           Logout
         </Button>
       </div>

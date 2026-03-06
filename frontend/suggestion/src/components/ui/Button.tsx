@@ -35,7 +35,7 @@ export default function Button({
   children,
   ...rest
 }: ButtonProps) {
-  const base = 'inline-flex items-center justify-center transition disabled:opacity-50 disabled:cursor-not-allowed'
+  const base = 'inline-flex items-center justify-center gap-1.5 transition disabled:opacity-50 disabled:cursor-not-allowed'
   const classes = [base, variantClasses[variant], sizeClasses[size], className].filter(Boolean).join(' ')
 
   return (
