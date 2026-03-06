@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { useAuth } from '../../../context/AuthContext'
 import { feedbackFormsApi } from '../../../utils/apipath'
-import { Button } from '../../../components/ui'
+import { Button, ErrorMessage } from '../../../components/ui'
 
 interface FeedbackField {
   name: string
@@ -147,7 +147,7 @@ export default function FormsPage() {
         ))}
       </div>
 
-      {error ? <p className="mt-4 text-sm text-rose-600">{error}</p> : null}
+      {error ? <ErrorMessage message={error} className="mt-4" /> : null}
     </section>
   )
 }

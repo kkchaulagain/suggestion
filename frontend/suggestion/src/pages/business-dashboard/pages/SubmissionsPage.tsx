@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import axios from 'axios'
 import { useAuth } from '../../../context/AuthContext'
 import { feedbackFormsApi, feedbackFormSubmissionsApi } from '../../../utils/apipath'
-import { Button, Label } from '../../../components/ui'
+import { Button, Label, ErrorMessage } from '../../../components/ui'
 
 interface FormSnapshotField {
   name: string
@@ -221,7 +221,7 @@ export default function SubmissionsPage() {
         </Button>
       </div>
 
-      {error ? <p className="mt-3 text-sm text-rose-600">{error}</p> : null}
+      {error ? <ErrorMessage message={error} className="mt-3" /> : null}
 
       {loading ? (
         <p className="mt-4 text-sm text-slate-500">Loading submissions...</p>
