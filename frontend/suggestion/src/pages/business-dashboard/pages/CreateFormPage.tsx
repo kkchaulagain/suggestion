@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { useAuth } from '../../../context/AuthContext'
 import { feedbackFormsApi } from '../../../utils/apipath'
-import { Button, Card, Input, Select, ErrorMessage, Textarea } from '../../../components/ui'
+import { Button, Card, Input, Select, Tag, ErrorMessage, Textarea } from '../../../components/ui'
 
 type FeedbackFieldType = 'checkbox' | 'radio' | 'short_text' | 'long_text' | 'big_text' | 'image_upload'
 
@@ -230,19 +230,14 @@ export default function CreateFormPage() {
                 {fieldOptions.length > 0 ? (
                   <div className="flex flex-wrap gap-1.5 pt-1">
                     {fieldOptions.map((opt) => (
-                      <span key={opt} className="flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-1 text-xs text-emerald-800">
+                      <Tag
+                        key={opt}
+                        variant="emerald"
+                        onRemove={() => handleRemoveOption(opt)}
+                        removeLabel={`Remove option ${opt}`}
+                      >
                         {opt}
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleRemoveOption(opt)}
-                          aria-label={`Remove option ${opt}`}
-                          className="!p-0.5 min-w-0 text-emerald-600 hover:text-rose-600"
-                        >
-                          x
-                        </Button>
-                      </span>
+                      </Tag>
                     ))}
                   </div>
                 ) : null}
