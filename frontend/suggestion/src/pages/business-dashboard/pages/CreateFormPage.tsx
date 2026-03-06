@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { useAuth } from '../../../context/AuthContext'
 import { feedbackFormsApi } from '../../../utils/apipath'
-import { Button, ErrorMessage } from '../../../components/ui'
+import { Button, Card, ErrorMessage } from '../../../components/ui'
 
 type FeedbackFieldType = 'checkbox' | 'radio' | 'short_text' | 'long_text' | 'big_text' | 'image_upload'
 
@@ -155,7 +155,7 @@ export default function CreateFormPage() {
 
   return (
     <section className="grid gap-5 xl:grid-cols-5">
-      <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm xl:col-span-3">
+      <Card className="xl:col-span-3">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-bold text-slate-900">Create Form</h3>
           <Button type="button" variant="secondary" size="sm" onClick={() => navigate('/dashboard/forms')}>
@@ -284,9 +284,9 @@ export default function CreateFormPage() {
         >
           {submitting ? 'Saving...' : 'Save Form'}
         </Button>
-      </article>
+      </Card>
 
-      <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm xl:col-span-2">
+      <Card className="xl:col-span-2">
         <h3 className="text-lg font-bold text-slate-900">Live Form Preview</h3>
         <p className="mt-1 text-sm text-slate-500">Preview is inside create form page as requested.</p>
 
@@ -359,7 +359,7 @@ export default function CreateFormPage() {
             </div>
           )}
         </div>
-      </article>
+      </Card>
     </section>
   )
 }

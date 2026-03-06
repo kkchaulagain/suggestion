@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import axios from 'axios'
 import { useAuth } from '../../../context/AuthContext'
 import { feedbackFormsApi, feedbackFormSubmissionsApi } from '../../../utils/apipath'
-import { Button, Label, ErrorMessage } from '../../../components/ui'
+import { Button, Card, Label, ErrorMessage } from '../../../components/ui'
 
 interface FormSnapshotField {
   name: string
@@ -170,7 +170,7 @@ export default function SubmissionsPage() {
   const hasNext = page < totalPages
 
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <Card>
       <h3 className="text-lg font-bold text-slate-900">Submissions</h3>
 
       <div className="mt-4 flex flex-wrap items-end gap-3">
@@ -290,6 +290,6 @@ export default function SubmissionsPage() {
       {viewSubmission ? (
         <ResponseDetailModal submission={viewSubmission} onClose={() => setViewSubmission(null)} />
       ) : null}
-    </section>
+    </Card>
   )
 }
