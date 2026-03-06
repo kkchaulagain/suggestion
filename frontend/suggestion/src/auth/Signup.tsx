@@ -3,7 +3,7 @@ import type { FormEvent, JSX } from 'react'
 import axios from 'axios'
 import { userapi } from '../utils/apipath'
 import { useNavigate } from 'react-router-dom'
-import { Button, Label, ErrorMessage } from '../components/ui'
+import { Button, Input, Label, ErrorMessage } from '../components/ui'
 
 type FieldErrors = {
   name?: string
@@ -99,80 +99,42 @@ export default function Signup(): JSX.Element {
         ) : null}
 
         <form onSubmit={handleFormSubmit} noValidate className="flex flex-col gap-4">
-          {/* Name */}
-          <div className="flex flex-col gap-1">
-            <Label htmlFor="name" size="md" className="text-gray-700">
-              Name
-            </Label>
-            <input
-              id="name"
-              type="text"
-              value={name}
-              onChange={(e) => {
-                setName(e.target.value)
-                setErrors((prev) => ({ ...prev, name: undefined }))
-              }}
-              placeholder="Your name"
-              className={`border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 transition ${
-                errors.name
-                  ? 'border-red-400 focus:ring-red-200'
-                  : 'border-gray-300 focus:ring-blue-200'
-              }`}
-            />
-            {errors.name ? (
-              <ErrorMessage message={errors.name} size="sm" className="mt-0.5" />
-            ) : null}
-          </div>
-
-          {/* Email */}
-          <div className="flex flex-col gap-1">
-            <Label htmlFor="email" size="md" className="text-gray-700">
-              Email
-            </Label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => {
-                setEmail(e.target.value)
-                setErrors((prev) => ({ ...prev, email: undefined }))
-              }}
-              placeholder="you@example.com"
-              className={`border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 transition ${
-                errors.email
-                  ? 'border-red-400 focus:ring-red-200'
-                  : 'border-gray-300 focus:ring-blue-200'
-              }`}
-            />
-            {errors.email ? (
-              <ErrorMessage message={errors.email} size="sm" className="mt-0.5" />
-            ) : null}
-          </div>
-
-          {/* Password */}
-          <div className="flex flex-col gap-1">
-            <Label htmlFor="password" size="md" className="text-gray-700">
-              Password
-            </Label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => {
-                setPassword(e.target.value)
-                setErrors((prev) => ({ ...prev, password: undefined }))
-              }}
-              placeholder="Min. 6 characters"
-              className={`border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 transition ${
-                errors.password
-                  ? 'border-red-400 focus:ring-red-200'
-                  : 'border-gray-300 focus:ring-blue-200'
-              }`}
-            />
-            {errors.password ? (
-              <ErrorMessage message={errors.password} size="sm" className="mt-0.5" />
-            ) : null}
-          </div>
+          <Input
+            id="name"
+            label="Name"
+            type="text"
+            value={name}
+            onChange={(v) => {
+              setName(v)
+              setErrors((prev) => ({ ...prev, name: undefined }))
+            }}
+            placeholder="Your name"
+            error={errors.name}
+          />
+          <Input
+            id="email"
+            label="Email"
+            type="email"
+            value={email}
+            onChange={(v) => {
+              setEmail(v)
+              setErrors((prev) => ({ ...prev, email: undefined }))
+            }}
+            placeholder="you@example.com"
+            error={errors.email}
+          />
+          <Input
+            id="password"
+            label="Password"
+            type="password"
+            value={password}
+            onChange={(v) => {
+              setPassword(v)
+              setErrors((prev) => ({ ...prev, password: undefined }))
+            }}
+            placeholder="Min. 6 characters"
+            error={errors.password}
+          />
 
           {/* Role Selection */}
           <div className="flex flex-col gap-1">
@@ -210,56 +172,33 @@ export default function Signup(): JSX.Element {
           {/* Business Fields - Conditional Rendering */}
           {isBusiness && (
             <>
-            {/* Business Name */}
-            <div className="flex flex-col gap-1">
-              <Label htmlFor="businessname" size="md" className="text-gray-700">
-                Business Name
-              </Label>
-              <input
-                id="businessname"
-                type="text"
-                value={businessname}
-                onChange={(e) => {
-                  setBusinessname(e.target.value)
-                  setErrors((prev) => ({ ...prev, businessname: undefined }))
-                }}
-                placeholder="Enter business name"
-                className={`border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 transition ${
-                  errors.businessname
-                    ? 'border-red-400 focus:ring-red-200'
-                    : 'border-gray-300 focus:ring-blue-200'
-                }`}
-              />
-              {errors.businessname ? (
-                <ErrorMessage message={errors.businessname} size="sm" className="mt-0.5" />
-              ) : null}
-            </div>
+            <Input
+              id="businessname"
+              label="Business Name"
+              type="text"
+              value={businessname}
+              onChange={(v) => {
+                setBusinessname(v)
+                setErrors((prev) => ({ ...prev, businessname: undefined }))
+              }}
+              placeholder="Enter business name"
+              error={errors.businessname}
+            />
 
               
               {/* Location */}
-              <div className="flex flex-col gap-1">
-                <Label htmlFor="location" size="md" className="text-gray-700">
-                  Location <span className="text-gray-400">(required for business)</span>
-                </Label>
-                <input
-                  id="location"
-                  type="text"
-                  value={location}
-                  onChange={(e) => {
-                    setLocation(e.target.value)
-                    setErrors((prev) => ({ ...prev, location: undefined }))
-                  }}
-                  placeholder="Business location"
-                  className={`border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 transition ${
-                    errors.location
-                      ? 'border-red-400 focus:ring-red-200'
-                      : 'border-gray-300 focus:ring-blue-200'
-                  }`}
-                />
-                {errors.location ? (
-                  <ErrorMessage message={errors.location} size="sm" className="mt-0.5" />
-                ) : null}
-              </div>
+              <Input
+                id="location"
+                label={<>Location <span className="text-gray-400">(required for business)</span></>}
+                type="text"
+                value={location}
+                onChange={(v) => {
+                  setLocation(v)
+                  setErrors((prev) => ({ ...prev, location: undefined }))
+                }}
+                placeholder="Business location"
+                error={errors.location}
+              />
 
               {/* Description */}
               <div className="flex flex-col gap-1">
@@ -287,31 +226,18 @@ export default function Signup(): JSX.Element {
               </div>
 
               {/* PAN Card Number */}
-              <div className="flex flex-col gap-1">
-                <Label htmlFor="pancardNumber" size="md" className="text-gray-700">
-                  PAN Card Number <span className="text-gray-400">(required for business)</span>
-                </Label>
-                <input
-                  id="pancardNumber"
-                  type="text"
-                  value={pancardNumber}
-                  onChange={(e) => {
-                    // Only allow numbers
-                    const value = e.target.value.replace(/[^0-9]/g, '')
-                    setPancardNumber(value)
-                    setErrors((prev) => ({ ...prev, pancardNumber: undefined }))
-                  }}
-                  placeholder="Enter PAN card number"
-                  className={`border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 transition ${
-                    errors.pancardNumber
-                      ? 'border-red-400 focus:ring-red-200'
-                      : 'border-gray-300 focus:ring-blue-200'
-                  }`}
-                />
-                {errors.pancardNumber ? (
-                  <ErrorMessage message={errors.pancardNumber} size="sm" className="mt-0.5" />
-                ) : null}
-              </div>
+              <Input
+                id="pancardNumber"
+                label={<>PAN Card Number <span className="text-gray-400">(required for business)</span></>}
+                type="text"
+                value={pancardNumber}
+                onChange={(v) => {
+                  setPancardNumber(v.replace(/[^0-9]/g, ''))
+                  setErrors((prev) => ({ ...prev, pancardNumber: undefined }))
+                }}
+                placeholder="Enter PAN card number"
+                error={errors.pancardNumber}
+              />
             </>
           )}
 

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import axios from 'axios'
 import { useAuth } from '../../../context/AuthContext'
 import { businessesListApi } from '../../../utils/apipath'
-import { Button, Card, Label, ErrorMessage } from '../../../components/ui'
+import { Button, Card, Input, Label, ErrorMessage } from '../../../components/ui'
 
 interface BusinessListItem {
   id: string
@@ -216,44 +216,29 @@ export default function BusinessesPage() {
                   void handleSaveEdit()
                 }}
               >
-                <div>
-                  <Label htmlFor="edit-businessname" size="sm" className="font-semibold text-slate-700">
-                    Business name
-                  </Label>
-                  <input
-                    id="edit-businessname"
-                    type="text"
-                    value={editForm.businessname}
-                    onChange={(e) => setEditForm((f) => ({ ...f, businessname: e.target.value }))}
-                    className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="edit-location" size="sm" className="font-semibold text-slate-700">
-                    Location
-                  </Label>
-                  <input
-                    id="edit-location"
-                    type="text"
-                    value={editForm.location}
-                    onChange={(e) => setEditForm((f) => ({ ...f, location: e.target.value }))}
-                    className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="edit-pancard" size="sm" className="font-semibold text-slate-700">
-                    PAN number
-                  </Label>
-                  <input
-                    id="edit-pancard"
-                    type="number"
-                    value={editForm.pancardNumber || ''}
-                    onChange={(e) =>
-                      setEditForm((f) => ({ ...f, pancardNumber: Number(e.target.value) || 0 }))
-                    }
-                    className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900"
-                  />
-                </div>
+                <Input
+                  id="edit-businessname"
+                  label="Business name"
+                  type="text"
+                  value={editForm.businessname}
+                  onChange={(v) => setEditForm((f) => ({ ...f, businessname: v }))}
+                />
+                <Input
+                  id="edit-location"
+                  label="Location"
+                  type="text"
+                  value={editForm.location}
+                  onChange={(v) => setEditForm((f) => ({ ...f, location: v }))}
+                />
+                <Input
+                  id="edit-pancard"
+                  label="PAN number"
+                  type="number"
+                  value={editForm.pancardNumber ? String(editForm.pancardNumber) : ''}
+                  onChange={(v) =>
+                    setEditForm((f) => ({ ...f, pancardNumber: Number(v) || 0 }))
+                  }
+                />
                 <div>
                   <Label htmlFor="edit-description" size="sm" className="font-semibold text-slate-700">
                     Description

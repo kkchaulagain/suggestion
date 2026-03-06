@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { useAuth } from '../../../context/AuthContext'
 import { feedbackFormsApi } from '../../../utils/apipath'
-import { Button, Card, ErrorMessage } from '../../../components/ui'
+import { Button, Card, Input, ErrorMessage } from '../../../components/ui'
 
 type FeedbackFieldType = 'checkbox' | 'radio' | 'short_text' | 'long_text' | 'big_text' | 'image_upload'
 
@@ -164,11 +164,11 @@ export default function CreateFormPage() {
         </div>
 
         <div className="mt-4 space-y-3">
-          <input
+          <Input
+            id="form-title"
             value={title}
-            onChange={(event) => setTitle(event.target.value)}
+            onChange={setTitle}
             placeholder="Form title"
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-emerald-600"
           />
           <textarea
             value={description}
@@ -182,21 +182,20 @@ export default function CreateFormPage() {
         <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
           <p className="text-sm font-semibold text-slate-800">Add Input Field</p>
           <div className="mt-3 space-y-2">
-            <input
+            <Input
+              id="field-label"
               value={fieldLabel}
-              onChange={(event) => {
-                const labelValue = event.target.value
-                setFieldLabel(labelValue)
-                setFieldName(toFieldName(labelValue))
+              onChange={(v) => {
+                setFieldLabel(v)
+                setFieldName(toFieldName(v))
               }}
               placeholder="Field label"
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-emerald-600"
             />
-            <input
+            <Input
+              id="field-name"
               value={fieldName}
-              onChange={(event) => setFieldName(toFieldName(event.target.value))}
+              onChange={(v) => setFieldName(toFieldName(v))}
               placeholder="field_name"
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-emerald-600"
             />
             <select
               value={fieldType}
@@ -214,18 +213,20 @@ export default function CreateFormPage() {
               <div className="space-y-2 rounded-lg border border-slate-200 bg-white p-3">
                 <p className="text-xs font-semibold text-slate-700">Options</p>
                 <div className="flex gap-2">
-                  <input
-                    value={optionInput}
-                    onChange={(event) => setOptionInput(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter') {
-                        event.preventDefault()
-                        handleAddOption()
-                      }
-                    }}
-                    placeholder="Type an option and press Enter"
-                    className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-emerald-600"
-                  />
+                  <div className="flex-1">
+                    <Input
+                      id="option-input"
+                      value={optionInput}
+                      onChange={setOptionInput}
+                      placeholder="Type an option and press Enter"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault()
+                          handleAddOption()
+                        }
+                      }}
+                    />
+                  </div>
                   <Button type="button" variant="primary" size="sm" onClick={handleAddOption}>
                     Add
                   </Button>
@@ -252,11 +253,11 @@ export default function CreateFormPage() {
               </div>
             ) : null}
 
-            <input
+            <Input
+              id="field-placeholder"
               value={fieldPlaceholder}
-              onChange={(event) => setFieldPlaceholder(event.target.value)}
+              onChange={setFieldPlaceholder}
               placeholder="Placeholder (optional)"
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-emerald-600"
             />
             <label className="flex items-center gap-2 text-sm text-slate-700">
               <input

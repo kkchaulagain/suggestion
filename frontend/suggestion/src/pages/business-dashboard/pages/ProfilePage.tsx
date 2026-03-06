@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Button, Card, Label } from '../../../components/ui'
+import { Button, Card, Input } from '../../../components/ui'
 
 export default function ProfilePage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -61,17 +61,14 @@ export default function ProfilePage() {
           <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
             <h2 className="text-xl font-bold text-slate-900 mb-4">Edit Profile</h2>
             <div className="space-y-4">
-              <div>
-                <Label htmlFor="edit-profile-name" size="md" className="mb-1 text-slate-700">
-                  Name
-                </Label>
-                <input
-                  id="edit-profile-name"
-                  type="text"
-                  placeholder="Enter the name"
-                  className="mt-1 w-full rounded-xl border border-slate-200 px-4 py-2.5 outline-none"
-                />
-              </div>
+              <Input
+                id="edit-profile-name"
+                label="Name"
+                type="text"
+                value=""
+                onChange={() => {}}
+                placeholder="Enter the name"
+              />
             </div>
             <div className="mt-6 flex gap-3">
               <Button type="button" variant="secondary" size="lg" onClick={() => setIsDialogOpen(false)} className="flex-1">
