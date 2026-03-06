@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { useAuth } from '../../../context/AuthContext'
 import { feedbackFormsApi } from '../../../utils/apipath'
+import { Button } from '../../../components/ui'
 
 interface FeedbackField {
   name: string
@@ -77,20 +78,12 @@ export default function FormsPage() {
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-bold text-slate-900">Saved Forms</h3>
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => void loadForms()}
-            className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700"
-          >
+          <Button type="button" variant="secondary" size="sm" onClick={() => void loadForms()}>
             Refresh
-          </button>
-          <button
-            type="button"
-            onClick={() => navigate('/dashboard/forms/create')}
-            className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700"
-          >
+          </Button>
+          <Button type="button" variant="primary" size="sm" onClick={() => navigate('/dashboard/forms/create')}>
             Make Form
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -109,20 +102,17 @@ export default function FormsPage() {
                 {form.description ? <p className="mt-1 text-sm text-slate-600">{form.description}</p> : null}
               </div>
               <div className="flex items-center gap-2">
-                <button
+                <Button
                   type="button"
+                  variant="secondary"
+                  size="sm"
                   onClick={() => navigate(`/dashboard/submissions?formId=${encodeURIComponent(form._id)}`)}
-                  className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
                 >
                   View Responses
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void handleGenerateQr(form._id)}
-                  className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white"
-                >
+                </Button>
+                <Button type="button" variant="primary" size="sm" onClick={() => void handleGenerateQr(form._id)}>
                   Generate QR
-                </button>
+                </Button>
               </div>
             </div>
 

@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { Button } from '../components/ui'
 
 const Dashboard = () => {
   const navigate = useNavigate()
@@ -24,13 +25,9 @@ const Dashboard = () => {
             <h3 className="text-gray-800 font-medium">{user?.email || 'N/A'}</h3>
           </div>
         </div>
-        <button
-          type="button"
-          className="mt-6 w-full bg-red-500 hover:bg-red-600 text-white font-medium py-2 rounded-xl transition-colors"
-          onClick={handleLogout}
-        >
+        <Button type="button" variant="danger" size="lg" className="mt-6 w-full" onClick={handleLogout}>
           Logout
-        </button>
+        </Button>
       </div>
     </div>
   )

@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import type { SidebarItem } from '../types/navigation'
+import { Button } from '../../../components/ui'
 
 interface SidebarProps {
   items: SidebarItem[]
@@ -11,12 +12,15 @@ export default function Sidebar({ items, isOpen, onClose }: SidebarProps) {
   return (
     <>
       {isOpen ? (
-        <button
+        <Button
           type="button"
+          variant="ghost"
           aria-label="Close menu"
-          className="fixed inset-0 z-30 bg-slate-900/40 lg:hidden"
+          className="fixed inset-0 z-30 !p-0 !min-w-full !min-h-full rounded-none bg-slate-900/40 lg:hidden"
           onClick={onClose}
-        />
+        >
+          <span className="sr-only">Close menu</span>
+        </Button>
       ) : null}
       <aside
         className={`fixed inset-y-0 left-0 z-40 w-72 border-r border-slate-200 bg-white px-5 py-6 shadow-xl transition-transform duration-200 lg:static lg:translate-x-0 lg:shadow-none ${

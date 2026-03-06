@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import axios from 'axios'
 import { feedbackFormsApi, uploadApi } from '../../utils/apipath'
 import type { FeedbackFormConfig, FeedbackFormField } from './types'
+import { Button } from '../../components/ui'
 
 async function uploadImage(file: File): Promise<string> {
   const formData = new FormData()
@@ -301,13 +302,9 @@ export default function FormRenderPage() {
           <p className="text-sm text-rose-600">{submitError}</p>
         ) : null}
 
-        <button
-          type="submit"
-          disabled={submitting}
-          className="w-full rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed"
-        >
+        <Button type="submit" variant="primary" size="md" disabled={submitting} className="w-full">
           {submitting ? 'Submitting...' : 'Submit'}
-        </button>
+        </Button>
       </form>
     </div>
   )

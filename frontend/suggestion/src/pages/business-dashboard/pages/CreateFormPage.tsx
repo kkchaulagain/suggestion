@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { useAuth } from '../../../context/AuthContext'
 import { feedbackFormsApi } from '../../../utils/apipath'
+import { Button } from '../../../components/ui'
 
 type FeedbackFieldType = 'checkbox' | 'radio' | 'short_text' | 'long_text' | 'big_text' | 'image_upload'
 
@@ -157,13 +158,9 @@ export default function CreateFormPage() {
       <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm xl:col-span-3">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-bold text-slate-900">Create Form</h3>
-          <button
-            type="button"
-            onClick={() => navigate('/dashboard/forms')}
-            className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700"
-          >
+          <Button type="button" variant="secondary" size="sm" onClick={() => navigate('/dashboard/forms')}>
             Back to Form List
-          </button>
+          </Button>
         </div>
 
         <div className="mt-4 space-y-3">
@@ -229,27 +226,25 @@ export default function CreateFormPage() {
                     placeholder="Type an option and press Enter"
                     className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-emerald-600"
                   />
-                  <button
-                    type="button"
-                    onClick={handleAddOption}
-                    className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-800"
-                  >
+                  <Button type="button" variant="primary" size="sm" onClick={handleAddOption}>
                     Add
-                  </button>
+                  </Button>
                 </div>
                 {fieldOptions.length > 0 ? (
                   <div className="flex flex-wrap gap-1.5 pt-1">
                     {fieldOptions.map((opt) => (
                       <span key={opt} className="flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-1 text-xs text-emerald-800">
                         {opt}
-                        <button
+                        <Button
                           type="button"
+                          variant="ghost"
+                          size="sm"
                           onClick={() => handleRemoveOption(opt)}
-                          className="ml-0.5 font-bold leading-none text-emerald-600 hover:text-rose-600"
                           aria-label={`Remove option ${opt}`}
+                          className="!p-0.5 min-w-0 text-emerald-600 hover:text-rose-600"
                         >
                           x
-                        </button>
+                        </Button>
                       </span>
                     ))}
                   </div>
@@ -271,26 +266,24 @@ export default function CreateFormPage() {
               />
               Required field
             </label>
-            <button
-              type="button"
-              onClick={handleAddField}
-              className="w-full rounded-lg bg-slate-900 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-800"
-            >
+            <Button type="button" variant="primary" size="md" onClick={handleAddField} className="w-full">
               Add Field
-            </button>
+            </Button>
           </div>
         </div>
 
         {error ? <p className="mt-3 text-sm text-rose-600">{error}</p> : null}
 
-        <button
+        <Button
           type="button"
+          variant="primary"
+          size="md"
           disabled={submitting}
           onClick={() => void handleCreateForm()}
-          className="mt-4 w-full rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-60"
+          className="mt-4 w-full"
         >
           {submitting ? 'Saving...' : 'Save Form'}
-        </button>
+        </Button>
       </article>
 
       <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm xl:col-span-2">
@@ -312,13 +305,15 @@ export default function CreateFormPage() {
                       {field.label}
                       {field.required ? <span className="ml-1 text-rose-600">*</span> : null}
                     </p>
-                    <button
+                    <Button
                       type="button"
+                      variant="ghost"
+                      size="sm"
                       onClick={() => handleRemoveField(field.name)}
-                      className="text-xs font-semibold text-rose-600"
+                      className="text-xs font-semibold text-rose-600 hover:bg-rose-50"
                     >
                       Remove
-                    </button>
+                    </Button>
                   </div>
                   {field.type === 'big_text' ? (
                     <textarea

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import axios from 'axios'
 import { useAuth } from '../../../context/AuthContext'
 import { businessesListApi } from '../../../utils/apipath'
+import { Button } from '../../../components/ui'
 
 interface BusinessListItem {
   id: string
@@ -129,13 +130,9 @@ export default function BusinessesPage() {
     <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-bold text-slate-900">Registered Businesses</h3>
-        <button
-          type="button"
-          onClick={() => void loadBusinesses()}
-          className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700"
-        >
+        <Button type="button" variant="secondary" size="sm" onClick={() => void loadBusinesses()}>
           Refresh
-        </button>
+        </Button>
       </div>
 
       {loading ? <p className="mt-4 text-sm text-slate-500">Loading businesses...</p> : null}
@@ -158,27 +155,15 @@ export default function BusinessesPage() {
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => openView(business)}
-                  className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700"
-                >
+                <Button type="button" variant="secondary" size="sm" onClick={() => openView(business)}>
                   View
-                </button>
-                <button
-                  type="button"
-                  onClick={() => openEdit(business)}
-                  className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700"
-                >
+                </Button>
+                <Button type="button" variant="secondary" size="sm" onClick={() => openEdit(business)}>
                   Edit
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void handleDelete(business)}
-                  className="rounded-lg bg-rose-600 px-3 py-2 text-xs font-semibold text-white hover:bg-rose-700"
-                >
+                </Button>
+                <Button type="button" variant="danger" size="sm" onClick={() => void handleDelete(business)}>
                   Delete
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -283,33 +268,21 @@ export default function BusinessesPage() {
                 </div>
                 {modalError ? <p className="text-sm text-rose-600">{modalError}</p> : null}
                 <div className="flex justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={closeModal}
-                    className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700"
-                  >
+                  <Button type="button" variant="secondary" size="sm" onClick={closeModal}>
                     Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
-                  >
+                  </Button>
+                  <Button type="submit" variant="primary" size="sm" disabled={saving}>
                     {saving ? 'Saving...' : 'Save'}
-                  </button>
+                  </Button>
                 </div>
               </form>
             )}
 
             {modalMode === 'view' ? (
               <div className="mt-4 flex justify-end">
-                <button
-                  type="button"
-                  onClick={closeModal}
-                  className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700"
-                >
+                <Button type="button" variant="secondary" size="sm" onClick={closeModal}>
                   Close
-                </button>
+                </Button>
               </div>
             ) : null}
           </div>

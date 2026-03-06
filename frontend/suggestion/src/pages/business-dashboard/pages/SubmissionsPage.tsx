@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import axios from 'axios'
 import { useAuth } from '../../../context/AuthContext'
 import { feedbackFormsApi, feedbackFormSubmissionsApi } from '../../../utils/apipath'
+import { Button } from '../../../components/ui'
 
 interface FormSnapshotField {
   name: string
@@ -49,13 +50,9 @@ function ResponseDetailModal({
       >
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold text-slate-900">{submission.formTitle || 'Response'}</h3>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100"
-          >
+          <Button type="button" variant="secondary" size="md" onClick={onClose}>
             Close
-          </button>
+          </Button>
         </div>
         <p className="mt-1 text-xs text-slate-500">{formatSubmittedAt(submission.submittedAt)}</p>
         <dl className="mt-4 space-y-3">
@@ -219,13 +216,9 @@ export default function SubmissionsPage() {
             className="mt-1 rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900"
           />
         </div>
-        <button
-          type="button"
-          onClick={handleApplyFilters}
-          className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
-        >
+        <Button type="button" variant="primary" size="md" onClick={handleApplyFilters}>
           Apply
-        </button>
+        </Button>
       </div>
 
       {error ? <p className="mt-3 text-sm text-rose-600">{error}</p> : null}
@@ -251,13 +244,14 @@ export default function SubmissionsPage() {
                     <td className="py-3 pr-4 text-slate-900">{s.formTitle || s.formId}</td>
                     <td className="py-3 pr-4 text-slate-600">{formatSubmittedAt(s.submittedAt)}</td>
                     <td className="py-3">
-                      <button
+                      <Button
                         type="button"
+                        variant="secondary"
+                        size="sm"
                         onClick={() => setViewSubmission(s)}
-                        className="rounded border border-slate-300 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100"
                       >
                         View
-                      </button>
+                      </Button>
                     </td>
                   </tr>
                 ))}
@@ -270,22 +264,24 @@ export default function SubmissionsPage() {
               Page {page} of {totalPages} ({total} total)
             </p>
             <div className="flex gap-2">
-              <button
+              <Button
                 type="button"
+                variant="secondary"
+                size="md"
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={!hasPrev}
-                className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50"
               >
                 Previous
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
+                variant="secondary"
+                size="md"
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={!hasNext}
-                className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50"
               >
                 Next
-              </button>
+              </Button>
             </div>
           </div>
         </>
