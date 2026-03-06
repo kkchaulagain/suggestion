@@ -130,7 +130,7 @@ export default function BusinessesPage() {
   return (
     <Card>
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-bold text-slate-900">Registered Businesses</h3>
+        <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">Registered Businesses</h3>
         <Button type="button" variant="secondary" size="sm" onClick={() => void loadBusinesses()}>
           Refresh
         </Button>
@@ -144,15 +144,15 @@ export default function BusinessesPage() {
 
       <div className="mt-4 space-y-4">
         {businesses.map((business) => (
-          <div key={business.id} className="rounded-xl border border-slate-200 p-4">
+          <div key={business.id} className="rounded-xl border border-slate-200 p-4 dark:border-slate-700 dark:bg-slate-800/50">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <p className="text-base font-semibold text-slate-900">{business.businessname}</p>
-                <p className="mt-1 text-sm text-slate-600">Location: {business.location}</p>
+                <p className="text-base font-semibold text-slate-900 dark:text-slate-100">{business.businessname}</p>
+                <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">Location: {business.location}</p>
                 {business.description ? (
-                  <p className="mt-1 text-sm text-slate-600">{business.description}</p>
+                  <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{business.description}</p>
                 ) : null}
-                <p className="mt-2 text-xs text-slate-500">
+                <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
                   PAN: {business.pancardNumber ?? 'N/A'} · ID: {business.id}
                 </p>
               </div>
@@ -182,20 +182,20 @@ export default function BusinessesPage() {
         >
           {modalMode === 'view' ? (
               <div className="space-y-2">
-                <p className="text-sm text-slate-600">
-                  <span className="font-semibold text-slate-700">Name:</span> {selectedBusiness.businessname}
+                <p className="text-sm text-slate-600 dark:text-slate-300">
+                  <span className="font-semibold text-slate-700 dark:text-slate-200">Name:</span> {selectedBusiness.businessname}
                 </p>
-                <p className="text-sm text-slate-600">
-                  <span className="font-semibold text-slate-700">Location:</span> {selectedBusiness.location}
+                <p className="text-sm text-slate-600 dark:text-slate-300">
+                  <span className="font-semibold text-slate-700 dark:text-slate-200">Location:</span> {selectedBusiness.location}
                 </p>
-                <p className="text-sm text-slate-600">
-                  <span className="font-semibold text-slate-700">PAN:</span> {selectedBusiness.pancardNumber ?? 'N/A'}
+                <p className="text-sm text-slate-600 dark:text-slate-300">
+                  <span className="font-semibold text-slate-700 dark:text-slate-200">PAN:</span> {selectedBusiness.pancardNumber ?? 'N/A'}
                 </p>
-                <p className="text-sm text-slate-600">
-                  <span className="font-semibold text-slate-700">Description:</span>{' '}
+                <p className="text-sm text-slate-600 dark:text-slate-300">
+                  <span className="font-semibold text-slate-700 dark:text-slate-200">Description:</span>{' '}
                   {selectedBusiness.description || '—'}
                 </p>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-slate-500 dark:text-slate-400">
                   <span className="font-semibold">ID:</span> {selectedBusiness.id} ·{' '}
                   <span className="font-semibold">Owner:</span> {selectedBusiness.owner}
                 </p>

@@ -10,8 +10,8 @@ export default function ProfilePage() {
         <div className="md:col-span-2 space-y-6">
           
           <Card>
-            <div className="flex items-center justify-between mb-6 border-b border-slate-100 pb-2">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+            <div className="flex items-center justify-between mb-6 border-b border-slate-100 dark:border-slate-700 pb-2">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
                 Personal Details
               </h3>
               <Button
@@ -19,7 +19,7 @@ export default function ProfilePage() {
                 variant="ghost"
                 size="sm"
                 onClick={() => setIsDialogOpen(true)}
-                className="text-emerald-600 hover:text-emerald-700"
+                className="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300"
               >
                 Edit Profile
               </Button>
@@ -27,15 +27,15 @@ export default function ProfilePage() {
             
             <div className="space-y-5">
               <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1">Name</label>
-                <p className="text-sm font-semibold text-slate-800">
+                <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Name</label>
+                <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
                   {"Need to Call API"} 
                 </p>
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1">Email Address</label>
-                <p className="text-sm font-semibold text-slate-800">
+                <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Email Address</label>
+                <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
                   {"(API pending)"}
                 </p>
               </div>
@@ -47,7 +47,7 @@ export default function ProfilePage() {
               <Button type="button" variant="secondary" size="lg" className="flex-1">
                 Change Password
               </Button>
-              <Button type="button" variant="danger" size="lg" className="flex-1 !bg-red-50/30 !text-red-600 hover:!bg-red-50 !border-red-100">
+              <Button type="button" variant="danger" size="lg" className="flex-1 !bg-red-50/30 !text-red-600 hover:!bg-red-50 dark:!bg-red-900/30 dark:!text-red-400 dark:hover:!bg-red-900/50 !border-red-100 dark:!border-red-800">
                 Log Out
               </Button>
             </div>

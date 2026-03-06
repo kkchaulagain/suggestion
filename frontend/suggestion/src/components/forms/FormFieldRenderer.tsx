@@ -75,14 +75,14 @@ export default function FormFieldRenderer({
     const arr = (Array.isArray(value) ? value : []) as string[]
     return (
       <div className="space-y-2">
-        <Label htmlFor={id} size="md" required={field.required} className="text-slate-800">
+        <Label htmlFor={id} size="md" required={field.required} className="text-slate-800 dark:text-slate-200">
           {field.label}
         </Label>
         <div className="space-y-2">
           {field.options.map((option) => (
             <label
               key={`${field.name}-${option}`}
-              className="flex cursor-pointer items-center gap-2 text-sm text-slate-700"
+              className="flex cursor-pointer items-center gap-2 text-sm text-slate-700 dark:text-slate-300"
             >
               <input
                 type="checkbox"
@@ -97,7 +97,7 @@ export default function FormFieldRenderer({
                   }
                 }}
                 disabled={disabled}
-                className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 dark:border-slate-600 dark:focus:ring-emerald-500"
               />
               {option}
             </label>
@@ -112,14 +112,14 @@ export default function FormFieldRenderer({
     const str = typeof value === 'string' ? value : ''
     return (
       <div className="space-y-2">
-        <Label htmlFor={id} size="md" required={field.required} className="text-slate-800">
+        <Label htmlFor={id} size="md" required={field.required} className="text-slate-800 dark:text-slate-200">
           {field.label}
         </Label>
         <div className="space-y-2">
           {field.options.map((option) => (
             <label
               key={`${field.name}-${option}`}
-              className="flex cursor-pointer items-center gap-2 text-sm text-slate-700"
+              className="flex cursor-pointer items-center gap-2 text-sm text-slate-700 dark:text-slate-300"
             >
               <input
                 type="radio"
@@ -129,7 +129,7 @@ export default function FormFieldRenderer({
                 onChange={(e) => onChange(field.name, e.target.value)}
                 disabled={disabled}
                 required={field.required}
-                className="border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                className="border-slate-300 text-emerald-600 focus:ring-emerald-500 dark:border-slate-600 dark:focus:ring-emerald-500"
               />
               {option}
             </label>
@@ -143,7 +143,7 @@ export default function FormFieldRenderer({
   if (field.type === 'image_upload') {
     return (
       <div className="space-y-2">
-        <Label htmlFor={id} size="md" required={field.required} className="text-slate-800">
+        <Label htmlFor={id} size="md" required={field.required} className="text-slate-800 dark:text-slate-200">
           {field.label}
         </Label>
         <input
@@ -156,7 +156,7 @@ export default function FormFieldRenderer({
             const file = e.target.files?.[0]
             onChange(field.name, file)
           }}
-          className="w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-emerald-50 file:px-3 file:py-2 file:text-sm file:font-medium file:text-emerald-700"
+          className="w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-emerald-50 file:px-3 file:py-2 file:text-sm file:font-medium file:text-emerald-700 dark:text-slate-300 dark:file:bg-emerald-900/40 dark:file:text-emerald-300"
         />
         {error ? <ErrorMessage message={error} size="sm" /> : null}
       </div>

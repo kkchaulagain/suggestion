@@ -164,11 +164,11 @@ export default function FormRenderPage() {
   if (error || !config) {
     return (
       <Card className="rounded-xl">
-        <h1 className="text-lg font-semibold text-slate-900">Form not found</h1>
-        <p className="mt-2 text-sm text-slate-600">{error ?? 'Invalid or missing form link.'}</p>
+        <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Form not found</h1>
+        <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{error ?? 'Invalid or missing form link.'}</p>
         <Link
           to="/"
-          className="mt-4 inline-block text-sm font-medium text-emerald-600 hover:text-emerald-700"
+          className="mt-4 inline-block text-sm font-medium text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300"
         >
           Go to home
         </Link>
@@ -179,17 +179,17 @@ export default function FormRenderPage() {
   if (submitted) {
     return (
       <Card padding="lg" className="rounded-xl text-center">
-        <h2 className="text-xl font-semibold text-slate-900">Thank you</h2>
-        <p className="mt-2 text-slate-600">Your response has been recorded.</p>
+        <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Thank you</h2>
+        <p className="mt-2 text-slate-600 dark:text-slate-300">Your response has been recorded.</p>
       </Card>
     )
   }
 
   return (
     <Card className="rounded-xl sm:p-8">
-      <h1 className="text-xl font-bold text-slate-900">{config.title}</h1>
+      <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">{config.title}</h1>
       {config.description ? (
-        <p className="mt-2 text-sm text-slate-600">{config.description}</p>
+        <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{config.description}</p>
       ) : null}
 
       <form onSubmit={handleSubmit} className="mt-6 space-y-5" noValidate>

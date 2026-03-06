@@ -5,13 +5,13 @@ export type ButtonSize = 'sm' | 'md' | 'lg'
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    'bg-emerald-600 text-white hover:bg-emerald-700 border-transparent',
+    'bg-emerald-600 text-white hover:bg-emerald-700 border-transparent dark:bg-emerald-500 dark:hover:bg-emerald-600',
   secondary:
-    'border border-slate-300 bg-white text-slate-700 hover:bg-slate-50',
+    'border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700',
   danger:
-    'bg-rose-600 text-white hover:bg-rose-700 border-transparent',
+    'bg-rose-600 text-white hover:bg-rose-700 border-transparent dark:bg-rose-500 dark:hover:bg-rose-600',
   ghost:
-    'border-transparent bg-transparent text-slate-700 hover:bg-slate-100',
+    'border-transparent bg-transparent text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-700',
 }
 
 const sizeClasses: Record<ButtonSize, string> = {

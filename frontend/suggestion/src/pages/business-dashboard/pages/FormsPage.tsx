@@ -119,7 +119,7 @@ export default function FormsPage() {
               </>
             }
           >
-            <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-slate-500">Fields</p>
+            <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Fields</p>
             <div className="mt-2 flex flex-wrap gap-2">
               {form.fields.map((field) => (
                 <Tag key={`${form._id}-${field.name}`}>

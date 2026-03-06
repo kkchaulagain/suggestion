@@ -16,7 +16,7 @@ export default function ErrorMessage({
   size = 'md',
   className = '',
 }: ErrorMessageProps) {
-  const base = 'text-rose-600'
+  const base = 'text-rose-600 dark:text-rose-400'
   const classes = [base, sizeClasses[size], className].filter(Boolean).join(' ')
 
   return (

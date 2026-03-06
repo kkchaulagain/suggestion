@@ -157,7 +157,7 @@ export default function CreateFormPage() {
     <section className="grid gap-5 xl:grid-cols-5">
       <Card className="xl:col-span-3">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-bold text-slate-900">Create Form</h3>
+          <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">Create Form</h3>
           <Button type="button" variant="secondary" size="sm" onClick={() => navigate('/dashboard/forms')}>
             Back to Form List
           </Button>
@@ -179,8 +179,8 @@ export default function CreateFormPage() {
           />
         </div>
 
-        <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
-          <p className="text-sm font-semibold text-slate-800">Add Input Field</p>
+        <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/50">
+          <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">Add Input Field</p>
           <div className="mt-3 space-y-2">
             <Input
               id="field-label"
@@ -206,8 +206,8 @@ export default function CreateFormPage() {
             />
 
             {isOptionType ? (
-              <div className="space-y-2 rounded-lg border border-slate-200 bg-white p-3">
-                <p className="text-xs font-semibold text-slate-700">Options</p>
+              <div className="space-y-2 rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-800">
+                <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">Options</p>
                 <div className="flex gap-2">
                   <div className="flex-1">
                     <Input
@@ -250,7 +250,7 @@ export default function CreateFormPage() {
               onChange={setFieldPlaceholder}
               placeholder="Placeholder (optional)"
             />
-            <label className="flex items-center gap-2 text-sm text-slate-700">
+            <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
               <input
                 type="checkbox"
                 checked={fieldRequired}
@@ -279,30 +279,30 @@ export default function CreateFormPage() {
       </Card>
 
       <Card className="xl:col-span-2">
-        <h3 className="text-lg font-bold text-slate-900">Live Form Preview</h3>
-        <p className="mt-1 text-sm text-slate-500">Preview is inside create form page as requested.</p>
+        <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">Live Form Preview</h3>
+        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Preview is inside create form page as requested.</p>
 
-        <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
-          <p className="text-base font-semibold text-slate-900">{title.trim() || 'Untitled Form'}</p>
-          <p className="mt-1 text-sm text-slate-600">{description.trim() || 'Form description will appear here.'}</p>
+        <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/50">
+          <p className="text-base font-semibold text-slate-900 dark:text-slate-100">{title.trim() || 'Untitled Form'}</p>
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{description.trim() || 'Form description will appear here.'}</p>
 
           {fields.length === 0 ? (
-            <p className="mt-4 text-sm text-slate-500">Add fields to preview your form.</p>
+            <p className="mt-4 text-sm text-slate-500 dark:text-slate-400">Add fields to preview your form.</p>
           ) : (
             <div className="mt-4 space-y-3">
               {fields.map((field) => (
-                <div key={`preview-${field.name}`} className="rounded-lg border border-slate-200 bg-white p-3">
+                <div key={`preview-${field.name}`} className="rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-800">
                   <div className="flex items-start justify-between gap-3">
-                    <p className="text-sm font-medium text-slate-800">
+                    <p className="text-sm font-medium text-slate-800 dark:text-slate-200">
                       {field.label}
-                      {field.required ? <span className="ml-1 text-rose-600">*</span> : null}
+                      {field.required ? <span className="ml-1 text-rose-600 dark:text-rose-400">*</span> : null}
                     </p>
                     <Button
                       type="button"
                       variant="ghost"
                       size="sm"
                       onClick={() => handleRemoveField(field.name)}
-                      className="text-xs font-semibold text-rose-600 hover:bg-rose-50"
+                      className="text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-900/40"
                     >
                       Remove
                     </Button>
@@ -323,16 +323,16 @@ export default function CreateFormPage() {
                       disabled
                       type="text"
                       placeholder={field.placeholder || 'Your answer'}
-                      className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                      className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
                     />
                   ) : null}
                   {field.type === 'image_upload' ? (
-                    <div className="mt-2 rounded-lg border border-dashed border-slate-300 px-3 py-3 text-xs text-slate-500">Upload image</div>
+                    <div className="mt-2 rounded-lg border border-dashed border-slate-300 px-3 py-3 text-xs text-slate-500 dark:border-slate-600 dark:text-slate-400">Upload image</div>
                   ) : null}
                   {field.type === 'checkbox' && field.options ? (
                     <div className="mt-2 space-y-1.5">
                       {field.options.map((option) => (
-                        <label key={`${field.name}-${option}`} className="flex items-center gap-2 text-sm text-slate-700">
+                        <label key={`${field.name}-${option}`} className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
                           <input type="checkbox" disabled />
                           {option}
                         </label>
@@ -342,7 +342,7 @@ export default function CreateFormPage() {
                   {field.type === 'radio' && field.options ? (
                     <div className="mt-2 space-y-1.5">
                       {field.options.map((option) => (
-                        <label key={`${field.name}-${option}`} className="flex items-center gap-2 text-sm text-slate-700">
+                        <label key={`${field.name}-${option}`} className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
                           <input type="radio" disabled />
                           {option}
                         </label>

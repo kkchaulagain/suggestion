@@ -7,6 +7,7 @@ import ProtectedRoute from './component/ProtectedRoutes'
 import GuestRoute from './component/GuestRoute'
 import DashboardRouter, { DashboardIndex } from './component/DashboardRouter'
 import { AuthProvider } from './context/AuthContext'
+import { ThemeProvider } from './context/ThemeContext'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 
 import FormsPage from './pages/business-dashboard/pages/FormsPage'
@@ -20,8 +21,9 @@ import ProfilePage from './pages/business-dashboard/pages/ProfilePage'
 function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <Routes>
+      <ThemeProvider>
+        <AuthProvider>
+          <Routes>
           <Route
             path="/"
             element={
@@ -79,7 +81,8 @@ function App() {
             <Route path=":formId" element={<FormRenderPage />} />
           </Route>
         </Routes>
-      </AuthProvider>
+        </AuthProvider>
+      </ThemeProvider>
     </BrowserRouter>
   )
 }

@@ -46,7 +46,7 @@ function ResponseDetailModal({
   return (
     <Modal isOpen onClose={onClose} title={submission.formTitle || 'Response'} size="lg">
       <div className="max-h-[70vh] overflow-auto">
-        <p className="text-xs text-slate-500">{formatSubmittedAt(submission.submittedAt)}</p>
+        <p className="text-xs text-slate-500 dark:text-slate-400">{formatSubmittedAt(submission.submittedAt)}</p>
         <dl className="mt-4 space-y-3">
           {submission.formSnapshot.map((field) => {
             const value = submission.responses[field.name]
@@ -58,8 +58,8 @@ function ResponseDetailModal({
                   : '—'
             return (
               <div key={field.name}>
-                <dt className="text-sm font-medium text-slate-700">{field.label}</dt>
-                <dd className="mt-0.5 text-sm text-slate-900">{display}</dd>
+                <dt className="text-sm font-medium text-slate-700 dark:text-slate-300">{field.label}</dt>
+                <dd className="mt-0.5 text-sm text-slate-900 dark:text-slate-200">{display}</dd>
               </div>
             )
           })}
@@ -164,7 +164,7 @@ export default function SubmissionsPage() {
 
   return (
     <Card>
-      <h3 className="text-lg font-bold text-slate-900">Submissions</h3>
+      <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">Submissions</h3>
 
       <div className="mt-4 flex flex-wrap items-end gap-3">
         <Select

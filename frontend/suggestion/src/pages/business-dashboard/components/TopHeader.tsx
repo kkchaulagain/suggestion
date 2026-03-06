@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../../context/AuthContext'
 import { businessmeapi } from '../../../utils/apipath'
-import { Button } from '../../../components/ui'
+import { Button, ThemeToggle } from '../../../components/ui'
 
 interface TopHeaderProps {
   title: string
@@ -62,7 +62,7 @@ export default function TopHeader({ title, onOpenSidebar }: TopHeaderProps) {
   }
 
   return (
-    <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/90 px-4 py-4 backdrop-blur sm:px-6">
+    <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/90 px-4 py-4 backdrop-blur dark:border-slate-700 dark:bg-slate-900/90 sm:px-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Button
@@ -75,17 +75,19 @@ export default function TopHeader({ title, onOpenSidebar }: TopHeaderProps) {
             Menu
           </Button>
           <div>
-            <h2 className="text-lg font-bold text-slate-900 sm:text-xl">{title}</h2>
-            <p className="text-xs text-slate-500 sm:text-sm">Business and government QR suggestion management</p>
+            <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 sm:text-xl">{title}</h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 sm:text-sm">Business and government QR suggestion management</p>
           </div>
         </div>
-        <div className="relative" ref={profileMenuRef}>
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          <div className="relative" ref={profileMenuRef}>
           <Button
             type="button"
             variant="secondary"
             size="sm"
             onClick={() => setIsProfileOpen((current) => !current)}
-            className="rounded-xl border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 sm:text-sm"
+            className="rounded-xl border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300 dark:hover:bg-emerald-800/60 sm:text-sm"
             aria-haspopup="menu"
             aria-expanded={isProfileOpen}
           >
@@ -94,16 +96,16 @@ export default function TopHeader({ title, onOpenSidebar }: TopHeaderProps) {
           {isProfileOpen ? (
             <div
               role="menu"
-              className="absolute right-0 top-12 w-72 rounded-xl border border-slate-200 bg-white p-2 shadow-lg"
+              className="absolute right-0 top-12 w-72 rounded-xl border border-slate-200 bg-white p-2 shadow-lg dark:border-slate-700 dark:bg-slate-800"
             >
-              <div className="mb-2 rounded-lg bg-slate-50 p-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Business Profile</p>
-                <p className="mt-1 text-sm font-bold text-slate-900">
+              <div className="mb-2 rounded-lg bg-slate-50 p-3 dark:bg-slate-700/50">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Business Profile</p>
+                <p className="mt-1 text-sm font-bold text-slate-900 dark:text-slate-100">
                   {businessProfile?.businessname || 'Business name unavailable'}
                 </p>
-                <p className="mt-2 text-xs text-slate-600">Location: {businessProfile?.location || 'N/A'}</p>
-                <p className="mt-1 text-xs text-slate-600">PAN: {businessProfile?.pancardNumber ?? 'N/A'}</p>
-                <p className="mt-1 text-xs text-slate-600 line-clamp-3">
+                <p className="mt-2 text-xs text-slate-600 dark:text-slate-300">Location: {businessProfile?.location || 'N/A'}</p>
+                <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">PAN: {businessProfile?.pancardNumber ?? 'N/A'}</p>
+                <p className="mt-1 text-xs text-slate-600 dark:text-slate-300 line-clamp-3">
                   {businessProfile?.description || 'Description unavailable'}
                 </p>
               </div>
@@ -113,12 +115,13 @@ export default function TopHeader({ title, onOpenSidebar }: TopHeaderProps) {
                 size="md"
                 role="menuitem"
                 onClick={handleLogout}
-                className="w-full justify-start text-rose-600 hover:bg-rose-50"
+                className="w-full justify-start text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-900/40"
               >
                 Logout
               </Button>
             </div>
           ) : null}
+        </div>
         </div>
       </div>
     </header>

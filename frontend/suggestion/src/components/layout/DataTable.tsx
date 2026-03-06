@@ -52,9 +52,9 @@ export default function DataTable<T extends object>({
       <div className="mt-4 overflow-x-auto">
         <table className="w-full min-w-[400px] border-collapse text-sm">
           <thead>
-            <tr className="border-b border-slate-200 text-left">
+            <tr className="border-b border-slate-200 dark:border-slate-700 text-left">
               {columns.map((col) => (
-                <th key={String(col.key)} className="py-2 pr-4 font-semibold text-slate-700">
+                <th key={String(col.key)} className="py-2 pr-4 font-semibold text-slate-700 dark:text-slate-300">
                   {col.header}
                 </th>
               ))}
@@ -62,9 +62,9 @@ export default function DataTable<T extends object>({
           </thead>
           <tbody>
             {rows.map((row, idx) => (
-              <tr key={idx} className="border-b border-slate-100">
+              <tr key={idx} className="border-b border-slate-100 dark:border-slate-700/50">
                 {columns.map((col) => (
-                  <td key={String(col.key)} className="py-3 pr-4 text-slate-900">
+                  <td key={String(col.key)} className="py-3 pr-4 text-slate-900 dark:text-slate-200">
                     {col.render ? col.render(row) : getCellValue(row, col.key)}
                   </td>
                 ))}

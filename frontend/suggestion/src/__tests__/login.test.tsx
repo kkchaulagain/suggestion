@@ -5,6 +5,7 @@ import { MemoryRouter } from 'react-router-dom'
 
 import Login from '../auth/login'
 import { AuthProvider } from '../context/AuthContext'
+import { ThemeProvider } from '../context/ThemeContext'
 
 jest.mock('axios')
 const mockedAxios = axios as jest.Mocked<typeof axios>
@@ -18,9 +19,11 @@ jest.mock('react-router-dom', () => ({
 function renderLogin() {
   return render(
     <MemoryRouter>
-      <AuthProvider>
-        <Login />
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <Login />
+        </AuthProvider>
+      </ThemeProvider>
     </MemoryRouter>
   )
 }
