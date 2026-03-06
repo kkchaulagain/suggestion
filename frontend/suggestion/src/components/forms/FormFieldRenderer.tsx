@@ -1,0 +1,167 @@
+import type { ChangeEvent } from 'react'
+import { Input, Label, Textarea, ErrorMessage } from '../ui'
+
+export type FormFieldType =
+  | 'short_text'
+  | 'long_text'
+  | 'big_text'
+  | 'checkbox'
+  | 'radio'
+  | 'image_upload'
+
+export interface FormFieldConfig {
+  name: string
+  label: string
+  type: FormFieldType
+  required: boolean
+  placeholder?: string
+  options?: string[]
+}
+
+export interface FormFieldRendererProps {
+  field: FormFieldConfig
+  value: string | string[] | File | undefined
+  onChange: (name: string, value: string | string[] | File | undefined) => void
+  disabled?: boolean
+  error?: string
+}
+
+export default function FormFieldRenderer({
+  field,
+  value,
+  onChange,
+  disabled = false,
+  error,
+}: FormFieldRendererProps) {
+  const id = `field-${field.name}`
+
+  if (field.type === 'short_text' || field.type === 'long_text') {
+    return (
+      <div className="space-y-2">
+        <Input
+          id={id}
+          label={field.label}
+          type="text"
+          value={(value as string) ?? ''}
+          onChange={(v) => onChange(field.name, v)}
+          placeholder={field.placeholder}
+          required={field.required}
+          disabled={disabled}
+          error={error}
+        />
+      </div>
+    )
+  }
+
+  if (field.type === 'big_text') {
+    return (
+      <div className="space-y-2">
+        <Textarea
+          id={id}
+          label={field.label}
+          value={(value as string) ?? ''}
+          onChange={(v) => onChange(field.name, v)}
+          placeholder={field.placeholder}
+          rows={4}
+          required={field.required}
+          disabled={disabled}
+          error={error}
+        />
+      </div>
+    )
+  }
+
+  if (field.type === 'checkbox' && field.options?.length) {
+    const arr = (Array.isArray(value) ? value : []) as string[]
+    return (
+      <div className="space-y-2">
+        <Label htmlFor={id} size="md" required={field.required} className="text-slate-800">
+          {field.label}
+        </Label>
+        <div className="space-y-2">
+          {field.options.map((option) => (
+            <label
+              key={`${field.name}-${option}`}
+              className="flex cursor-pointer items-center gap-2 text-sm text-slate-700"
+            >
+              <input
+                type="checkbox"
+                name={field.name}
+                checked={arr.includes(option)}
+                onChange={(e) => {
+                  const checked = e.target.checked
+                  if (checked) {
+                    onChange(field.name, [...arr, option])
+                  } else {
+                    onChange(field.name, arr.filter((o) => o !== option))
+                  }
+                }}
+                disabled={disabled}
+                className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+              />
+              {option}
+            </label>
+          ))}
+        </div>
+        {error ? <ErrorMessage message={error} size="sm" /> : null}
+      </div>
+    )
+  }
+
+  if (field.type === 'radio' && field.options?.length) {
+    const str = typeof value === 'string' ? value : ''
+    return (
+      <div className="space-y-2">
+        <Label htmlFor={id} size="md" required={field.required} className="text-slate-800">
+          {field.label}
+        </Label>
+        <div className="space-y-2">
+          {field.options.map((option) => (
+            <label
+              key={`${field.name}-${option}`}
+              className="flex cursor-pointer items-center gap-2 text-sm text-slate-700"
+            >
+              <input
+                type="radio"
+                name={field.name}
+                value={option}
+                checked={str === option}
+                onChange={(e) => onChange(field.name, e.target.value)}
+                disabled={disabled}
+                required={field.required}
+                className="border-slate-300 text-emerald-600 focus:ring-emerald-500"
+              />
+              {option}
+            </label>
+          ))}
+        </div>
+        {error ? <ErrorMessage message={error} size="sm" /> : null}
+      </div>
+    )
+  }
+
+  if (field.type === 'image_upload') {
+    return (
+      <div className="space-y-2">
+        <Label htmlFor={id} size="md" required={field.required} className="text-slate-800">
+          {field.label}
+        </Label>
+        <input
+          id={id}
+          type="file"
+          name={field.name}
+          accept="image/*"
+          disabled={disabled}
+          onChange={(e: ChangeEvent<HTMLInputElement>) => {
+            const file = e.target.files?.[0]
+            onChange(field.name, file)
+          }}
+          className="w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-emerald-50 file:px-3 file:py-2 file:text-sm file:font-medium file:text-emerald-700"
+        />
+        {error ? <ErrorMessage message={error} size="sm" /> : null}
+      </div>
+    )
+  }
+
+  return null
+}

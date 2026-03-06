@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import axios from 'axios'
 import { useAuth } from '../../../context/AuthContext'
 import { businessesListApi } from '../../../utils/apipath'
-import { Button, Card, Input, Textarea, ErrorMessage } from '../../../components/ui'
+import { Button, Card, Input, Textarea, ErrorMessage, Modal } from '../../../components/ui'
+import { EmptyState } from '../../../components/layout'
 
 interface BusinessListItem {
   id: string
@@ -135,9 +136,10 @@ export default function BusinessesPage() {
         </Button>
       </div>
 
-      {loading ? <p className="mt-4 text-sm text-slate-500">Loading businesses...</p> : null}
-      {!loading && businesses.length === 0 ? (
-        <p className="mt-4 text-sm text-slate-500">No registered businesses yet.</p>
+      {loading ? (
+        <EmptyState type="loading" message="Loading businesses..." />
+      ) : businesses.length === 0 ? (
+        <EmptyState type="empty" message="No registered businesses yet." />
       ) : null}
 
       <div className="mt-4 space-y-4">
@@ -173,23 +175,13 @@ export default function BusinessesPage() {
       {error ? <ErrorMessage message={error} className="mt-4" /> : null}
 
       {modalMode && selectedBusiness ? (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="modal-title"
-          onClick={closeModal}
+        <Modal
+          isOpen
+          onClose={closeModal}
+          title={modalMode === 'view' ? 'Business details' : 'Edit business'}
         >
-          <div
-            className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 id="modal-title" className="text-lg font-bold text-slate-900">
-              {modalMode === 'view' ? 'Business details' : 'Edit business'}
-            </h2>
-
-            {modalMode === 'view' ? (
-              <div className="mt-4 space-y-2">
+          {modalMode === 'view' ? (
+              <div className="space-y-2">
                 <p className="text-sm text-slate-600">
                   <span className="font-semibold text-slate-700">Name:</span> {selectedBusiness.businessname}
                 </p>
@@ -210,7 +202,7 @@ export default function BusinessesPage() {
               </div>
             ) : (
               <form
-                className="mt-4 space-y-4"
+                className="space-y-4"
                 onSubmit={(e) => {
                   e.preventDefault()
                   void handleSaveEdit()
@@ -259,14 +251,13 @@ export default function BusinessesPage() {
             )}
 
             {modalMode === 'view' ? (
-              <div className="mt-4 flex justify-end">
+              <div className="flex justify-end">
                 <Button type="button" variant="secondary" size="sm" onClick={closeModal}>
                   Close
                 </Button>
               </div>
             ) : null}
-          </div>
-        </div>
+        </Modal>
       ) : null}
     </Card>
   )
