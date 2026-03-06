@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import axios from 'axios'
 import { useAuth } from '../../../context/AuthContext'
 import { businessesListApi } from '../../../utils/apipath'
-import { Button, Card, Input, Label, Textarea, ErrorMessage } from '../../../components/ui'
+import { Button, Card, Input, Textarea, ErrorMessage } from '../../../components/ui'
 
 interface BusinessListItem {
   id: string
