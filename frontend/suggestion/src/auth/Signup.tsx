@@ -3,7 +3,7 @@ import type { FormEvent, JSX } from 'react'
 import axios from 'axios'
 import { userapi } from '../utils/apipath'
 import { useNavigate } from 'react-router-dom'
-import { Button, Input, Label, Textarea, ErrorMessage } from '../components/ui'
+import { Button, Input, Select, Textarea, ErrorMessage } from '../components/ui'
 
 type FieldErrors = {
   name?: string
@@ -137,37 +137,26 @@ export default function Signup(): JSX.Element {
           />
 
           {/* Role Selection */}
-          <div className="flex flex-col gap-1">
-            <Label htmlFor="role" size="md" className="text-gray-700">
-              Account Type
-            </Label>
-            <select
-              id="role"
-              value={role}
-              onChange={(e) => {
-                setRole(e.target.value as UserRole)
-                setErrors((prev) => ({ ...prev, role: undefined }))
-                // Clear business fields when switching away from business
-                if (e.target.value !== 'business') {
-                  setLocation('')
-                  setDescription('')
-                  setPancardNumber('')
-                }
-              }}
-              className={`border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 transition ${
-                errors.role
-                  ? 'border-red-400 focus:ring-red-200'
-                  : 'border-gray-300 focus:ring-blue-200'
-              }`}
-            >
-              <option value="user">User</option>
-              <option value="business">Business</option>
-              <option value="governmentservices">Government</option>
-            </select>
-            {errors.role ? (
-              <ErrorMessage message={errors.role} size="sm" className="mt-0.5" />
-            ) : null}
-          </div>
+          <Select
+            id="role"
+            label="Account Type"
+            value={role}
+            onChange={(value) => {
+              setRole(value as UserRole)
+              setErrors((prev) => ({ ...prev, role: undefined }))
+              if (value !== 'business') {
+                setLocation('')
+                setDescription('')
+                setPancardNumber('')
+              }
+            }}
+            options={[
+              { value: 'user', label: 'User' },
+              { value: 'business', label: 'Business' },
+              { value: 'governmentservices', label: 'Government' },
+            ]}
+            error={errors.role}
+          />
 
           {/* Business Fields - Conditional Rendering */}
           {isBusiness && (

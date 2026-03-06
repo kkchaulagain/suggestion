@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import axios from 'axios'
 import { useAuth } from '../../../context/AuthContext'
 import { feedbackFormsApi, feedbackFormSubmissionsApi } from '../../../utils/apipath'
-import { Button, Card, Input, Label, ErrorMessage } from '../../../components/ui'
+import { Button, Card, Input, Select, ErrorMessage } from '../../../components/ui'
 
 interface FormSnapshotField {
   name: string
@@ -174,24 +174,14 @@ export default function SubmissionsPage() {
       <h3 className="text-lg font-bold text-slate-900">Submissions</h3>
 
       <div className="mt-4 flex flex-wrap items-end gap-3">
-        <div>
-          <Label htmlFor="filter-form" size="sm">
-            Form
-          </Label>
-          <select
-            id="filter-form"
-            value={formId}
-            onChange={(e) => setFormId(e.target.value)}
-            className="mt-1 rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900"
-          >
-            <option value="">All forms</option>
-            {forms.map((f) => (
-              <option key={f._id} value={f._id}>
-                {f.title}
-              </option>
-            ))}
-          </select>
-        </div>
+        <Select
+          id="filter-form"
+          label="Form"
+          value={formId}
+          onChange={setFormId}
+          options={forms.map((f) => ({ value: f._id, label: f.title }))}
+          placeholder="All forms"
+        />
         <Input
           id="filter-dateFrom"
           label="From"
