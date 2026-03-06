@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
+import { ArrowLeft, Check, Plus, Trash2 } from 'lucide-react'
 import { useAuth } from '../../../context/AuthContext'
 import { feedbackFormsApi } from '../../../utils/apipath'
 import { Button, Card, Input, Select, Tag, ErrorMessage, Textarea } from '../../../components/ui'
@@ -159,6 +160,7 @@ export default function CreateFormPage() {
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">Create Form</h3>
           <Button type="button" variant="secondary" size="sm" onClick={() => navigate('/dashboard/forms')}>
+            <ArrowLeft className="h-4 w-4" />
             Back to Form List
           </Button>
         </div>
@@ -224,6 +226,7 @@ export default function CreateFormPage() {
                     />
                   </div>
                   <Button type="button" variant="primary" size="sm" onClick={handleAddOption}>
+                    <Plus className="h-4 w-4" />
                     Add
                   </Button>
                 </div>
@@ -259,6 +262,7 @@ export default function CreateFormPage() {
               Required field
             </label>
             <Button type="button" variant="primary" size="md" onClick={handleAddField} className="w-full">
+              <Plus className="h-4 w-4" />
               Add Field
             </Button>
           </div>
@@ -274,6 +278,7 @@ export default function CreateFormPage() {
           onClick={() => void handleCreateForm()}
           className="mt-4 w-full"
         >
+          <Check className="h-4 w-4" />
           {submitting ? 'Saving...' : 'Save Form'}
         </Button>
       </Card>
@@ -304,6 +309,7 @@ export default function CreateFormPage() {
                       onClick={() => handleRemoveField(field.name)}
                       className="text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-900/40"
                     >
+                      <Trash2 className="h-4 w-4" />
                       Remove
                     </Button>
                   </div>

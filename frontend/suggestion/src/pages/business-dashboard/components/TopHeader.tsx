@@ -1,6 +1,7 @@
 import axios from 'axios'
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Building2, CreditCard, FileText, LogOut, MapPin, Menu, UserCircle } from 'lucide-react'
 import { useAuth } from '../../../context/AuthContext'
 import { businessmeapi } from '../../../utils/apipath'
 import { Button, ThemeToggle } from '../../../components/ui'
@@ -72,6 +73,7 @@ export default function TopHeader({ title, onOpenSidebar }: TopHeaderProps) {
             onClick={onOpenSidebar}
             className="lg:hidden"
           >
+            <Menu className="h-4 w-4" />
             Menu
           </Button>
           <div>
@@ -91,6 +93,7 @@ export default function TopHeader({ title, onOpenSidebar }: TopHeaderProps) {
             aria-haspopup="menu"
             aria-expanded={isProfileOpen}
           >
+            <UserCircle className="h-4 w-4" />
             Profile
           </Button>
           {isProfileOpen ? (
@@ -100,12 +103,20 @@ export default function TopHeader({ title, onOpenSidebar }: TopHeaderProps) {
             >
               <div className="mb-2 rounded-lg bg-slate-50 p-3 dark:bg-slate-700/50">
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Business Profile</p>
-                <p className="mt-1 text-sm font-bold text-slate-900 dark:text-slate-100">
+                <p className="mt-1 flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-slate-100">
+                  <Building2 className="h-4 w-4 shrink-0" />
                   {businessProfile?.businessname || 'Business name unavailable'}
                 </p>
-                <p className="mt-2 text-xs text-slate-600 dark:text-slate-300">Location: {businessProfile?.location || 'N/A'}</p>
-                <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">PAN: {businessProfile?.pancardNumber ?? 'N/A'}</p>
-                <p className="mt-1 text-xs text-slate-600 dark:text-slate-300 line-clamp-3">
+                <p className="mt-2 flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
+                  <MapPin className="h-3.5 w-3.5 shrink-0" />
+                  Location: {businessProfile?.location || 'N/A'}
+                </p>
+                <p className="mt-1 flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
+                  <CreditCard className="h-3.5 w-3.5 shrink-0" />
+                  PAN: {businessProfile?.pancardNumber ?? 'N/A'}
+                </p>
+                <p className="mt-1 flex items-start gap-2 text-xs text-slate-600 dark:text-slate-300 line-clamp-3">
+                  <FileText className="h-3.5 w-3.5 shrink-0 mt-0.5" />
                   {businessProfile?.description || 'Description unavailable'}
                 </p>
               </div>
@@ -117,6 +128,7 @@ export default function TopHeader({ title, onOpenSidebar }: TopHeaderProps) {
                 onClick={handleLogout}
                 className="w-full justify-start text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-900/40"
               >
+                <LogOut className="h-4 w-4" />
                 Logout
               </Button>
             </div>

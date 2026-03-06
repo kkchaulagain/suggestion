@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Check, KeyRound, LogOut, Pencil, X } from 'lucide-react'
 import { Button, Card, Input, Modal } from '../../../components/ui'
 
 export default function ProfilePage() {
@@ -21,6 +22,7 @@ export default function ProfilePage() {
                 onClick={() => setIsDialogOpen(true)}
                 className="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300"
               >
+                <Pencil className="h-4 w-4" />
                 Edit Profile
               </Button>
             </div>
@@ -45,9 +47,11 @@ export default function ProfilePage() {
           <Card>
             <div className="flex flex-col sm:flex-row gap-4">
               <Button type="button" variant="secondary" size="lg" className="flex-1">
+                <KeyRound className="h-4 w-4" />
                 Change Password
               </Button>
               <Button type="button" variant="danger" size="lg" className="flex-1 !bg-red-50/30 !text-red-600 hover:!bg-red-50 dark:!bg-red-900/30 dark:!text-red-400 dark:hover:!bg-red-900/50 !border-red-100 dark:!border-red-800">
+                <LogOut className="h-4 w-4" />
                 Log Out
               </Button>
             </div>
@@ -73,9 +77,11 @@ export default function ProfilePage() {
         </div>
         <div className="mt-6 flex gap-3">
           <Button type="button" variant="secondary" size="lg" onClick={() => setIsDialogOpen(false)} className="flex-1">
+            <X className="h-4 w-4" />
             Cancel
           </Button>
           <Button type="button" variant="primary" size="lg" onClick={() => setIsDialogOpen(false)} className="flex-1">
+            <Check className="h-4 w-4" />
             Save Changes
           </Button>
         </div>

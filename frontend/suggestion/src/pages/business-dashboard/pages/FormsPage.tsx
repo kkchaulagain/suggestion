@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
+import { Eye, Plus, QrCode, RefreshCw } from 'lucide-react'
 import { useAuth } from '../../../context/AuthContext'
 import { feedbackFormsApi } from '../../../utils/apipath'
 import { Button, Card, Tag, ErrorMessage } from '../../../components/ui'
@@ -81,9 +82,11 @@ export default function FormsPage() {
         actions={
           <>
             <Button type="button" variant="secondary" size="sm" onClick={() => void loadForms()}>
+              <RefreshCw className="h-4 w-4" />
               Refresh
             </Button>
             <Button type="button" variant="primary" size="sm" onClick={() => navigate('/dashboard/forms/create')}>
+              <Plus className="h-4 w-4" />
               Make Form
             </Button>
           </>
@@ -111,9 +114,11 @@ export default function FormsPage() {
                   size="sm"
                   onClick={() => navigate(`/dashboard/submissions?formId=${encodeURIComponent(form._id)}`)}
                 >
+                  <Eye className="h-4 w-4" />
                   View Responses
                 </Button>
                 <Button type="button" variant="primary" size="sm" onClick={() => void handleGenerateQr(form._id)}>
+                  <QrCode className="h-4 w-4" />
                   Generate QR
                 </Button>
               </>

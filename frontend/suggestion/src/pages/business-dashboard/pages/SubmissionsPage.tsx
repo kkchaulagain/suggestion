@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import axios from 'axios'
+import { Eye, Filter, X } from 'lucide-react'
 import { useAuth } from '../../../context/AuthContext'
 import { feedbackFormsApi, feedbackFormSubmissionsApi } from '../../../utils/apipath'
 import { Button, Card, Input, Select, ErrorMessage, Modal } from '../../../components/ui'
@@ -65,6 +66,7 @@ function ResponseDetailModal({
           })}
         </dl>
         <Button type="button" variant="secondary" size="md" onClick={onClose} className="mt-4">
+          <X className="h-4 w-4" />
           Close
         </Button>
       </div>
@@ -190,6 +192,7 @@ export default function SubmissionsPage() {
           onChange={setDateTo}
         />
         <Button type="button" variant="primary" size="md" onClick={handleApplyFilters}>
+          <Filter className="h-4 w-4" />
           Apply
         </Button>
       </div>
@@ -218,6 +221,7 @@ export default function SubmissionsPage() {
                 size="sm"
                 onClick={() => setViewSubmission(row)}
               >
+                <Eye className="h-4 w-4" />
                 View
               </Button>
             ),

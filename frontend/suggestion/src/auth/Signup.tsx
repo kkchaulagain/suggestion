@@ -3,6 +3,7 @@ import type { FormEvent, JSX } from 'react'
 import axios from 'axios'
 import { userapi } from '../utils/apipath'
 import { useNavigate } from 'react-router-dom'
+import { Building2, CheckCircle, CreditCard, Lock, Mail, MapPin, User } from 'lucide-react'
 import { Button, Input, Select, Textarea, ErrorMessage, ThemeToggle } from '../components/ui'
 
 type FieldErrors = {
@@ -30,6 +31,7 @@ export default function Signup(): JSX.Element {
   const [pancardNumber, setPancardNumber] = useState('')
   const [businessname, setBusinessname] = useState('')
   const [errors, setErrors] = useState<FieldErrors>({})
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
   const handleFormSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -51,9 +53,7 @@ export default function Signup(): JSX.Element {
       })
 
       if (response.data.message) {
-        
-        alert(response.data.message)
-        navigate('/login')
+        setSuccessMessage(response.data.message)
       }
     } catch (error: unknown) {
       const responseData = (error as { response?: { data?: Record<string, unknown> } })?.response?.data
@@ -85,6 +85,23 @@ export default function Signup(): JSX.Element {
 
   const isBusiness = role === 'business'
 
+  if (successMessage) {
+    return (
+      <div className="relative min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-900">
+        <div className="absolute right-4 top-4">
+          <ThemeToggle />
+        </div>
+        <div className="bg-white p-8 rounded-xl shadow-md w-full max-w-md dark:bg-slate-800 dark:border dark:border-slate-700 text-center">
+          <CheckCircle className="mx-auto h-12 w-12 text-emerald-600 dark:text-emerald-400" aria-hidden />
+          <p className="mt-4 text-slate-700 dark:text-slate-200">{successMessage}</p>
+          <Button type="button" variant="primary" size="lg" className="mt-6 w-full" onClick={() => navigate('/login')}>
+            Go to Login
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="relative min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-900">
       <div className="absolute right-4 top-4">
@@ -102,42 +119,54 @@ export default function Signup(): JSX.Element {
         ) : null}
 
         <form onSubmit={handleFormSubmit} noValidate className="flex flex-col gap-4">
-          <Input
-            id="name"
-            label="Name"
-            type="text"
-            value={name}
-            onChange={(v) => {
-              setName(v)
-              setErrors((prev) => ({ ...prev, name: undefined }))
-            }}
-            placeholder="Your name"
-            error={errors.name}
-          />
-          <Input
-            id="email"
-            label="Email"
-            type="email"
-            value={email}
-            onChange={(v) => {
-              setEmail(v)
-              setErrors((prev) => ({ ...prev, email: undefined }))
-            }}
-            placeholder="you@example.com"
-            error={errors.email}
-          />
-          <Input
-            id="password"
-            label="Password"
-            type="password"
-            value={password}
-            onChange={(v) => {
-              setPassword(v)
-              setErrors((prev) => ({ ...prev, password: undefined }))
-            }}
-            placeholder="Min. 6 characters"
-            error={errors.password}
-          />
+          <div className="relative">
+            <User className="pointer-events-none absolute left-3 top-8 h-4 w-4 text-slate-400 dark:text-slate-500" aria-hidden />
+            <Input
+              id="name"
+              label="Name"
+              type="text"
+              value={name}
+              onChange={(v) => {
+                setName(v)
+                setErrors((prev) => ({ ...prev, name: undefined }))
+              }}
+              placeholder="Your name"
+              error={errors.name}
+              className="pl-9"
+            />
+          </div>
+          <div className="relative">
+            <Mail className="pointer-events-none absolute left-3 top-8 h-4 w-4 text-slate-400 dark:text-slate-500" aria-hidden />
+            <Input
+              id="email"
+              label="Email"
+              type="email"
+              value={email}
+              onChange={(v) => {
+                setEmail(v)
+                setErrors((prev) => ({ ...prev, email: undefined }))
+              }}
+              placeholder="you@example.com"
+              error={errors.email}
+              className="pl-9"
+            />
+          </div>
+          <div className="relative">
+            <Lock className="pointer-events-none absolute left-3 top-8 h-4 w-4 text-slate-400 dark:text-slate-500" aria-hidden />
+            <Input
+              id="password"
+              label="Password"
+              type="password"
+              value={password}
+              onChange={(v) => {
+                setPassword(v)
+                setErrors((prev) => ({ ...prev, password: undefined }))
+              }}
+              placeholder="Min. 6 characters"
+              error={errors.password}
+              className="pl-9"
+            />
+          </div>
 
           {/* Role Selection */}
           <Select
@@ -164,21 +193,24 @@ export default function Signup(): JSX.Element {
           {/* Business Fields - Conditional Rendering */}
           {isBusiness && (
             <>
-            <Input
-              id="businessname"
-              label="Business Name"
-              type="text"
-              value={businessname}
-              onChange={(v) => {
-                setBusinessname(v)
-                setErrors((prev) => ({ ...prev, businessname: undefined }))
-              }}
-              placeholder="Enter business name"
-              error={errors.businessname}
-            />
-
-              
-              {/* Location */}
+            <div className="relative">
+              <Building2 className="pointer-events-none absolute left-3 top-8 h-4 w-4 text-slate-400 dark:text-slate-500" aria-hidden />
+              <Input
+                id="businessname"
+                label="Business Name"
+                type="text"
+                value={businessname}
+                onChange={(v) => {
+                  setBusinessname(v)
+                  setErrors((prev) => ({ ...prev, businessname: undefined }))
+                }}
+                placeholder="Enter business name"
+                error={errors.businessname}
+                className="pl-9"
+              />
+            </div>
+            <div className="relative">
+              <MapPin className="pointer-events-none absolute left-3 top-8 h-4 w-4 text-slate-400 dark:text-slate-500" aria-hidden />
               <Input
                 id="location"
                 label={<>Location <span className="text-gray-400">(required for business)</span></>}
@@ -190,7 +222,9 @@ export default function Signup(): JSX.Element {
                 }}
                 placeholder="Business location"
                 error={errors.location}
+                className="pl-9"
               />
+            </div>
 
               <Textarea
                 id="description"
@@ -206,6 +240,8 @@ export default function Signup(): JSX.Element {
               />
 
               {/* PAN Card Number */}
+            <div className="relative">
+              <CreditCard className="pointer-events-none absolute left-3 top-8 h-4 w-4 text-slate-400 dark:text-slate-500" aria-hidden />
               <Input
                 id="pancardNumber"
                 label={<>PAN Card Number <span className="text-gray-400">(required for business)</span></>}
@@ -217,7 +253,9 @@ export default function Signup(): JSX.Element {
                 }}
                 placeholder="Enter PAN card number"
                 error={errors.pancardNumber}
+                className="pl-9"
               />
+            </div>
             </>
           )}
 

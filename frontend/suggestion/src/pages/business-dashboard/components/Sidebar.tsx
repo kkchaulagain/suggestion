@@ -38,13 +38,14 @@ export default function Sidebar({ items, isOpen, onClose }: SidebarProps) {
               to={item.path}
               onClick={onClose}
               className={({ isActive }) =>
-                `block rounded-xl px-4 py-3 text-sm font-semibold transition ${
+                `flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition ${
                   isActive
                     ? 'bg-emerald-600 text-white shadow-sm dark:bg-emerald-500'
                     : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-200 dark:hover:bg-slate-700 dark:hover:text-slate-100'
                 }`
               }
             >
+              <item.icon className="h-5 w-5 shrink-0" />
               {item.label}
             </NavLink>
           ))}

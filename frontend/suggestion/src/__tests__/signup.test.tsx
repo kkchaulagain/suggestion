@@ -124,7 +124,10 @@ describe('Signup Component', () => {
       expect(mockedAxios.post).toHaveBeenCalled()
     })
 
-    expect(window.alert).toHaveBeenCalledWith('User created successfully')
+    await waitFor(() => {
+      expect(screen.getByText('User created successfully')).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: /Go to Login/i }))
     expect(mockNavigate).toHaveBeenCalledWith('/login')
   })
 

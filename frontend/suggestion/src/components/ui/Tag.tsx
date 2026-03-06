@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { X } from 'lucide-react'
 
 export type TagVariant = 'default' | 'emerald'
 
@@ -36,7 +37,7 @@ export default function Tag({
           aria-label={removeLabel}
           className="ml-0.5 rounded p-0.5 font-medium text-emerald-600 hover:text-rose-600 focus:outline-none focus:ring-2 focus:ring-rose-400 dark:text-emerald-400 dark:hover:text-rose-400"
         >
-          ×
+          <X className="h-3 w-3" aria-hidden />
         </button>
       ) : null}
     </span>

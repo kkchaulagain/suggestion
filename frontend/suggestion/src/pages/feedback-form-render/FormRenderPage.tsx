@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import axios from 'axios'
+import { Home, Send } from 'lucide-react'
 import { feedbackFormsApi, uploadApi } from '../../utils/apipath'
 import type { FeedbackFormConfig, FeedbackFormField } from './types'
 import { Button, Card, ErrorMessage } from '../../components/ui'
@@ -168,8 +169,9 @@ export default function FormRenderPage() {
         <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{error ?? 'Invalid or missing form link.'}</p>
         <Link
           to="/"
-          className="mt-4 inline-block text-sm font-medium text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300"
+          className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300"
         >
+          <Home className="h-4 w-4" />
           Go to home
         </Link>
       </Card>
@@ -207,6 +209,7 @@ export default function FormRenderPage() {
         ) : null}
 
         <Button type="submit" variant="primary" size="md" disabled={submitting} className="w-full">
+          <Send className="h-4 w-4" />
           {submitting ? 'Submitting...' : 'Submit'}
         </Button>
       </form>
