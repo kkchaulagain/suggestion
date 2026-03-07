@@ -81,16 +81,16 @@ describe('SubmissionsPage', () => {
     )
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /View/i })).toBeInTheDocument()
+      expect(screen.getAllByRole('button', { name: /View/i }).length).toBeGreaterThanOrEqual(1)
     })
-    // Table cell shows formTitle
-    expect(screen.getByRole('cell', { name: /My Survey/i })).toBeInTheDocument()
+    // Form title shown in table (desktop) or card (mobile)
+    expect(screen.getAllByText('My Survey').length).toBeGreaterThanOrEqual(1)
 
-    fireEvent.click(screen.getByRole('button', { name: /View/i }))
+    fireEvent.click(screen.getAllByRole('button', { name: /View/i })[0])
 
     await waitFor(() => {
-      expect(screen.getByText('Question')).toBeInTheDocument()
-      expect(screen.getByText('The Answer')).toBeInTheDocument()
+      expect(screen.getAllByText('Question').length).toBeGreaterThanOrEqual(1)
+      expect(screen.getAllByText('The Answer').length).toBeGreaterThanOrEqual(1)
       expect(screen.getByRole('button', { name: /Close/i })).toBeInTheDocument()
     })
 
@@ -123,9 +123,9 @@ describe('SubmissionsPage', () => {
     )
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /View/i })).toBeInTheDocument()
+      expect(screen.getAllByRole('button', { name: /View/i }).length).toBeGreaterThanOrEqual(1)
     })
-    fireEvent.click(screen.getByRole('button', { name: /View/i }))
+    fireEvent.click(screen.getAllByRole('button', { name: /View/i })[0])
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /Close/i })).toBeInTheDocument()
     })
@@ -192,7 +192,7 @@ describe('SubmissionsPage', () => {
   })
 
   it('Previous/Next pagination buttons work', async () => {
-    const manySubmissions = Array.from({ length: 20 }, (_, i) => ({
+    const page1Submissions = Array.from({ length: 20 }, (_, i) => ({
       _id: `sub-${i}`,
       formId: 'f',
       formTitle: 'F',
@@ -200,10 +200,31 @@ describe('SubmissionsPage', () => {
       responses: {},
       submittedAt: new Date().toISOString(),
     }))
-    mockedAxios.get
-      .mockResolvedValueOnce({ data: { feedbackForms: [] } })
-      .mockResolvedValueOnce({ data: { submissions: manySubmissions, total: 25 } })
-      .mockResolvedValueOnce({ data: { submissions: [], total: 25 } })
+    const page2Submissions = Array.from({ length: 5 }, (_, i) => ({
+      _id: `sub-p2-${i}`,
+      formId: 'f',
+      formTitle: 'F',
+      formSnapshot: [],
+      responses: {},
+      submittedAt: new Date().toISOString(),
+    }))
+    mockedAxios.get.mockImplementation((url: string) => {
+      const urlStr = String(url)
+      if (urlStr.includes('feedback-forms') && !urlStr.includes('submissions')) {
+        return Promise.resolve({ data: { feedbackForms: [] } })
+      }
+      if (urlStr.includes('submissions')) {
+        const params = new URLSearchParams(urlStr.split('?')[1] ?? '')
+        const page = parseInt(params.get('page') ?? '1', 10)
+        return Promise.resolve({
+          data: {
+            submissions: page === 1 ? page1Submissions : page2Submissions,
+            total: 25,
+          },
+        })
+      }
+      return Promise.reject(new Error('Unknown URL'))
+    })
 
     render(
       <MemoryRouter>
@@ -212,10 +233,16 @@ describe('SubmissionsPage', () => {
     )
 
     await waitFor(() => {
-      expect(screen.getByText(/Page 1 of 2/)).toBeInTheDocument()
+      expect(screen.queryByText(/Loading submissions/i)).not.toBeInTheDocument()
     })
+    await waitFor(() => {
+      expect(screen.getAllByRole('button', { name: /View/i }).length).toBeGreaterThan(0)
+    })
+    expect(screen.getAllByText(/Page 1 of 2/).length).toBeGreaterThanOrEqual(1)
 
-    const nextBtn = screen.getByRole('button', { name: /Next/i })
+    const nextButtons = screen.getAllByRole('button', { name: /Next/i })
+    expect(nextButtons.length).toBeGreaterThanOrEqual(1)
+    const nextBtn = nextButtons[0]
     expect(nextBtn).not.toBeDisabled()
 
     await act(async () => {
