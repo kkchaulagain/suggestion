@@ -1,15 +1,105 @@
-import { useState } from 'react'
-import { Check, KeyRound, LogOut, Pencil, X } from 'lucide-react'
+import axios from 'axios'
+import { useEffect, useState } from 'react'
+import { Check, KeyRound, Pencil, X } from 'lucide-react'
+import { useAuth } from '../../../context/AuthContext'
 import { Button, Card, Input, Modal } from '../../../components/ui'
+import { meapi } from '../../../utils/apipath'
+
+interface ProfileData {
+  name: string
+  email: string
+}
 
 export default function ProfilePage() {
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [profile, setProfile] = useState<ProfileData | null>(null)
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true)
+  const [profileError, setProfileError] = useState<string | null>(null)
+  const [editName, setEditName] = useState('')
+  const [isSaving, setIsSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const { user, getAuthHeaders } = useAuth()
+
+  useEffect(() => {
+    let cancelled = false
+
+    const fetchProfile = async () => {
+      setProfileError(null)
+      try {
+        const response = await axios.get(meapi, {
+          withCredentials: true,
+          headers: getAuthHeaders(),
+        })
+        if (!cancelled && response.data?.success && response.data?.data) {
+          const data = response.data.data as { name?: string; email?: string }
+          setProfile({
+            name: data.name ?? 'N/A',
+            email: data.email ?? 'N/A',
+          })
+        }
+      } catch (error: unknown) {
+        if (!cancelled) {
+          setProfile(null)
+          if (axios.isAxiosError(error) && error.response?.status === 401) {
+            setProfileError('Session expired. Please login again.')
+          } else {
+            setProfileError('Unable to load profile from API.')
+          }
+        }
+      } finally {
+        if (!cancelled) setIsLoadingProfile(false)
+      }
+    }
+
+    fetchProfile()
+    return () => { cancelled = true }
+  }, [getAuthHeaders])
+
+  const handleOpenEdit = () => {
+    setEditName(profile?.name ?? '')
+    setSaveError(null)
+    setIsDialogOpen(true)
+  }
+
+  const handleSave = async () => {
+    if (!editName.trim()) {
+      setSaveError('Name cannot be empty')
+      return
+    }
+    setIsSaving(true)
+    setSaveError(null)
+    try {
+      const response = await axios.put(meapi, { name: editName.trim() }, {
+        withCredentials: true,
+        headers: getAuthHeaders(),
+      })
+      if (response.data?.success && response.data?.data) {
+        const data = response.data.data as { name?: string; email?: string }
+        setProfile(prev => ({
+          name: data.name ?? prev?.name ?? 'N/A',
+          email: data.email ?? prev?.email ?? 'N/A',
+        }))
+        setIsDialogOpen(false)
+      }
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error)) {
+        setSaveError(error.response?.data?.message ?? 'Failed to update profile.')
+      } else {
+        setSaveError('Failed to update profile.')
+      }
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const displayName = profile?.name ?? user?.name ?? 'N/A'
+  const displayEmail = profile?.email ?? user?.email ?? 'N/A'
+
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <div className="grid gap-6 md:grid-cols-3">
         <div className="md:col-span-2 space-y-6">
-          
+
           <Card>
             <div className="flex items-center justify-between mb-6 border-b border-slate-100 dark:border-slate-700 pb-2">
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
@@ -19,26 +109,30 @@ export default function ProfilePage() {
                 type="button"
                 variant="ghost"
                 size="sm"
-                onClick={() => setIsDialogOpen(true)}
+                onClick={handleOpenEdit}
                 className="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300"
               >
                 <Pencil className="h-4 w-4" />
                 Edit Profile
               </Button>
             </div>
-            
+
             <div className="space-y-5">
+              {profileError ? (
+                <p className="text-xs font-medium text-rose-600 dark:text-rose-400">{profileError}</p>
+              ) : null}
+
               <div>
                 <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Name</label>
                 <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
-                  {"Need to Call API"} 
+                  {isLoadingProfile ? 'Loading profile...' : displayName}
                 </p>
               </div>
 
               <div>
                 <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Email Address</label>
                 <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
-                  {"(API pending)"}
+                  {isLoadingProfile ? 'Loading profile...' : displayEmail}
                 </p>
               </div>
             </div>
@@ -50,15 +144,11 @@ export default function ProfilePage() {
                 <KeyRound className="h-4 w-4" />
                 Change Password
               </Button>
-              <Button type="button" variant="danger" size="lg" className="flex-1 !bg-red-50/30 !text-red-600 hover:!bg-red-50 dark:!bg-red-900/30 dark:!text-red-400 dark:hover:!bg-red-900/50 !border-red-100 dark:!border-red-800">
-                <LogOut className="h-4 w-4" />
-                Log Out
-              </Button>
             </div>
           </Card>
+
         </div>
       </div>
-
 
       <Modal
         isOpen={isDialogOpen}
@@ -70,22 +160,39 @@ export default function ProfilePage() {
             id="edit-profile-name"
             label="Name"
             type="text"
-            value=""
-            onChange={() => {}}
-            placeholder="Enter the name"
+            value={editName}
+            onChange={setEditName}
+            placeholder="Enter your name"
           />
+          {saveError ? (
+            <p className="text-xs font-medium text-rose-600 dark:text-rose-400">{saveError}</p>
+          ) : null}
         </div>
         <div className="mt-6 flex gap-3">
-          <Button type="button" variant="secondary" size="lg" onClick={() => setIsDialogOpen(false)} className="flex-1">
+          <Button
+            type="button"
+            variant="secondary"
+            size="lg"
+            onClick={() => setIsDialogOpen(false)}
+            className="flex-1"
+            disabled={isSaving}
+          >
             <X className="h-4 w-4" />
             Cancel
           </Button>
-          <Button type="button" variant="primary" size="lg" onClick={() => setIsDialogOpen(false)} className="flex-1">
+          <Button
+            type="button"
+            variant="primary"
+            size="lg"
+            onClick={handleSave}
+            className="flex-1"
+            disabled={isSaving}
+          >
             <Check className="h-4 w-4" />
-            Save Changes
+            {isSaving ? 'Saving...' : 'Save Changes'}
           </Button>
         </div>
       </Modal>
     </div>
-  );
+  )
 }

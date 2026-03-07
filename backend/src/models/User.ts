@@ -2,6 +2,12 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 
 const userSchema = new mongoose.Schema({
+  name: //this was missing  man I was wondering why the name was not being saved in the database
+  {
+    type:String,
+    required:true,
+    trim:true,
+  },
   email: {
     type: String,
     required: true,

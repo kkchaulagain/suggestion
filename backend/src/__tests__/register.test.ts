@@ -132,4 +132,52 @@ describe('POST /api/auth/register', () => {
 
     expect(res.body.errors.businessname).toBeDefined();
   });
+
+  it('returns 400 when business role is missing location', async () => {
+    const res = await request(app)
+      .post('/api/auth/register')
+      .send({
+        email: 'biz-missing-loc@example.com',
+        password: 'secret123',
+        role: 'business',
+        businessname: 'Acme',
+        pancardNumber: 12345678,
+        description: 'Retail store',
+      })
+      .expect(400);
+
+    expect(res.body.errors.location).toBeDefined();
+  });
+
+  it('returns 400 when business role is missing description', async () => {
+    const res = await request(app)
+      .post('/api/auth/register')
+      .send({
+        email: 'biz-missing-desc@example.com',
+        password: 'secret123',
+        role: 'business',
+        businessname: 'Acme',
+        location: 'jorpati',
+        pancardNumber: 12345678,
+      })
+      .expect(400);
+
+    expect(res.body.errors.description).toBeDefined();
+  });
+
+  it('returns 400 when business role is missing pancardNumber', async () => {
+    const res = await request(app)
+      .post('/api/auth/register')
+      .send({
+        email: 'biz-missing-pan@example.com',
+        password: 'secret123',
+        role: 'business',
+        businessname: 'Acme',
+        location: 'jorpati',
+        description: 'Retail store',
+      })
+      .expect(400);
+
+    expect(res.body.errors.pancardNumber).toBeDefined();
+  });
 });

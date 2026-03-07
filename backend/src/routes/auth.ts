@@ -238,6 +238,7 @@ router.get('/me', isAuthenticated, async (req: AuthenticatedRequest, res: Respon
       success: true,
       message: 'User retrieved successfully',
       data: userdata,
+      
     });
   } catch (_error) {
     return res.status(500).json({
@@ -270,5 +271,39 @@ router.get('/business',isAuthenticated,isBusinessRole, async (req: Authenticated
     });
   }
 });
+router.put('/me', isAuthenticated, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const id = req.id
+    if (!id) {
+      return res.status(401).json({ success: false, message: 'Unauthorized access' })
+    }
+
+    const data = (req.body ?? {}) as { name?: string }
+    const name = typeof data.name === 'string' ? data.name.trim() : ''
+
+    if (!name) {
+      return res.status(400).json({ success: false, message: 'Name is required' })
+    }
+
+    const user = await User.findByIdAndUpdate(
+      id,
+      { name },
+      { new: true, select: '-password' }
+    )
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' })
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Profile updated successfully',
+      data: { _id: user._id, name: user.name, email: user.email, role: user.role },
+    })
+  } catch (_error) {
+    return res.status(500).json({ success: false, message: 'Something went wrong' })
+  }
+})
+
 
 module.exports = router;
