@@ -1,14 +1,14 @@
 const mongoose = require('mongoose');
 
-/** In test env, only allow in-memory MongoDB URIs (from MongoMemoryServer) to avoid touching real DB. */
+/** In test env, only allow the dedicated test DB to avoid touching dev/prod data. */
 function getConnectionUri() {
   const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017/suggestion';
   const isTest = typeof process.env.JEST_WORKER_ID !== 'undefined';
   if (isTest) {
-    if (!uri || uri === 'mongodb://localhost:27017/suggestion' || !uri.includes('127.0.0.1')) {
+    if (!uri || !uri.includes('suggestion_test')) {
       /* istanbul ignore next -- defensive guard; should never run when test setup is correct */
       throw new Error(
-        'Tests must use in-memory MongoDB. Ensure test setup (setupFilesAfterEnv) runs and sets MONGODB_URI.',
+        'Tests must use the test database (URI must contain suggestion_test). Ensure test setup runs and sets MONGODB_URI.',
       );
     }
   }

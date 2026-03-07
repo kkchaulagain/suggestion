@@ -1,34 +1,26 @@
-const { MongoMemoryServer } = require('mongodb-memory-server');
+const mongoose = require('mongoose');
 
 /**
- * Test database setup: always use an in-memory MongoDB (MongoMemoryServer).
- * The real database is never used during tests.
+ * Test database setup: use Docker MongoDB at localhost:27017 with a dedicated
+ * suggestion_test database. Dev/prod data in suggestion is never touched.
  */
+
+const TEST_URI = 'mongodb://localhost:27017/suggestion_test';
 
 /** Original MONGODB_URI; restored in afterAll so dev/prod are unaffected. */
 const originalMongoUri = process.env.MONGODB_URI;
 
-/** Clear real DB URI before any test code runs so nothing can connect to it. */
-process.env.MONGODB_URI = '';
-
-/** In-memory server instance; started in beforeAll, stopped in afterAll. */
-let mongod: { getUri: () => string; stop: () => Promise<void> } | null = null;
-
-beforeAll(async () => {
-  mongod = await MongoMemoryServer.create({
-    instance: { launchTimeout: 60000 },
-  });
-  const uri = mongod.getUri();
-  if (!uri || !uri.includes('127.0.0.1')) {
-    throw new Error('Test setup: expected in-memory MongoDB URI from MongoMemoryServer');
-  }
-  process.env.MONGODB_URI = uri;
+beforeAll(() => {
+  process.env.MONGODB_URI = TEST_URI;
 }, 60000);
 
 afterAll(async () => {
-  if (mongod) {
-    await mongod.stop();
-    mongod = null;
+  const conn = mongoose.createConnection(TEST_URI);
+  try {
+    await conn.asPromise();
+    await conn.db.dropDatabase();
+  } finally {
+    await conn.close();
   }
   if (originalMongoUri !== undefined) {
     process.env.MONGODB_URI = originalMongoUri;

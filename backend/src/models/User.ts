@@ -2,11 +2,10 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 
 const userSchema = new mongoose.Schema({
-  name: //this was missing  man I was wondering why the name was not being saved in the database
-  {
-    type:String,
-    required:true,
-    trim:true,
+  name: {
+    type: String,
+    required: true,
+    trim: true,
   },
   email: {
     type: String,
@@ -21,11 +20,15 @@ const userSchema = new mongoose.Schema({
     minlength: 6,
     select: false,
   },
-  role:{
+  role: {
     type: String,
-    enum: ['business', 'user','governmentservices'],
+    enum: ['admin', 'business', 'user', 'governmentservices'],
     default: 'user',
-  }
+  },
+  isActive: {
+    type: Boolean,
+    default: true,
+  },
 }, { timestamps: true });
 
 interface UserDoc {

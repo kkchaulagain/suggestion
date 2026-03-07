@@ -16,9 +16,9 @@ jest.mock('../middleware/isauthenticated', () => ({
   isAuthenticated: (req, res, next) => mockIsAuthenticated(req, res, next),
 }));
 
-// Mock isBusinessRole to pass
-jest.mock('../middleware/isbusiness', () => ({
-  isBusinessRole: (req, res, next) => next(),
+// Mock authorize so we can test resolveBusinessProfile and route handlers in isolation
+jest.mock('../middleware/authorize', () => ({
+  authorize: () => (req, res, next) => next(),
 }));
 
 describe('Feedback Forms API Coverage', () => {

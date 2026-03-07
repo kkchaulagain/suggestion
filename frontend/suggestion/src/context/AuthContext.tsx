@@ -12,13 +12,14 @@ import { loginapi, meapi } from '../utils/apipath'
 
 const AUTH_STORAGE_KEY = 'auth_token'
 
-export type UserRole = 'user' | 'business' | 'governmentservices'
+export type UserRole = 'user' | 'business' | 'governmentservices' | 'admin'
 
 export interface User {
   _id: string
   name: string
   email: string
   role?: UserRole
+  isActive?: boolean
 }
 
 interface LoginCredentials {
@@ -40,6 +41,8 @@ interface AuthContextValue extends AuthState {
   setError: (error: string | null) => void
   /** Returns headers object for axios: { Authorization: `Bearer ${token}` } when token exists */
   getAuthHeaders: () => { Authorization?: string }
+  /** Returns true if the current user has one of the given roles */
+  hasRole: (...roles: UserRole[]) => boolean
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -94,6 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           name: data.name,
           email: data.email,
           role: data.role,
+          isActive: data.isActive !== false,
         }
       }
       return null
@@ -122,6 +126,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             name: data.name,
             email: data.email,
             role: data.role,
+            isActive: data.isActive !== false,
           })
         } else {
           setToken(null)
@@ -175,6 +180,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             name: userFromResponse.name,
             email: userFromResponse.email,
             role: normalizedRole ?? 'user',
+            isActive: userFromResponse.isActive !== false,
           })
         } else {
           const fetched = await fetchUser(authToken)
@@ -207,6 +213,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [token],
   )
 
+  const hasRole = useCallback(
+    (...roles: UserRole[]) => (user?.role ? roles.includes(user.role) : false),
+    [user?.role],
+  )
+
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
@@ -218,8 +229,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       logout,
       setError,
       getAuthHeaders,
+      hasRole,
     }),
-    [user, token, isLoading, error, login, logout, setError, getAuthHeaders],
+    [user, token, isLoading, error, login, logout, setError, getAuthHeaders, hasRole],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

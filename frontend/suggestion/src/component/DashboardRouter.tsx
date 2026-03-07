@@ -11,7 +11,7 @@ import BusinessDashboardLayout from '../pages/business-dashboard/layout/Business
 export default function DashboardRouter() {
   const { user } = useAuth()
   const role = user?.role ? String(user.role).toLowerCase() : 'user'
-  const isBusinessRole = role === 'business' || role === 'governmentservices'
+  const isBusinessRole = role === 'business' || role === 'governmentservices' || role === 'admin'
 
   if (isBusinessRole) {
     return <BusinessDashboardLayout />
@@ -26,7 +26,7 @@ export default function DashboardRouter() {
 export function DashboardIndex() {
   const { user } = useAuth()
   const role = user?.role ? String(user.role).toLowerCase() : 'user'
-  const isBusinessRole = role === 'business' || role === 'governmentservices'
+  const isBusinessRole = role === 'business' || role === 'governmentservices' || role === 'admin'
   if (isBusinessRole) {
     return <Navigate to="/dashboard/forms" replace />
   }

@@ -7,7 +7,7 @@ const { FeedbackForm } = require('../models/FeedbackForm');
 const { FeedbackSubmission } = require('../models/FeedbackSubmission');
 const Business = require('../models/Business');
 const { isAuthenticated } = require('../middleware/isauthenticated');
-const { isBusinessRole } = require('../middleware/isbusiness');
+const { authorize } = require('../middleware/authorize');
 const router = express.Router();
 const DEFAULT_FRONTEND_FORM_BASE_URL = 'http://localhost:3001/feedback-forms';
 
@@ -17,7 +17,8 @@ interface BusinessProfileDoc {
 
 interface AuthenticatedRequest extends Request {
   id?: string;
-  businessProfile?: BusinessProfileDoc;
+  user?: { role?: string };
+  businessProfile?: BusinessProfileDoc | null;
 }
 
 interface FeedbackFieldInput {
@@ -183,12 +184,15 @@ async function resolveBusinessProfile(req: AuthenticatedRequest, res: Response, 
     if (!req.id) {
       return res.status(401).json({ error: 'Unauthorized access' });
     }
-
+    // Admin can access without a business profile (e.g. list all forms/submissions)
+    if (req.user?.role === 'admin') {
+      req.businessProfile = null;
+      return next();
+    }
     const businessProfile = await Business.findOne({ owner: req.id }).select('_id owner');
     if (!businessProfile) {
       return res.status(404).json({ error: 'Business profile not found' });
     }
-
     req.businessProfile = businessProfile;
     return next();
   } catch (_err) {
@@ -196,10 +200,13 @@ async function resolveBusinessProfile(req: AuthenticatedRequest, res: Response, 
   }
 }
 
-router.post('/', isAuthenticated, isBusinessRole, resolveBusinessProfile, async (req: AuthenticatedRequest, res: Response) => {
+router.post('/', isAuthenticated, authorize('business', 'admin', 'governmentservices'), resolveBusinessProfile, async (req: AuthenticatedRequest, res: Response) => {
   try {
+    if (!req.businessProfile) {
+      return res.status(400).json({ error: 'Business profile required to create forms' });
+    }
     const payload = buildPayload((req.body || {}) as RequestBody);
-    payload.businessId = req.businessProfile!._id;
+    payload.businessId = req.businessProfile._id;
     const feedbackForm = await FeedbackForm.create(payload);
     return res.status(201).json({
       message: 'Feedback form created',
@@ -214,25 +221,30 @@ router.post('/', isAuthenticated, isBusinessRole, resolveBusinessProfile, async 
   }
 });
 
-router.get('/', isAuthenticated, isBusinessRole, resolveBusinessProfile, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/', isAuthenticated, authorize('business', 'admin', 'governmentservices'), resolveBusinessProfile, async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const feedbackForms = await FeedbackForm.find({ businessId: req.businessProfile!._id }).sort({ createdAt: -1 });
+    const filter = req.businessProfile
+      ? { businessId: req.businessProfile._id }
+      : {};
+    const feedbackForms = await FeedbackForm.find(filter).sort({ createdAt: -1 });
     return res.status(200).json({ feedbackForms });
   } catch (_err) {
     return res.status(500).json({ error: 'Failed to fetch feedback forms' });
   }
 });
 
-router.get('/submissions', isAuthenticated, isBusinessRole, resolveBusinessProfile, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/submissions', isAuthenticated, authorize('business', 'admin', 'governmentservices'), resolveBusinessProfile, async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const businessId = req.businessProfile!._id;
+    const query: Record<string, unknown> = {};
+    if (req.businessProfile) {
+      query.businessId = req.businessProfile._id;
+    }
     const formIdRaw = req.query.formId;
     const dateFromRaw = req.query.dateFrom;
     const dateToRaw = req.query.dateTo;
     if (formIdRaw && typeof formIdRaw === 'string' && !mongoose.Types.ObjectId.isValid(formIdRaw)) {
       return res.status(400).json({ error: 'Invalid form id' });
     }
-    const query: Record<string, unknown> = { businessId };
     if (formIdRaw && typeof formIdRaw === 'string') {
       query.formId = new mongoose.Types.ObjectId(formIdRaw);
     }
@@ -273,16 +285,17 @@ router.get('/submissions', isAuthenticated, isBusinessRole, resolveBusinessProfi
   }
 });
 
-router.get('/:id/submissions', isAuthenticated, isBusinessRole, resolveBusinessProfile, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/:id/submissions', isAuthenticated, authorize('business', 'admin', 'governmentservices'), resolveBusinessProfile, async (req: AuthenticatedRequest, res: Response) => {
   const id = req.params.id;
   if (!mongoose.Types.ObjectId.isValid(id)) {
     return res.status(400).json({ error: 'Invalid feedback form id' });
   }
   try {
-    const form = await FeedbackForm.findOne({
-      _id: id,
-      businessId: req.businessProfile!._id,
-    }).select('_id');
+    const formFilter: Record<string, unknown> = { _id: id };
+    if (req.businessProfile) {
+      formFilter.businessId = req.businessProfile._id;
+    }
+    const form = await FeedbackForm.findOne(formFilter).select('_id');
     if (!form) {
       return res.status(404).json({ error: 'Feedback form not found' });
     }
@@ -343,7 +356,7 @@ router.get('/:id', async (req: Request, res: Response) => {
   }
 });
 
-router.post('/:id/qr', isAuthenticated, isBusinessRole, resolveBusinessProfile, async (req: AuthenticatedRequest, res: Response) => {
+router.post('/:id/qr', isAuthenticated, authorize('business', 'admin', 'governmentservices'), resolveBusinessProfile, async (req: AuthenticatedRequest, res: Response) => {
   if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
     return res.status(400).json({ error: 'Invalid feedback form id' });
   }
@@ -357,15 +370,16 @@ router.post('/:id/qr', isAuthenticated, isBusinessRole, resolveBusinessProfile, 
   }
 
   try {
-    const feedbackForm = await FeedbackForm.findOne({
-      _id: req.params.id,
-      businessId: req.businessProfile!._id,
-    }).select('_id');
+    const formFilter: Record<string, unknown> = { _id: req.params.id };
+    if (req.businessProfile) {
+      formFilter.businessId = req.businessProfile._id;
+    }
+    const feedbackForm = await FeedbackForm.findOne(formFilter).select('_id');
     if (!feedbackForm) {
       return res.status(404).json({ error: 'Feedback form not found' });
     }
 
-    const formUrl = getFrontendFormUrl(feedbackForm._id.toString(), frontendBaseUrl);
+  const formUrl = getFrontendFormUrl(feedbackForm._id.toString(), frontendBaseUrl);
     const qrCodeDataUrl = await QRCode.toDataURL(formUrl, {
       type: 'image/png',
       width: 320,
@@ -383,7 +397,7 @@ router.post('/:id/qr', isAuthenticated, isBusinessRole, resolveBusinessProfile, 
   }
 });
 
-router.put('/:id', isAuthenticated, isBusinessRole, resolveBusinessProfile, async (req: AuthenticatedRequest, res: Response) => {
+router.put('/:id', isAuthenticated, authorize('business', 'admin', 'governmentservices'), resolveBusinessProfile, async (req: AuthenticatedRequest, res: Response) => {
   if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
     return res.status(400).json({ error: 'Invalid feedback form id' });
   }
@@ -394,10 +408,11 @@ router.put('/:id', isAuthenticated, isBusinessRole, resolveBusinessProfile, asyn
   }
 
   try {
-    const feedbackForm = await FeedbackForm.findOneAndUpdate({
-      _id: req.params.id,
-      businessId: req.businessProfile!._id,
-    }, payload, {
+    const updateFilter: Record<string, unknown> = { _id: req.params.id };
+    if (req.businessProfile) {
+      updateFilter.businessId = req.businessProfile._id;
+    }
+    const feedbackForm = await FeedbackForm.findOneAndUpdate(updateFilter, payload, {
       new: true,
       runValidators: true,
     });
@@ -419,16 +434,17 @@ router.put('/:id', isAuthenticated, isBusinessRole, resolveBusinessProfile, asyn
   }
 });
 
-router.delete('/:id', isAuthenticated, isBusinessRole, resolveBusinessProfile, async (req: AuthenticatedRequest, res: Response) => {
+router.delete('/:id', isAuthenticated, authorize('business', 'admin', 'governmentservices'), resolveBusinessProfile, async (req: AuthenticatedRequest, res: Response) => {
   if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
     return res.status(400).json({ error: 'Invalid feedback form id' });
   }
 
   try {
-    const feedbackForm = await FeedbackForm.findOneAndDelete({
-      _id: req.params.id,
-      businessId: req.businessProfile!._id,
-    });
+    const deleteFilter: Record<string, unknown> = { _id: req.params.id };
+    if (req.businessProfile) {
+      deleteFilter.businessId = req.businessProfile._id;
+    }
+    const feedbackForm = await FeedbackForm.findOneAndDelete(deleteFilter);
     if (!feedbackForm) {
       return res.status(404).json({ error: 'Feedback form not found' });
     }

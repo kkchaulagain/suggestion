@@ -6,6 +6,7 @@ const shortLabels: Record<string, string> = {
   Forms: 'Forms',
   Submissions: 'Inbox',
   Businesses: 'Biz',
+  Users: 'Users',
   Profile: 'Me',
 }
 
