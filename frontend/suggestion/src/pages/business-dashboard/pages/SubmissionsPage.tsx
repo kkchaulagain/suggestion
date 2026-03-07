@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import axios from 'axios'
-import { Eye, Filter, X } from 'lucide-react'
+import { Eye, X } from 'lucide-react'
 import { useAuth } from '../../../context/AuthContext'
 import { feedbackFormsApi, feedbackFormSubmissionsApi } from '../../../utils/apipath'
-import { Button, Card, Input, Select, ErrorMessage, Modal } from '../../../components/ui'
+import { Button, Card, ErrorMessage, Modal } from '../../../components/ui'
 import { DataTable, EmptyState, Pagination } from '../../../components/layout'
+import SubmissionsFilter from '../components/SubmissionsFilter'
 
 interface FormSnapshotField {
   name: string
@@ -196,39 +197,17 @@ export default function SubmissionsPage() {
     <Card>
       <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">Submissions</h3>
 
-      <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
-        <div className="min-w-0 flex-1 sm:min-w-[10rem]">
-          <Select
-            id="filter-form"
-            label="Form"
-            value={formId}
-            onChange={setFormId}
-            options={forms.map((f) => ({ value: f._id, label: f.title }))}
-            placeholder="All forms"
-          />
-        </div>
-        <div className="min-w-0 flex-1 sm:w-auto sm:min-w-0">
-          <Input
-            id="filter-dateFrom"
-            label="From"
-            type="date"
-            value={dateFrom}
-            onChange={setDateFrom}
-          />
-        </div>
-        <div className="min-w-0 flex-1 sm:w-auto sm:min-w-0">
-          <Input
-            id="filter-dateTo"
-            label="To"
-            type="date"
-            value={dateTo}
-            onChange={setDateTo}
-          />
-        </div>
-        <Button type="button" variant="primary" size="lg" className="w-full sm:w-auto min-h-[44px]" onClick={handleApplyFilters}>
-          <Filter className="h-4 w-4" />
-          Apply
-        </Button>
+      <div className="mt-4">
+        <SubmissionsFilter
+          forms={forms}
+          formId={formId}
+          onFormIdChange={setFormId}
+          dateFrom={dateFrom}
+          onDateFromChange={setDateFrom}
+          dateTo={dateTo}
+          onDateToChange={setDateTo}
+          onApply={handleApplyFilters}
+        />
       </div>
 
       {error ? <ErrorMessage message={error} className="mt-3" /> : null}

@@ -35,6 +35,7 @@ describe('SubmissionsPage', () => {
       expect(screen.getByText(/No submissions found/i)).toBeInTheDocument()
     })
     expect(screen.getByRole('heading', { name: /Submissions/i })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /Filters/i }))
     expect(screen.getByLabelText(/From/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/To/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Apply/i })).toBeInTheDocument()
@@ -156,7 +157,8 @@ describe('SubmissionsPage', () => {
       expect(screen.getByText(/No submissions found/i)).toBeInTheDocument()
     })
 
-    // Change date filters and hit Apply
+    // Open filters, change date filters and hit Apply
+    fireEvent.click(screen.getByRole('button', { name: /Filters/i }))
     fireEvent.change(screen.getByLabelText(/From/i), { target: { value: '2024-01-01' } })
     fireEvent.change(screen.getByLabelText(/To/i), { target: { value: '2024-12-31' } })
 
