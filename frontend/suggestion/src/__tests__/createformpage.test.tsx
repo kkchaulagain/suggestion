@@ -186,6 +186,17 @@ describe('CreateFormPage', () => {
     })
   })
 
+  test('feedback template loads subject, description, and attachment fields', () => {
+    renderCreateFormPage()
+
+    fireEvent.click(screen.getByRole('button', { name: /Use Feedback Form/i }))
+
+    expect(screen.getByText(/^subject$/i)).toBeInTheDocument()
+    expect(screen.getByText(/^Description$/i)).toBeInTheDocument()
+    expect(screen.getByText(/^attachment$/i)).toBeInTheDocument()
+    expect(screen.queryByText(/Live Form Preview/i)).not.toBeInTheDocument()
+  })
+
   test('shows title required validation when saving', () => {
     renderCreateFormPage()
 

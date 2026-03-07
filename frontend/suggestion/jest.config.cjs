@@ -24,9 +24,6 @@ module.exports = {
             syntax: 'typescript',
             tsx: true,
           },
-          experimental: {
-            plugins: [['swc-plugin-import-meta-env', {}]],
-          },
           transform: {
             react: {
               runtime: 'automatic',
