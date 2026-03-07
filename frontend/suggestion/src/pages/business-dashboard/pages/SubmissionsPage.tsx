@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import axios from 'axios'
-import { Eye, Filter, X } from 'lucide-react'
+import { Eye, X } from 'lucide-react'
 import { useAuth } from '../../../context/AuthContext'
 import { feedbackFormsApi, feedbackFormSubmissionsApi } from '../../../utils/apipath'
-import { Button, Card, Input, Select, ErrorMessage, Modal } from '../../../components/ui'
-import { DataTable } from '../../../components/layout'
+import { Button, Card, ErrorMessage, Modal } from '../../../components/ui'
+import { DataTable, EmptyState, Pagination } from '../../../components/layout'
+import SubmissionsFilter from '../components/SubmissionsFilter'
 
 interface FormSnapshotField {
   name: string
@@ -164,78 +165,106 @@ export default function SubmissionsPage() {
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
 
+  const tableColumns = [
+    {
+      key: 'formTitle' as const,
+      header: 'Form',
+      render: (row: Submission) => row.formTitle || row.formId,
+    },
+    {
+      key: 'submittedAt' as const,
+      header: 'Submitted at',
+      render: (row: Submission) => formatSubmittedAt(row.submittedAt),
+    },
+    {
+      key: '_id' as const,
+      header: 'Actions',
+      render: (row: Submission) => (
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          onClick={() => setViewSubmission(row)}
+        >
+          <Eye className="h-4 w-4" />
+          View
+        </Button>
+      ),
+    },
+  ]
+
   return (
     <Card>
       <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">Submissions</h3>
 
-      <div className="mt-4 flex flex-wrap items-end gap-3">
-        <Select
-          id="filter-form"
-          label="Form"
-          value={formId}
-          onChange={setFormId}
-          options={forms.map((f) => ({ value: f._id, label: f.title }))}
-          placeholder="All forms"
+      <div className="mt-4">
+        <SubmissionsFilter
+          forms={forms}
+          formId={formId}
+          onFormIdChange={setFormId}
+          dateFrom={dateFrom}
+          onDateFromChange={setDateFrom}
+          dateTo={dateTo}
+          onDateToChange={setDateTo}
+          onApply={handleApplyFilters}
         />
-        <Input
-          id="filter-dateFrom"
-          label="From"
-          type="date"
-          value={dateFrom}
-          onChange={setDateFrom}
-        />
-        <Input
-          id="filter-dateTo"
-          label="To"
-          type="date"
-          value={dateTo}
-          onChange={setDateTo}
-        />
-        <Button type="button" variant="primary" size="md" onClick={handleApplyFilters}>
-          <Filter className="h-4 w-4" />
-          Apply
-        </Button>
       </div>
 
       {error ? <ErrorMessage message={error} className="mt-3" /> : null}
 
-      <DataTable<Submission>
-        columns={[
-          {
-            key: 'formTitle',
-            header: 'Form',
-            render: (row) => row.formTitle || row.formId,
-          },
-          {
-            key: 'submittedAt',
-            header: 'Submitted at',
-            render: (row) => formatSubmittedAt(row.submittedAt),
-          },
-          {
-            key: '_id',
-            header: 'Actions',
-            render: (row) => (
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                onClick={() => setViewSubmission(row)}
+      {loading ? (
+        <EmptyState type="loading" message="Loading submissions..." />
+      ) : submissions.length === 0 ? (
+        <EmptyState type="empty" message="No submissions found." />
+      ) : (
+        <>
+          <div className="md:hidden mt-4 space-y-3">
+            {submissions.map((row) => (
+              <div
+                key={row._id}
+                className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-slate-50/50 p-4 dark:border-slate-700 dark:bg-slate-800/50"
               >
-                <Eye className="h-4 w-4" />
-                View
-              </Button>
-            ),
-          },
-        ]}
-        rows={submissions}
-        emptyMessage="No submissions found."
-        loading={loading}
-        loadingMessage="Loading submissions..."
-        page={page}
-        totalPages={totalPages}
-        totalItems={total}
-        onPageChange={setPage}
-      />
+                <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">
+                  {row.formTitle || row.formId}
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  {formatSubmittedAt(row.submittedAt)}
+                </p>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="md"
+                  className="w-full min-h-[44px] justify-center"
+                  onClick={() => setViewSubmission(row)}
+                >
+                  <Eye className="h-4 w-4" />
+                  View
+                </Button>
+              </div>
+            ))}
+          </div>
+          <div className="hidden md:block">
+            <DataTable<Submission>
+              columns={tableColumns}
+              rows={submissions}
+              emptyMessage="No submissions found."
+              loading={false}
+              page={page}
+              totalPages={totalPages}
+              totalItems={total}
+              onPageChange={setPage}
+            />
+          </div>
+          <div className="md:hidden mt-4">
+            <Pagination
+              page={page}
+              totalPages={totalPages}
+              totalItems={total}
+              onPageChange={setPage}
+            />
+          </div>
+        </>
+      )}
 
       {viewSubmission ? (
         <ResponseDetailModal submission={viewSubmission} onClose={() => setViewSubmission(null)} />

@@ -15,9 +15,9 @@ const variantClasses: Record<ButtonVariant, string> = {
 }
 
 const sizeClasses: Record<ButtonSize, string> = {
-  sm: 'px-3 py-2 text-xs font-semibold rounded-lg',
-  md: 'px-4 py-2.5 text-sm font-semibold rounded-lg',
-  lg: 'px-4 py-3 text-sm font-bold rounded-xl',
+  sm: 'px-3 py-2 text-xs font-semibold rounded-lg min-h-[36px]',
+  md: 'px-4 py-2.5 text-sm font-semibold rounded-lg min-h-[44px]',
+  lg: 'px-4 py-3 text-sm font-bold rounded-xl min-h-[44px]',
 }
 
 export interface ButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'children'> {

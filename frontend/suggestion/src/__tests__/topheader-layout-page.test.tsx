@@ -54,7 +54,7 @@ describe('TopHeader', () => {
       <MemoryRouter>
         <ThemeProvider>
           <AuthProvider>
-            <TopHeader title="Forms" onOpenSidebar={jest.fn()} />
+            <TopHeader title="Forms" />
           </AuthProvider>
         </ThemeProvider>
       </MemoryRouter>,
@@ -64,7 +64,7 @@ describe('TopHeader', () => {
       expect(mockedAxios.get).toHaveBeenCalled()
     })
 
-    fireEvent.click(screen.getByRole('button', { name: /Profile/i }))
+    fireEvent.click(screen.getByRole('button', { name: /Open profile menu/i }))
     expect(screen.getByRole('menu')).toBeInTheDocument()
 
     fireEvent.mouseDown(document.body)
@@ -72,7 +72,7 @@ describe('TopHeader', () => {
       expect(screen.queryByRole('menu')).not.toBeInTheDocument()
     })
 
-    fireEvent.click(screen.getByRole('button', { name: /Profile/i }))
+    fireEvent.click(screen.getByRole('button', { name: /Open profile menu/i }))
     fireEvent.click(screen.getByRole('menuitem', { name: /Logout/i }))
 
     expect(localStorage.getItem('auth_token')).toBeNull()
@@ -93,7 +93,7 @@ describe('TopHeader', () => {
       <MemoryRouter>
         <ThemeProvider>
           <AuthProvider>
-            <TopHeader title="Forms" onOpenSidebar={jest.fn()} />
+            <TopHeader title="Forms" />
           </AuthProvider>
         </ThemeProvider>
       </MemoryRouter>,
@@ -103,7 +103,7 @@ describe('TopHeader', () => {
       expect(mockedAxios.get).toHaveBeenCalled()
     })
 
-    fireEvent.click(screen.getByRole('button', { name: /Profile/i }))
+    fireEvent.click(screen.getByRole('button', { name: /Open profile menu/i }))
 
     expect(screen.getByText(/Business name unavailable/i)).toBeInTheDocument()
     expect(screen.getByText(/Location: N\/A/i)).toBeInTheDocument()
@@ -115,7 +115,7 @@ describe('BusinessDashboardLayout and page', () => {
     mockedAxios.get.mockReset()
   })
 
-  test('renders fallback title and opens sidebar from header menu button', async () => {
+  test('renders fallback title when at unknown dashboard route', async () => {
     localStorage.setItem('auth_token', 'fake-token')
     mockedAxios.get
       .mockResolvedValueOnce({
@@ -141,12 +141,7 @@ describe('BusinessDashboardLayout and page', () => {
       expect(screen.getByRole('heading', { name: /Business Dashboard/i })).toBeInTheDocument()
     })
     expect(screen.getByText(/Unknown Page/i)).toBeInTheDocument()
-
-    fireEvent.click(screen.getByRole('button', { name: /Menu/i }))
-
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /Close menu/i })).toBeInTheDocument()
-    })
+    expect(screen.getByRole('navigation', { name: /Main navigation/i })).toBeInTheDocument()
   })
 
   test('renders Submissions as page title when at /dashboard/submissions', async () => {

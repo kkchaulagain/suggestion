@@ -1,14 +1,13 @@
 import axios from 'axios'
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Building2, CreditCard, FileText, LogOut, MapPin, Menu, UserCircle } from 'lucide-react'
+import { Building2, CreditCard, FileText, LogOut, MapPin, UserCircle } from 'lucide-react'
 import { useAuth } from '../../../context/AuthContext'
 import { businessmeapi } from '../../../utils/apipath'
 import { Button, ThemeToggle } from '../../../components/ui'
 
 interface TopHeaderProps {
   title: string
-  onOpenSidebar: () => void
 }
 
 interface BusinessProfile {
@@ -18,7 +17,7 @@ interface BusinessProfile {
   description?: string
 }
 
-export default function TopHeader({ title, onOpenSidebar }: TopHeaderProps) {
+export default function TopHeader({ title }: TopHeaderProps) {
   const [isProfileOpen, setIsProfileOpen] = useState(false)
   const [businessProfile, setBusinessProfile] = useState<BusinessProfile | null>(null)
   const profileMenuRef = useRef<HTMLDivElement>(null)
@@ -65,23 +64,11 @@ export default function TopHeader({ title, onOpenSidebar }: TopHeaderProps) {
   return (
     <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/90 px-4 py-4 backdrop-blur dark:border-slate-700 dark:bg-slate-900/90 sm:px-6">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Button
-            type="button"
-            variant="secondary"
-            size="md"
-            onClick={onOpenSidebar}
-            className="lg:hidden"
-          >
-            <Menu className="h-4 w-4" />
-            Menu
-          </Button>
-          <div>
-            <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 sm:text-xl">{title}</h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400 sm:text-sm">Business and government QR suggestion management</p>
-          </div>
+        <div className="min-w-0 flex-1">
+          <h2 className="truncate text-lg font-bold text-slate-900 dark:text-slate-100 sm:text-xl">{title}</h2>
+          <p className="hidden text-xs text-slate-500 dark:text-slate-400 sm:block sm:text-sm">Business and government QR suggestion management</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           <ThemeToggle />
           <div className="relative" ref={profileMenuRef}>
           <Button
@@ -92,9 +79,10 @@ export default function TopHeader({ title, onOpenSidebar }: TopHeaderProps) {
             className="rounded-xl border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300 dark:hover:bg-emerald-800/60 sm:text-sm"
             aria-haspopup="menu"
             aria-expanded={isProfileOpen}
+            aria-label="Open profile menu"
           >
-            <UserCircle className="h-4 w-4" />
-            Profile
+            <UserCircle className="h-5 w-5" />
+            <span className="hidden sm:inline">Profile</span>
           </Button>
           {isProfileOpen ? (
             <div
