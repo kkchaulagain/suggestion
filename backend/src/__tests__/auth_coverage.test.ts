@@ -1,12 +1,12 @@
 import request from 'supertest';
-import express from 'express';
+import type { Application, NextFunction, Request, Response } from 'express';
 import { connect, disconnect } from '../db';
 import User from '../models/User';
 
 // Mock the middleware BEFORE importing the app/routes
 // We need to use jest.mock before any imports that use the module
 jest.mock('../middleware/isauthenticated', () => ({
-  isAuthenticated: (req: any, res: any, next: any) => {
+  isAuthenticated: (_req: Request, _res: Response, next: NextFunction) => {
     // Intentionally do NOT set req.id to test error handling
     next();
   }
@@ -14,13 +14,13 @@ jest.mock('../middleware/isauthenticated', () => ({
 
 // Mock isBusinessRole as well since we might hit it
 jest.mock('../middleware/isbusiness', () => ({
-  isBusinessRole: (req: any, res: any, next: any) => {
+  isBusinessRole: (_req: Request, _res: Response, next: NextFunction) => {
     next();
   }
 }));
 
 describe('Auth Route Coverage (Mocked Middleware)', () => {
-  let app: any;
+  let app: Application;
 
   beforeAll(async () => {
     await connect();
