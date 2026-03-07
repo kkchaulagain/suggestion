@@ -7,6 +7,7 @@ import {
   feedbackFormSubmissionsApi,
   uploadApi,
   businessesListApi,
+  usersApi,
 } from '../utils/apipath'
 
 describe('apipath', () => {
@@ -42,5 +43,9 @@ describe('apipath', () => {
 
   it('exports businessesListApi with correct path', () => {
     expect(businessesListApi).toBe(`${base}/api/v1/business`)
+  })
+
+  it('exports usersApi with correct path', () => {
+    expect(usersApi).toBe(`${base}/api/users`)
   })
 })

@@ -79,4 +79,39 @@ describe('r2 service', () => {
     expect(result!.key).toMatch(/^uploads\/[a-f0-9-]+$/);
     expect(mockSend).toHaveBeenCalledTimes(1);
   });
+
+  it('normalizeKeyPrefix returns empty when R2_KEY_PREFIX is unset', () => {
+    process.env.R2_ACCOUNT_ID = 'acc';
+    process.env.R2_ACCESS_KEY_ID = 'key';
+    process.env.R2_SECRET_ACCESS_KEY = 'secret';
+    process.env.R2_BUCKET_NAME = 'bucket';
+    process.env.R2_PUBLIC_URL = 'https://pub.example.dev';
+    delete process.env.R2_KEY_PREFIX;
+    jest.resetModules();
+    const { isR2Configured } = require('../services/r2');
+    expect(isR2Configured()).toBe(true);
+  });
+
+  it('uploadToR2 uses default Content-Type when mimeType is falsy', async () => {
+    process.env.R2_ACCOUNT_ID = 'acc';
+    process.env.R2_ACCESS_KEY_ID = 'key';
+    process.env.R2_SECRET_ACCESS_KEY = 'secret';
+    process.env.R2_BUCKET_NAME = 'bucket';
+    process.env.R2_PUBLIC_URL = 'https://pub.example.dev';
+    const mockSend = jest.fn().mockResolvedValue({});
+    let capturedContentType: string | undefined;
+    const PutObjectCommand = jest.fn().mockImplementation((opts: Record<string, unknown>) => {
+      capturedContentType = opts.ContentType as string | undefined;
+      return {};
+    });
+    jest.doMock('@aws-sdk/client-s3', () => ({
+      S3Client: jest.fn().mockImplementation(() => ({ send: mockSend })),
+      PutObjectCommand,
+    }));
+    jest.resetModules();
+    const { uploadToR2 } = require('../services/r2');
+    const result = await uploadToR2(Buffer.from('x'), '', 'file.bin');
+    expect(result).not.toBeNull();
+    expect(capturedContentType).toBe('application/octet-stream');
+  });
 });

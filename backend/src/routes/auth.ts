@@ -35,7 +35,9 @@ router.post('/register', async (req: Request, res: Response) => {
     const name = typeof data.name === 'string' ? data.name.trim() : '';
     const email = typeof data.email === 'string' ? data.email.trim() : '';
     const password = typeof data.password === 'string' ? data.password : '';
-    const role = data.role === 'business' || data.role === 'governmentservices' ? data.role : 'user';
+    // Only business and governmentservices allowed; admin cannot be set via register
+    const role =
+      data.role === 'business' || data.role === 'governmentservices' ? data.role : 'user';
     const location = typeof data.location === 'string' ? data.location.trim() : '';
     const description = typeof data.description === 'string' ? data.description.trim() : '';
     const pancardNumber =
@@ -182,6 +184,15 @@ router.post('/login', async (req: Request, res: Response) => {
       });
     }
 
+    if (user.isActive === false) {
+      return res.status(403).json({
+        success: false,
+        message: 'Account deactivated',
+        errors: { general: 'Account deactivated' },
+        error: 'Account deactivated',
+      });
+    }
+
     const passwordMatches = await bcrypt.compare(password, user.password);
     if (!passwordMatches) {
       return res.status(400).json({
@@ -233,6 +244,7 @@ router.get('/me', isAuthenticated, async (req: AuthenticatedRequest, res: Respon
     name: user.name,
     email: user.email,
     role: user.role,
+    isActive: user.isActive !== false,
   };
     return res.status(200).json({
       success: true,

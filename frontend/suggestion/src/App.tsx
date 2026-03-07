@@ -5,6 +5,7 @@ import SuggestionForm from './pages/business/suggestionform'
 
 import ProtectedRoute from './component/ProtectedRoutes'
 import GuestRoute from './component/GuestRoute'
+import RoleGuard from './component/RoleGuard'
 import DashboardRouter, { DashboardIndex } from './component/DashboardRouter'
 import { AuthProvider } from './context/AuthContext'
 import { ThemeProvider } from './context/ThemeContext'
@@ -17,6 +18,7 @@ import BusinessesPage from './pages/business-dashboard/pages/BusinessesPage'
 import FormRenderLayout from './pages/feedback-form-render/FormRenderLayout'
 import FormRenderPage from './pages/feedback-form-render/FormRenderPage'
 import ProfilePage from './pages/business-dashboard/pages/ProfilePage'
+import UsersPage from './pages/business-dashboard/pages/UsersPage'
 
 function App() {
   return (
@@ -61,7 +63,8 @@ function App() {
             <Route path="forms" element={<FormsPage />} />
             <Route path="forms/create" element={<CreateFormPage />} />
             <Route path="submissions" element={<SubmissionsPage />} />
-            <Route path="businesses" element={<BusinessesPage />} />
+            <Route path="businesses" element={<RoleGuard roles={['admin']}><BusinessesPage /></RoleGuard>} />
+            <Route path="users" element={<RoleGuard roles={['admin']}><UsersPage /></RoleGuard>} />
             <Route path="profile" element={<ProfilePage />} />
           </Route>
           {/* Legacy: redirect old business-dashboard URLs to main dashboard */}

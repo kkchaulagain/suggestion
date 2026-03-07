@@ -30,6 +30,21 @@ async function createBusinessAuth() {
   };
 }
 
+async function createAdminAuth() {
+  const email = `admin_${Date.now()}_${Math.random().toString(16).slice(2)}@example.com`;
+  const password = 'AdminPass123!';
+  await User.create({
+    name: 'Admin User',
+    email,
+    password,
+    role: 'admin',
+    isActive: true,
+  });
+  const loginRes = await request(app).post('/api/auth/login').send({ email, password }).expect(200);
+  const token = loginRes.body?.token || loginRes.body?.data?.token;
+  return { authHeader: { Authorization: `Bearer ${token}` } };
+}
+
 describe('Feedback Forms API', () => {
   beforeAll(async () => {
     await connect();
@@ -138,6 +153,22 @@ describe('Feedback Forms API', () => {
     expect(Array.isArray(res.body.feedbackForms)).toBe(true);
     expect(res.body.feedbackForms).toHaveLength(1);
     expect(res.body.feedbackForms[0].title).toBe('Support feedback');
+  });
+
+  it('admin can list all feedback forms without a business', async () => {
+    const { authHeader } = await createAdminAuth();
+    const res = await request(app).get('/api/feedback-forms').set(authHeader).expect(200);
+    expect(Array.isArray(res.body.feedbackForms)).toBe(true);
+  });
+
+  it('admin gets 400 when creating a form without a business profile', async () => {
+    const { authHeader } = await createAdminAuth();
+    const res = await request(app)
+      .post('/api/feedback-forms')
+      .set(authHeader)
+      .send({ title: 'Admin form', fields: [{ name: 'q', label: 'Q', type: 'short_text' }] })
+      .expect(400);
+    expect(res.body.error).toMatch(/business profile required/i);
   });
 
   it('updates an existing feedback form', async () => {

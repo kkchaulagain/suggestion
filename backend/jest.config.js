@@ -9,6 +9,7 @@ module.exports = {
   collectCoverageFrom: [
     'src/**/*.ts',
     '!src/__tests__/**',
+    '!src/scripts/**',
   ],
   coverageDirectory: 'coverage',
   coverageReporters: [['cobertura', { file: 'cobertura.xml' }], 'text'],

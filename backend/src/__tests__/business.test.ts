@@ -1,22 +1,43 @@
 const request = require('supertest');
 const mongoose = require('mongoose');
+const jwt = require('jsonwebtoken');
 const { connect, disconnect } = require('../db');
 const app = require('../app');
 const Business = require('../models/Business');
+const User = require('../models/User');
 const { buildBusiness } = require('./factories/businessFactory');
+
+const JWT_SECRET = process.env.JWT_SECRET || 'default_secret_key';
+let adminToken;
 
 beforeAll(async () => {
   await connect();
+  const admin = await User.create({
+    name: 'Admin',
+    email: 'admin-business-test@example.com',
+    password: 'adminpass123',
+    role: 'admin',
+    isActive: true,
+  });
+  adminToken = jwt.sign({ userId: admin._id }, JWT_SECRET);
 });
 
 afterAll(async () => {
   try {
     await Business.deleteMany({});
+    await User.deleteMany({});
   } catch {
     // Server may already be down when running in parallel workers
   }
   await disconnect();
 });
+
+const authGet = (path) =>
+  request(app).get(path).set('Authorization', `Bearer ${adminToken}`);
+const authPut = (path) =>
+  request(app).put(path).set('Authorization', `Bearer ${adminToken}`);
+const authDelete = (path) =>
+  request(app).delete(path).set('Authorization', `Bearer ${adminToken}`);
 
 describe('GET /api/v1/business', () => {
   afterEach(async () => {
@@ -28,7 +49,7 @@ describe('GET /api/v1/business', () => {
   });
 
   it('returns 200 with business API message and empty businesses array when no data', async () => {
-    const res = await request(app).get('/api/v1/business').expect(200);
+    const res = await authGet('/api/v1/business').expect(200);
     expect(res.body).toMatchObject({ message: 'Business API v1', ok: true });
     expect(Array.isArray(res.body.businesses)).toBe(true);
     expect(res.body.businesses).toHaveLength(0);
@@ -46,7 +67,7 @@ describe('GET /api/v1/business', () => {
       })
     );
 
-    const res = await request(app).get('/api/v1/business').expect(200);
+    const res = await authGet('/api/v1/business').expect(200);
     expect(res.body).toMatchObject({ message: 'Business API v1', ok: true });
     expect(res.body.businesses).toHaveLength(1);
     expect(res.body.businesses[0]).toMatchObject({
@@ -71,9 +92,7 @@ describe('GET /api/v1/business/:id', () => {
 
   it('should return 404 if business not found', async () => {
     const nonExistentId = new mongoose.Types.ObjectId();
-    const res = await request(app)
-      .get(`/api/v1/business/${nonExistentId}`)
-      .expect(404);
+    const res = await authGet(`/api/v1/business/${nonExistentId}`).expect(404);
     expect(res.body).toMatchObject({ message: 'Business not found', ok: false });
   });
 
@@ -87,9 +106,7 @@ describe('GET /api/v1/business/:id', () => {
       })
     );
 
-    const res = await request(app)
-      .get(`/api/v1/business/${created._id}`)
-      .expect(200);
+    const res = await authGet(`/api/v1/business/${created._id}`).expect(200);
     expect(res.body).toMatchObject({ message: 'Business found', ok: true });
     expect(res.body.business).toMatchObject({
       businessname: 'Acme Corp',
@@ -112,9 +129,7 @@ describe('Delete /api/v1/bussines/:id',()=>
     it('should return 404 if business not found',async()=>
     {
       const nonExistentId=new mongoose.Types.ObjectId();
-      const res=await request(app)
-      .delete(`/api/v1/business/${nonExistentId}`)
-      .expect(404);
+      const res=await authDelete(`/api/v1/business/${nonExistentId}`).expect(404);
       expect(res.body).toMatchObject({
         message: 'Business not found',
         ok:false,
@@ -132,8 +147,7 @@ describe('Delete /api/v1/bussines/:id',()=>
           description:'Tryinging to do ',
         })
       );
-      const res=await request(app)
-      .delete(`/api/v1/business/${created._id}`).expect(200);
+      const res=await authDelete(`/api/v1/business/${created._id}`).expect(200);
 
       expect(res.body).toMatchObject({
           message:'Business deleted successfully',
@@ -158,8 +172,7 @@ describe('Update /api/v1/business/:id',()=>
   it('should return 404 if not found',async()=>
   {
     const nonExistId=new mongoose.Types.ObjectId();
-    const res=await request(app)
-    .put(`/api/v1/business/${nonExistId}`)
+    const res=await authPut(`/api/v1/business/${nonExistId}`)
     .send({ businessname: 'Himalayan Traders' })
     .expect(404);
     expect(res.body).toMatchObject(
@@ -180,8 +193,7 @@ it('should return 400 if no valid fields sent', async () => {
     })
   );
 
-  const res = await request(app)
-    .put(`/api/v1/business/${created._id}`)
+  const res = await authPut(`/api/v1/business/${created._id}`)
     .send({})  
     .expect(400);
 
@@ -204,8 +216,7 @@ it('should not allow owner to be changed', async () => {
 
   const hackedOwnerId = new mongoose.Types.ObjectId();
 
-  await request(app)
-    .put(`/api/v1/business/${created._id}`)
+  await authPut(`/api/v1/business/${created._id}`)
     .send({ owner: hackedOwnerId, businessname: 'Hacked Business' })
     .expect(200);
 
@@ -225,8 +236,7 @@ it('should return 200 and update only sent fields', async () => {
     })
   );
 
-  const res = await request(app)
-    .put(`/api/v1/business/${created._id}`)
+  const res = await authPut(`/api/v1/business/${created._id}`)
     .send({ businessname: 'Pashupatinath Arts' })  // only updating name
     .expect(200);
 

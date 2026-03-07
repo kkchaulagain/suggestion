@@ -60,6 +60,11 @@ jest.mock('../pages/business-dashboard/pages/BusinessesPage', () => ({
   default: () => <div>Businesses Page</div>,
 }))
 
+jest.mock('../pages/business-dashboard/pages/UsersPage', () => ({
+  __esModule: true,
+  default: () => <div>Users Page</div>,
+}))
+
 const App = require('../App').default
 
 describe('ProtectedRoute component', () => {
@@ -199,6 +204,62 @@ describe('App routing', () => {
 
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: /Suggestion Form Builder/i })).toBeInTheDocument()
+    })
+  })
+
+  test('renders Users page at /dashboard/users when admin', async () => {
+    localStorage.setItem('auth_token', 'fake-token')
+    mockedAxios.get.mockResolvedValue({
+      data: { success: true, data: { _id: '1', name: 'Admin', email: 'a@a.com', role: 'admin' } },
+    })
+    window.history.pushState({}, '', '/dashboard/users')
+    render(<App />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Business Layout')).toBeInTheDocument()
+      expect(screen.getByText('Users Page')).toBeInTheDocument()
+    })
+  })
+
+  test('business user at /dashboard/businesses is redirected and does not see Businesses page', async () => {
+    localStorage.setItem('auth_token', 'fake-token')
+    mockedAxios.get.mockResolvedValue({
+      data: { success: true, data: { _id: '1', name: 'Biz', email: 'b@b.com', role: 'business' } },
+    })
+    window.history.pushState({}, '', '/dashboard/businesses')
+    render(<App />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Business Layout')).toBeInTheDocument()
+    })
+    expect(screen.queryByText('Businesses Page')).not.toBeInTheDocument()
+  })
+
+  test('renders Businesses page at /dashboard/businesses when admin', async () => {
+    localStorage.setItem('auth_token', 'fake-token')
+    mockedAxios.get.mockResolvedValue({
+      data: { success: true, data: { _id: '1', name: 'Admin', email: 'a@a.com', role: 'admin' } },
+    })
+    window.history.pushState({}, '', '/dashboard/businesses')
+    render(<App />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Business Layout')).toBeInTheDocument()
+      expect(screen.getByText('Businesses Page')).toBeInTheDocument()
+    })
+  })
+
+  test('admin user gets business dashboard layout', async () => {
+    localStorage.setItem('auth_token', 'fake-token')
+    mockedAxios.get.mockResolvedValue({
+      data: { success: true, data: { _id: '1', name: 'Admin', email: 'a@a.com', role: 'admin' } },
+    })
+    window.history.pushState({}, '', '/dashboard')
+    render(<App />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Business Layout')).toBeInTheDocument()
+      expect(screen.getByText('Forms Listing Page')).toBeInTheDocument()
     })
   })
 })

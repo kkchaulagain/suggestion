@@ -10,6 +10,17 @@ jobs:
     name: Backend tests
     runs-on: ubuntu-latest
 
+    services:
+      mongodb:
+        image: mongo:7
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.runCommand({ ping: 1 })'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -26,6 +37,28 @@ jobs:
       - name: Install dependencies
         run: npm ci
         working-directory: backend
+
+      - name: Wait for MongoDB
+        run: |
+          node -e "
+          const net = require('net');
+          const maxAttempts = 30;
+          let attempts = 0;
+          function tryConnect() {
+            attempts++;
+            const s = new net.Socket();
+            s.setTimeout(2000);
+            s.on('connect', () => { s.destroy(); process.exit(0); });
+            s.on('error', () => { s.destroy(); });
+            s.on('timeout', () => { s.destroy(); });
+            s.on('close', () => {
+              if (attempts >= maxAttempts) process.exit(1);
+              setTimeout(tryConnect, 1000);
+            });
+            s.connect(27017, '127.0.0.1');
+          }
+          tryConnect();
+          "
 
       - name: Lint
         run: npm run lint
