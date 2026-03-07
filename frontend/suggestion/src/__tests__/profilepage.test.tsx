@@ -1,56 +1,199 @@
-import { render, screen, fireEvent } from '@testing-library/react';
-import ProfilePage from '../pages/business-dashboard/pages/ProfilePage';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import axios from 'axios'
+import ProfilePage from '../pages/business-dashboard/pages/ProfilePage'
+
+jest.mock('axios')
+const mockedAxios = axios as jest.Mocked<typeof axios>
+
+const mockUser = { name: 'Test User', email: 'test@example.com' }
+const mockHeaders = { Authorization: 'Bearer fake-token' }
+const mockGetAuthHeaders = jest.fn(() => mockHeaders)
+
+jest.mock('../context/AuthContext', () => ({
+  useAuth: () => ({
+    user: mockUser,
+    getAuthHeaders: mockGetAuthHeaders,
+  }),
+}))
+
+const mockProfileResponse = {
+  data: {
+    success: true,
+    data: { name: 'Acme Owner', email: 'owner@acme.com' },
+  },
+}
 
 describe('ProfilePage Component', () => {
-  it('renders the initial profile placeholder data', () => {
-    render(<ProfilePage />);
-    
-   
-    expect(screen.getByText('Personal Details')).toBeInTheDocument();
-    expect(screen.getByText('Need to Call API')).toBeInTheDocument();
-    expect(screen.getByText('(API pending)')).toBeInTheDocument();
-  });
+  beforeEach(() => {
+    jest.clearAllMocks()
+    mockedAxios.get.mockResolvedValue(mockProfileResponse)
+    mockedAxios.isAxiosError.mockImplementation((value: unknown) => {
+      return Boolean((value as { isAxiosError?: boolean })?.isAxiosError)
+    })
+  })
 
-  it('opens the edit dialog when "Edit Profile" is clicked', () => {
-    render(<ProfilePage />);
-    
-    // Checking that dialog is not visible initially
-    expect(screen.queryByText('Edit Profile', { selector: 'h2' })).not.toBeInTheDocument();
+  it('renders profile data from backend api', async () => {
+    render(<ProfilePage />)
 
-    // Clicking the Edit button
-    const editButton = screen.getByRole('button', { name: /edit profile/i });
-    fireEvent.click(editButton);
+    expect(screen.getByText('Personal Details')).toBeInTheDocument()
+    expect(screen.getAllByText('Loading profile...')).toHaveLength(2)
 
-    // Verifying dialog appears
-    expect(screen.getByText('Edit Profile', { selector: 'h2' })).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('Enter the name')).toBeInTheDocument();
-  });
+    await waitFor(() => {
+      expect(screen.getByText('Acme Owner')).toBeInTheDocument()
+      expect(screen.getByText('owner@acme.com')).toBeInTheDocument()
+    })
+  })
 
-  it('closes the dialog when clicking "Cancel"', () => {
-    render(<ProfilePage />);
-    
-    // Opening dialog
-    fireEvent.click(screen.getByRole('button', { name: /edit profile/i }));
-    
-    // Clicking cancel
-    const cancelButton = screen.getByRole('button', { name: /cancel/i });
-    fireEvent.click(cancelButton);
+  it('shows N/A when profile fields are missing', async () => {
+    mockedAxios.get.mockResolvedValueOnce({
+      data: { success: true, data: { email: 'owner@acme.com' } },
+    })
 
-    // Verify dialog is gone
-    expect(screen.queryByText('Edit Profile', { selector: 'h2' })).not.toBeInTheDocument();
-  });
+    render(<ProfilePage />)
 
-  it('closes the dialog when clicking "Save Changes"', () => {
-    render(<ProfilePage />);
-    
-    // Open dialog
-    fireEvent.click(screen.getByRole('button', { name: /edit profile/i }));
-    
-    // Click save
-    const saveButton = screen.getByRole('button', { name: /save changes/i });
-    fireEvent.click(saveButton);
+    await waitFor(() => {
+      expect(screen.getByText('N/A')).toBeInTheDocument()
+    })
+  })
 
-    // Verify dialog is gone
-    expect(screen.queryByText('Edit Profile', { selector: 'h2' })).not.toBeInTheDocument();
-  });
-});
+  it('shows error message on 401', async () => {
+    mockedAxios.get.mockRejectedValueOnce({
+      isAxiosError: true,
+      response: { status: 401 },
+    })
+
+    render(<ProfilePage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Session expired. Please login again.')).toBeInTheDocument()
+    })
+  })
+
+  it('shows generic error on other failures', async () => {
+    mockedAxios.get.mockRejectedValueOnce(new Error('Network error'))
+
+    render(<ProfilePage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Unable to load profile from API.')).toBeInTheDocument()
+    })
+  })
+
+  it('opens edit modal with current name pre-filled', async () => {
+    render(<ProfilePage />)
+
+    await waitFor(() => expect(screen.getByText('Acme Owner')).toBeInTheDocument())
+
+    fireEvent.click(screen.getByRole('button', { name: /edit profile/i }))
+
+    expect(screen.getByText('Edit Profile', { selector: 'h2' })).toBeInTheDocument()
+
+    const input = screen.getByPlaceholderText('Enter your name') as HTMLInputElement
+    expect(input.value).toBe('Acme Owner')
+  })
+
+  it('closes the modal when Cancel is clicked', async () => {
+    render(<ProfilePage />)
+
+    await waitFor(() => expect(screen.getByText('Acme Owner')).toBeInTheDocument())
+
+    fireEvent.click(screen.getByRole('button', { name: /edit profile/i }))
+    expect(screen.getByText('Edit Profile', { selector: 'h2' })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /cancel/i }))
+    expect(screen.queryByText('Edit Profile', { selector: 'h2' })).not.toBeInTheDocument()
+  })
+
+  it('shows validation error when saving empty name', async () => {
+    render(<ProfilePage />)
+
+    await waitFor(() => expect(screen.getByText('Acme Owner')).toBeInTheDocument())
+
+    fireEvent.click(screen.getByRole('button', { name: /edit profile/i }))
+
+    const input = screen.getByPlaceholderText('Enter your name')
+    fireEvent.change(input, { target: { value: '' } })
+
+    fireEvent.click(screen.getByRole('button', { name: /save changes/i }))
+
+    expect(screen.getByText('Name cannot be empty')).toBeInTheDocument()
+    expect(screen.getByText('Edit Profile', { selector: 'h2' })).toBeInTheDocument()
+  })
+  it('saves successfully and updates displayed name', async () => {
+    mockedAxios.put.mockResolvedValueOnce({
+      data: {
+        success: true,
+        data: { name: 'Updated Name', email: 'owner@acme.com' },
+      },
+    })
+
+    render(<ProfilePage />)
+
+    await waitFor(() => expect(screen.getByText('Acme Owner')).toBeInTheDocument())
+
+    fireEvent.click(screen.getByRole('button', { name: /edit profile/i }))
+
+    await waitFor(() => expect(screen.getByPlaceholderText('Enter your name')).toBeInTheDocument())
+
+    const input = screen.getByPlaceholderText('Enter your name')
+    fireEvent.change(input, { target: { value: 'Updated Name' } })
+
+    expect((input as HTMLInputElement).value).toBe('Updated Name')
+
+    fireEvent.click(screen.getByRole('button', { name: /save changes/i }))
+
+    await waitFor(() => {
+      expect(mockedAxios.put).toHaveBeenCalledTimes(1)
+    })
+
+    await waitFor(() => {
+      expect(screen.queryByText('Edit Profile', { selector: 'h2' })).not.toBeInTheDocument()
+    })
+
+    await waitFor(() => {
+      expect(screen.getByText('Updated Name')).toBeInTheDocument()
+    })
+  })
+
+  it('shows error when save API call fails', async () => {
+    mockedAxios.put.mockRejectedValueOnce({
+      isAxiosError: true,
+      response: { data: { message: 'Failed to update profile.' } },
+    })
+
+    render(<ProfilePage />)
+
+    await waitFor(() => expect(screen.getByText('Acme Owner')).toBeInTheDocument())
+
+    fireEvent.click(screen.getByRole('button', { name: /edit profile/i }))
+
+    const input = screen.getByPlaceholderText('Enter your name')
+    fireEvent.change(input, { target: { value: 'Acme Owner Extra' } })
+
+    fireEvent.click(screen.getByRole('button', { name: /save changes/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText('Failed to update profile.')).toBeInTheDocument()
+    })
+  })
+
+  it('disables buttons while saving', async () => {
+    mockedAxios.put.mockImplementation(() => new Promise(() => {})) // never resolves
+
+    render(<ProfilePage />)
+
+    await waitFor(() => expect(screen.getByText('Acme Owner')).toBeInTheDocument())
+
+    fireEvent.click(screen.getByRole('button', { name: /edit profile/i }))
+
+    const input = screen.getByPlaceholderText('Enter your name')
+    fireEvent.change(input, { target: { value: 'Updated Name' } })
+
+    fireEvent.click(screen.getByRole('button', { name: /save changes/i }))
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /saving/i })).toBeDisabled()
+      expect(screen.getByRole('button', { name: /cancel/i })).toBeDisabled()
+    })
+  })
+})
