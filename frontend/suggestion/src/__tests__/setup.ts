@@ -9,7 +9,7 @@ if (typeof globalThis.TextDecoder === 'undefined') {
     TextDecoder as typeof globalThis.TextDecoder
 }
 
-// SWC transforms import.meta.env → process.env; set default for tests
+// Tests read the API base URL from process.env directly.
 if (typeof process.env.VITE_API_URL === 'undefined') {
   process.env.VITE_API_URL = 'http://localhost:3001'
 }

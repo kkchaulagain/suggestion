@@ -1,4 +1,4 @@
-const base = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
+const base = process.env.VITE_API_URL ?? 'http://localhost:3001';
 
 export const userapi = `${base}/api/auth/register`;
 export const loginapi = `${base}/api/auth/login`;

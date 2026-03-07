@@ -17,6 +17,14 @@ interface FeedbackField {
   options?: string[]
 }
 
+interface FormTemplate {
+  id: string
+  label: string
+  title: string
+  description: string
+  fields: FeedbackField[]
+}
+
 const fieldTypeOptions: Array<{ value: FeedbackFieldType; label: string }> = [
   { value: 'short_text', label: 'Short Text' },
   { value: 'long_text', label: 'Long Text' },
@@ -27,6 +35,20 @@ const fieldTypeOptions: Array<{ value: FeedbackFieldType; label: string }> = [
 ]
 
 const OPTION_TYPES: FeedbackFieldType[] = ['checkbox', 'radio']
+
+const formTemplates: FormTemplate[] = [
+  {
+    id: 'feedback_form',
+    label: 'Feedback Form',
+    title: 'Feedback form',
+    description: 'test',
+    fields: [
+      { name: 'subject', label: 'subject', type: 'short_text', required: true },
+      { name: 'description', label: 'description', type: 'short_text', required: false },
+      { name: 'attachment', label: 'attachment', type: 'image_upload', required: false },
+    ],
+  },
+]
 
 function toFieldName(input: string): string {
   const normalized = input
@@ -51,6 +73,7 @@ export default function CreateFormPage() {
   const [fieldPlaceholder, setFieldPlaceholder] = useState('')
   const [fieldOptions, setFieldOptions] = useState<string[]>([])
   const [optionInput, setOptionInput] = useState('')
+  const [editingFieldName, setEditingFieldName] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
 
@@ -72,13 +95,13 @@ export default function CreateFormPage() {
       setError('Option already added.')
       return
     }
-    setFieldOptions((prev) => [...prev, trimmed])
+    setFieldOptions((previous) => [...previous, trimmed])
     setOptionInput('')
     setError('')
   }
 
   const handleRemoveOption = (option: string) => {
-    setFieldOptions((prev) => prev.filter((o) => o !== option))
+    setFieldOptions((previous) => previous.filter((candidate) => candidate !== option))
   }
 
   const handleFieldTypeChange = (value: FeedbackFieldType) => {
@@ -89,7 +112,18 @@ export default function CreateFormPage() {
     }
   }
 
-  const handleAddField = () => {
+  const resetFieldEditor = () => {
+    setFieldLabel('')
+    setFieldName('')
+    setFieldType('short_text')
+    setFieldRequired(false)
+    setFieldPlaceholder('')
+    setFieldOptions([])
+    setOptionInput('')
+    setEditingFieldName(null)
+  }
+
+  const handleAddOrUpdateField = () => {
     const sanitizedName = toFieldName(fieldName || fieldLabel)
     if (!fieldLabel.trim() || !sanitizedName) {
       setError('Field label and valid field name are required.')
@@ -101,7 +135,11 @@ export default function CreateFormPage() {
       return
     }
 
-    const exists = fields.some((field) => field.name.toLowerCase() === sanitizedName.toLowerCase())
+    const exists = fields.some(
+      (field) =>
+        field.name.toLowerCase() === sanitizedName.toLowerCase() &&
+        field.name.toLowerCase() !== (editingFieldName || '').toLowerCase(),
+    )
     if (exists) {
       setError('Field name must be unique inside the form.')
       return
@@ -116,14 +154,15 @@ export default function CreateFormPage() {
       options: isOptionType ? [...fieldOptions] : undefined,
     }
 
-    setFields((previous) => [...previous, nextField])
-    setFieldLabel('')
-    setFieldName('')
-    setFieldType('short_text')
-    setFieldRequired(false)
-    setFieldPlaceholder('')
-    setFieldOptions([])
-    setOptionInput('')
+    if (editingFieldName) {
+      setFields((previous) =>
+        previous.map((field) => (field.name === editingFieldName ? nextField : field)),
+      )
+    } else {
+      setFields((previous) => [...previous, nextField])
+    }
+
+    resetFieldEditor()
     setError('')
   }
 
@@ -140,7 +179,11 @@ export default function CreateFormPage() {
     try {
       setSubmitting(true)
       setError('')
-      await axios.post(feedbackFormsApi, { title: title.trim(), description: description.trim(), fields }, authHeaders)
+      await axios.post(
+        feedbackFormsApi,
+        { title: title.trim(), description: description.trim(), fields },
+        authHeaders,
+      )
       navigate('/dashboard/forms')
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error
@@ -152,6 +195,34 @@ export default function CreateFormPage() {
 
   const handleRemoveField = (fieldName: string) => {
     setFields((previous) => previous.filter((candidate) => candidate.name !== fieldName))
+    if (editingFieldName === fieldName) {
+      resetFieldEditor()
+    }
+  }
+
+  const handleEditField = (field: FeedbackField) => {
+    setFieldLabel(field.label)
+    setFieldName(field.name)
+    setFieldType(field.type)
+    setFieldRequired(field.required)
+    setFieldPlaceholder(field.placeholder || '')
+    setFieldOptions(field.options ? [...field.options] : [])
+    setOptionInput('')
+    setEditingFieldName(field.name)
+    setError('')
+  }
+
+  const handleApplyTemplate = (template: FormTemplate) => {
+    setTitle(template.title)
+    setDescription(template.description)
+    setFields(
+      template.fields.map((field) => ({
+        ...field,
+        options: field.options ? [...field.options] : undefined,
+      })),
+    )
+    resetFieldEditor()
+    setError('')
   }
 
   return (
@@ -166,6 +237,25 @@ export default function CreateFormPage() {
         </div>
 
         <div className="mt-4 space-y-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Prebuilt Templates</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {formTemplates.map((template) => (
+                <button
+                  key={template.id}
+                  type="button"
+                  onClick={() => handleApplyTemplate(template)}
+                  className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                >
+                  Use {template.label}
+                </button>
+              ))}
+            </div>
+            <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+              Only the feedback template from your shared design is available.
+            </p>
+          </div>
+
           <Input
             id="form-title"
             value={title}
@@ -182,7 +272,9 @@ export default function CreateFormPage() {
         </div>
 
         <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/50">
-          <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">Add Input Field</p>
+          <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+            {editingFieldName ? 'Edit Input Field' : 'Add Input Field'}
+          </p>
           <div className="mt-3 space-y-2">
             <Input
               id="field-label"
@@ -261,14 +353,132 @@ export default function CreateFormPage() {
               />
               Required field
             </label>
-            <Button type="button" variant="primary" size="md" onClick={handleAddField} className="w-full">
+            <Button
+              type="button"
+              variant="primary"
+              size="md"
+              onClick={handleAddOrUpdateField}
+              className="w-full"
+            >
               <Plus className="h-4 w-4" />
-              Add Field
+              {editingFieldName ? 'Update Field' : 'Add Field'}
             </Button>
+            {editingFieldName ? (
+              <Button
+                type="button"
+                variant="secondary"
+                size="md"
+                onClick={resetFieldEditor}
+                className="w-full"
+              >
+                Cancel Edit
+              </Button>
+            ) : null}
           </div>
         </div>
 
         {error ? <ErrorMessage message={error} className="mt-3" /> : null}
+
+        <div className="mt-4 rounded-xl border border-slate-200 bg-white p-5">
+          <h4 className="text-sm font-semibold text-slate-800">Template Layout</h4>
+          {fields.length === 0 ? (
+            <p className="mt-2 text-sm text-slate-500">Choose a template or add fields manually.</p>
+          ) : (
+            <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-5">
+              <p className="text-2xl font-semibold text-slate-900">{title.trim() || 'Feedback form'}</p>
+              <p className="mt-1 text-sm text-slate-600">{description.trim() || 'Form description'}</p>
+
+              <div className="mt-5 space-y-4">
+                {fields.map((field) => (
+                  <div key={field.name} className="rounded-lg border border-slate-200 bg-white p-3">
+                    <div className="mb-2 flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-medium text-slate-800">
+                          {field.label}
+                          {field.required ? <span className="ml-1 text-rose-600">*</span> : null}
+                        </p>
+                        <p className="text-xs text-slate-500">
+                          {field.name} ({field.type})
+                        </p>
+                        {field.placeholder ? (
+                          <p className="mt-1 text-xs text-slate-500">Placeholder: {field.placeholder}</p>
+                        ) : null}
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEditField(field)}
+                          className="text-xs font-semibold text-emerald-700 hover:bg-emerald-50"
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRemoveField(field.name)}
+                          className="text-xs font-semibold text-rose-600 hover:bg-rose-50"
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                    </div>
+
+                    {field.type === 'short_text' || field.type === 'long_text' ? (
+                      <input
+                        type="text"
+                        disabled
+                        placeholder={field.placeholder || ''}
+                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                      />
+                    ) : null}
+
+                    {field.type === 'big_text' ? (
+                      <textarea
+                        rows={3}
+                        disabled
+                        placeholder={field.placeholder || ''}
+                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                      />
+                    ) : null}
+
+                    {field.type === 'image_upload' ? (
+                      <input
+                        type="file"
+                        disabled
+                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                      />
+                    ) : null}
+
+                    {field.type === 'checkbox' && field.options ? (
+                      <div className="space-y-1">
+                        {field.options.map((option) => (
+                          <label key={`${field.name}-${option}`} className="flex items-center gap-2 text-sm text-slate-700">
+                            <input type="checkbox" disabled />
+                            {option}
+                          </label>
+                        ))}
+                      </div>
+                    ) : null}
+
+                    {field.type === 'radio' && field.options ? (
+                      <div className="space-y-1">
+                        {field.options.map((option) => (
+                          <label key={`${field.name}-${option}`} className="flex items-center gap-2 text-sm text-slate-700">
+                            <input type="radio" disabled />
+                            {option}
+                          </label>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
 
         <Button
           type="button"
