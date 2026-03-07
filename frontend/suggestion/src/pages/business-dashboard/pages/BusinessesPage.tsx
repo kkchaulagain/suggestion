@@ -5,15 +5,8 @@ import { useAuth } from '../../../context/AuthContext'
 import { businessesListApi } from '../../../utils/apipath'
 import { Button, Card, Input, Textarea, ErrorMessage, Modal } from '../../../components/ui'
 import { EmptyState } from '../../../components/layout'
-
-interface BusinessListItem {
-  id: string
-  owner: string
-  businessname: string
-  location: string
-  pancardNumber: number
-  description: string
-}
+import BusinessesTable from '../components/BusinessesTable'
+import type { BusinessListItem } from '../types/business'
 
 interface BusinessesResponse {
   businesses: BusinessListItem[]
@@ -104,7 +97,7 @@ export default function BusinessesPage() {
         authHeadersRef.current,
       )
       setBusinesses((prev) =>
-        prev.map((b) => (b.id === selectedBusiness.id ? response.data.business : b)),
+        prev.map((business) => (business.id === selectedBusiness.id ? response.data.business : business)),
       )
       closeModal()
     } catch (err: unknown) {
@@ -120,7 +113,7 @@ export default function BusinessesPage() {
     setModalError('')
     try {
       await axios.delete(`${businessesListApi}/${business.id}`, authHeadersRef.current)
-      setBusinesses((prev) => prev.filter((b) => b.id !== business.id))
+      setBusinesses((prev) => prev.filter((candidate) => candidate.id !== business.id))
       if (selectedBusiness?.id === business.id) closeModal()
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
@@ -144,38 +137,14 @@ export default function BusinessesPage() {
         <EmptyState type="empty" message="No registered businesses yet." />
       ) : null}
 
-      <div className="mt-4 space-y-4">
-        {businesses.map((business) => (
-          <div key={business.id} className="rounded-xl border border-slate-200 p-4 dark:border-slate-700 dark:bg-slate-800/50">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <p className="text-base font-semibold text-slate-900 dark:text-slate-100">{business.businessname}</p>
-                <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">Location: {business.location}</p>
-                {business.description ? (
-                  <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{business.description}</p>
-                ) : null}
-                <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                  PAN: {business.pancardNumber ?? 'N/A'} · ID: {business.id}
-                </p>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <Button type="button" variant="secondary" size="sm" onClick={() => openView(business)}>
-                  <Eye className="h-4 w-4" />
-                  View
-                </Button>
-                <Button type="button" variant="secondary" size="sm" onClick={() => openEdit(business)}>
-                  <Pencil className="h-4 w-4" />
-                  Edit
-                </Button>
-                <Button type="button" variant="danger" size="sm" onClick={() => void handleDelete(business)}>
-                  <Trash2 className="h-4 w-4" />
-                  Delete
-                </Button>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
+      <BusinessesTable
+        businesses={businesses}
+        onView={openView}
+        onEdit={openEdit}
+        onDelete={(business) => {
+          void handleDelete(business)
+        }}
+      />
 
       {error ? <ErrorMessage message={error} className="mt-4" /> : null}
 
