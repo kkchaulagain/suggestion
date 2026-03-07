@@ -215,7 +215,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const hasRole = useCallback(
     (...roles: UserRole[]) => (user?.role ? roles.includes(user.role) : false),
-    [user?.role],
+    [user],
   )
 
   const value = useMemo<AuthContextValue>(
