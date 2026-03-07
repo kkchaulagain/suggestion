@@ -85,13 +85,18 @@ export default function Signup(): JSX.Element {
 
   const isBusiness = role === 'business'
 
+  const authBackground =
+    'bg-[radial-gradient(55rem_28rem_at_90%_-20%,#c8efe3_5%,transparent_65%),radial-gradient(42rem_25rem_at_-10%_120%,#ffcfa6_5%,transparent_65%),linear-gradient(140deg,#fffdf8_0%,#f5fbff_100%)] dark:bg-[radial-gradient(55rem_28rem_at_90%_-20%,rgba(45,212,191,0.12)_5%,transparent_65%),linear-gradient(140deg,#0f172a_0%,#1e293b_100%)]'
+  const authCard =
+    'w-full max-w-[460px] rounded-2xl border border-teal-700/20 bg-gradient-to-b from-white to-amber-50 dark:border-slate-700 dark:from-slate-800 dark:to-slate-900 shadow-[0_30px_50px_-32px_rgba(19,49,84,0.32)]'
+
   if (successMessage) {
     return (
-      <div className="relative min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-900">
+      <div className={`relative min-h-screen overflow-y-auto ${authBackground} flex items-center justify-center px-4 py-6 sm:px-6 sm:py-8`}>
         <div className="absolute right-4 top-4">
           <ThemeToggle />
         </div>
-        <div className="bg-white p-8 rounded-xl shadow-md w-full max-w-md dark:bg-slate-800 dark:border dark:border-slate-700 text-center">
+        <div className={`${authCard} p-4 sm:p-6 md:p-8 text-center`}>
           <CheckCircle className="mx-auto h-12 w-12 text-emerald-600 dark:text-emerald-400" aria-hidden />
           <p className="mt-4 text-slate-700 dark:text-slate-200">{successMessage}</p>
           <Button type="button" variant="primary" size="lg" className="mt-6 w-full" onClick={() => navigate('/login')}>
@@ -103,174 +108,160 @@ export default function Signup(): JSX.Element {
   }
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-900">
-      <div className="absolute right-4 top-4">
+    <div className={`relative min-h-screen flex flex-col overflow-hidden ${authBackground}`}>
+      <div className="absolute right-4 top-4 z-10">
         <ThemeToggle />
       </div>
-      <div className="bg-white p-8 rounded-xl shadow-md w-full max-w-md dark:bg-slate-800 dark:border dark:border-slate-700">
-        <h1 className="text-2xl font-bold mb-1 text-center text-slate-900 dark:text-slate-100">Suggestion Platform</h1>
-        <h2 className="text-lg font-semibold mb-1 text-center text-slate-800 dark:text-slate-200">Create account</h2>
-        <p className="text-sm text-gray-500 dark:text-slate-400 text-center mb-6">
-          Join the workspace and start submitting smart suggestions.
-        </p>
+      <form
+        onSubmit={handleFormSubmit}
+        noValidate
+        className="flex flex-1 flex-col min-h-0"
+      >
+        <div className="flex-1 overflow-y-auto px-4 py-6 sm:px-6 sm:py-8 flex justify-center">
+          <div className={`${authCard} p-4 sm:p-6 md:p-8 w-full max-w-[460px]`}>
+            <p className="m-0 text-xs font-bold uppercase tracking-[0.08em] text-teal-700 dark:text-emerald-400">Suggestion Platform</p>
+            <h1 className="mt-2 mb-1 text-2xl sm:text-3xl font-bold leading-tight text-slate-800 dark:text-slate-100">Create account</h1>
+            <p className="mb-6 text-sm text-slate-600 dark:text-slate-300">Join the workspace and start submitting smart suggestions.</p>
 
-        {errors.general ? (
-          <ErrorMessage message={errors.general} className="text-center mb-4" />
-        ) : null}
+            {errors.general ? (
+              <ErrorMessage message={errors.general} className="text-center mb-4" />
+            ) : null}
 
-        <form onSubmit={handleFormSubmit} noValidate className="flex flex-col gap-4">
-          <div className="relative">
-            <User className="pointer-events-none absolute left-3 top-8 h-4 w-4 text-slate-400 dark:text-slate-500" aria-hidden />
-            <Input
-              id="name"
-              label="Name"
-              type="text"
-              value={name}
-              onChange={(v) => {
-                setName(v)
-                setErrors((prev) => ({ ...prev, name: undefined }))
-              }}
-              placeholder="Your name"
-              error={errors.name}
-              className="pl-9"
-            />
-          </div>
-          <div className="relative">
-            <Mail className="pointer-events-none absolute left-3 top-8 h-4 w-4 text-slate-400 dark:text-slate-500" aria-hidden />
-            <Input
-              id="email"
-              label="Email"
-              type="email"
-              value={email}
-              onChange={(v) => {
-                setEmail(v)
-                setErrors((prev) => ({ ...prev, email: undefined }))
-              }}
-              placeholder="you@example.com"
-              error={errors.email}
-              className="pl-9"
-            />
-          </div>
-          <div className="relative">
-            <Lock className="pointer-events-none absolute left-3 top-8 h-4 w-4 text-slate-400 dark:text-slate-500" aria-hidden />
-            <Input
-              id="password"
-              label="Password"
-              type="password"
-              value={password}
-              onChange={(v) => {
-                setPassword(v)
-                setErrors((prev) => ({ ...prev, password: undefined }))
-              }}
-              placeholder="Min. 6 characters"
-              error={errors.password}
-              className="pl-9"
-            />
-          </div>
-
-          {/* Role Selection */}
-          <Select
-            id="role"
-            label="Account Type"
-            value={role}
-            onChange={(value) => {
-              setRole(value as UserRole)
-              setErrors((prev) => ({ ...prev, role: undefined }))
-              if (value !== 'business') {
-                setLocation('')
-                setDescription('')
-                setPancardNumber('')
-              }
-            }}
-            options={[
-              { value: 'user', label: 'User' },
-              { value: 'business', label: 'Business' },
-              { value: 'governmentservices', label: 'Government' },
-            ]}
-            error={errors.role}
-          />
-
-          {/* Business Fields - Conditional Rendering */}
-          {isBusiness && (
-            <>
-            <div className="relative">
-              <Building2 className="pointer-events-none absolute left-3 top-8 h-4 w-4 text-slate-400 dark:text-slate-500" aria-hidden />
+            <div className="flex flex-col gap-4">
               <Input
-                id="businessname"
-                label="Business Name"
+                id="name"
+                label="Name"
                 type="text"
-                value={businessname}
+                value={name}
                 onChange={(v) => {
-                  setBusinessname(v)
-                  setErrors((prev) => ({ ...prev, businessname: undefined }))
+                  setName(v)
+                  setErrors((prev) => ({ ...prev, name: undefined }))
                 }}
-                placeholder="Enter business name"
-                error={errors.businessname}
-                className="pl-9"
+                placeholder="Your name"
+                error={errors.name}
+                leftIcon={<User className="h-4 w-4" />}
               />
-            </div>
-            <div className="relative">
-              <MapPin className="pointer-events-none absolute left-3 top-8 h-4 w-4 text-slate-400 dark:text-slate-500" aria-hidden />
               <Input
-                id="location"
-                label={<>Location <span className="text-gray-400">(required for business)</span></>}
-                type="text"
-                value={location}
+                id="email"
+                label="Email"
+                type="email"
+                value={email}
                 onChange={(v) => {
-                  setLocation(v)
-                  setErrors((prev) => ({ ...prev, location: undefined }))
+                  setEmail(v)
+                  setErrors((prev) => ({ ...prev, email: undefined }))
                 }}
-                placeholder="Business location"
-                error={errors.location}
-                className="pl-9"
+                placeholder="you@example.com"
+                error={errors.email}
+                leftIcon={<Mail className="h-4 w-4" />}
               />
-            </div>
-
-              <Textarea
-                id="description"
-                label={<>Description <span className="text-gray-400">(required for business)</span></>}
-                value={description}
-                onChange={(v) => {
-                  setDescription(v)
-                  setErrors((prev) => ({ ...prev, description: undefined }))
-                }}
-                placeholder="Describe your business"
-                rows={3}
-                error={errors.description}
-              />
-
-              {/* PAN Card Number */}
-            <div className="relative">
-              <CreditCard className="pointer-events-none absolute left-3 top-8 h-4 w-4 text-slate-400 dark:text-slate-500" aria-hidden />
               <Input
-                id="pancardNumber"
-                label={<>PAN Card Number <span className="text-gray-400">(required for business)</span></>}
-                type="text"
-                value={pancardNumber}
+                id="password"
+                label="Password"
+                type="password"
+                value={password}
                 onChange={(v) => {
-                  setPancardNumber(v.replace(/[^0-9]/g, ''))
-                  setErrors((prev) => ({ ...prev, pancardNumber: undefined }))
+                  setPassword(v)
+                  setErrors((prev) => ({ ...prev, password: undefined }))
                 }}
-                placeholder="Enter PAN card number"
-                error={errors.pancardNumber}
-                className="pl-9"
+                placeholder="Min. 6 characters"
+                error={errors.password}
+                leftIcon={<Lock className="h-4 w-4" />}
               />
-            </div>
-            </>
-          )}
 
-          <Button type="submit" variant="primary" size="md" className="w-full">
+              <Select
+                id="role"
+                label="Account Type"
+                value={role}
+                onChange={(value) => {
+                  setRole(value as UserRole)
+                  setErrors((prev) => ({ ...prev, role: undefined }))
+                  if (value !== 'business') {
+                    setLocation('')
+                    setDescription('')
+                    setPancardNumber('')
+                  }
+                }}
+                options={[
+                  { value: 'user', label: 'User' },
+                  { value: 'business', label: 'Business' },
+                  { value: 'governmentservices', label: 'Government' },
+                ]}
+                error={errors.role}
+              />
+
+              {isBusiness && (
+                <>
+                  <Input
+                    id="businessname"
+                    label="Business Name"
+                    type="text"
+                    value={businessname}
+                    onChange={(v) => {
+                      setBusinessname(v)
+                      setErrors((prev) => ({ ...prev, businessname: undefined }))
+                    }}
+                    placeholder="Enter business name"
+                    error={errors.businessname}
+                    leftIcon={<Building2 className="h-4 w-4" />}
+                  />
+                  <Input
+                    id="location"
+                    label={<>Location <span className="text-gray-400">(required for business)</span></>}
+                    type="text"
+                    value={location}
+                    onChange={(v) => {
+                      setLocation(v)
+                      setErrors((prev) => ({ ...prev, location: undefined }))
+                    }}
+                    placeholder="Business location"
+                    error={errors.location}
+                    leftIcon={<MapPin className="h-4 w-4" />}
+                  />
+
+                  <Textarea
+                    id="description"
+                    label={<>Description <span className="text-gray-400">(required for business)</span></>}
+                    value={description}
+                    onChange={(v) => {
+                      setDescription(v)
+                      setErrors((prev) => ({ ...prev, description: undefined }))
+                    }}
+                    placeholder="Describe your business"
+                    rows={3}
+                    error={errors.description}
+                  />
+
+                  <Input
+                    id="pancardNumber"
+                    label={<>PAN Card Number <span className="text-gray-400">(required for business)</span></>}
+                    type="text"
+                    value={pancardNumber}
+                    onChange={(v) => {
+                      setPancardNumber(v.replace(/[^0-9]/g, ''))
+                      setErrors((prev) => ({ ...prev, pancardNumber: undefined }))
+                    }}
+                    placeholder="Enter PAN card number"
+                    error={errors.pancardNumber}
+                    leftIcon={<CreditCard className="h-4 w-4" />}
+                  />
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="shrink-0 sticky bottom-0 border-t border-slate-200/80 dark:border-slate-700/80 bg-white/95 dark:bg-slate-900/95 backdrop-blur px-4 py-4 sm:px-6 sm:py-4">
+          <Button type="submit" variant="primary" size="lg" className="w-full">
             Sign Up
           </Button>
-        </form>
-
-        <p className="text-sm text-center text-gray-500 mt-4">
-          Already have an account?{' '}
-          <Button type="button" variant="ghost" className="!p-0 text-emerald-600 hover:underline font-medium" onClick={() => navigate('/login')}>
-            Login
-          </Button>
-        </p>
-      </div>
+          <p className="text-sm text-center text-slate-500 dark:text-slate-400 mt-3">
+            Already have an account?{' '}
+            <Button type="button" variant="ghost" className="!p-0 font-bold text-teal-700 hover:underline dark:text-emerald-400" onClick={() => navigate('/login')}>
+              Login
+            </Button>
+          </p>
+        </div>
+      </form>
     </div>
   )
 }
