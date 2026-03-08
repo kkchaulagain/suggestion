@@ -196,4 +196,89 @@ describe('ProfilePage Component', () => {
       expect(screen.getByRole('button', { name: /cancel/i })).toBeDisabled()
     })
   })
+
+  it('opens change password modal', async () => {
+    render(<ProfilePage />)
+
+    await waitFor(() => expect(screen.getByText('Acme Owner')).toBeInTheDocument())
+
+    fireEvent.click(screen.getByRole('button', { name: /^change password$/i }))
+
+    expect(screen.getByText('Change Password', { selector: 'h2' })).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('Enter current password')).toBeInTheDocument()
+  })
+
+  it('shows validation error when password fields are empty', async () => {
+    render(<ProfilePage />)
+
+    await waitFor(() => expect(screen.getByText('Acme Owner')).toBeInTheDocument())
+
+    fireEvent.click(screen.getByRole('button', { name: /^change password$/i }))
+    fireEvent.click(screen.getByRole('button', { name: /update password/i }))
+
+    expect(screen.getByText('All password fields are required')).toBeInTheDocument()
+  })
+
+  it('shows validation error when new and confirm passwords do not match', async () => {
+    render(<ProfilePage />)
+
+    await waitFor(() => expect(screen.getByText('Acme Owner')).toBeInTheDocument())
+
+    fireEvent.click(screen.getByRole('button', { name: /^change password$/i }))
+    fireEvent.change(screen.getByPlaceholderText('Enter current password'), { target: { value: 'password123' } })
+    fireEvent.change(screen.getByPlaceholderText('Enter new password'), { target: { value: 'newpassword' } })
+    fireEvent.change(screen.getByPlaceholderText('Confirm new password'), { target: { value: 'different' } })
+
+    fireEvent.click(screen.getByRole('button', { name: /update password/i }))
+
+    expect(screen.getByText('New passwords do not match')).toBeInTheDocument()
+  })
+
+  it('changes password successfully and shows success message', async () => {
+    mockedAxios.put.mockResolvedValueOnce({
+      data: {
+        success: true,
+        message: 'Password Changed Successfully',
+      },
+    })
+
+    render(<ProfilePage />)
+
+    await waitFor(() => expect(screen.getByText('Acme Owner')).toBeInTheDocument())
+
+    fireEvent.click(screen.getByRole('button', { name: /^change password$/i }))
+    fireEvent.change(screen.getByPlaceholderText('Enter current password'), { target: { value: 'password123' } })
+    fireEvent.change(screen.getByPlaceholderText('Enter new password'), { target: { value: 'newpassword' } })
+    fireEvent.change(screen.getByPlaceholderText('Confirm new password'), { target: { value: 'newpassword' } })
+
+    fireEvent.click(screen.getByRole('button', { name: /update password/i }))
+
+    await waitFor(() => {
+      expect(mockedAxios.put).toHaveBeenCalled()
+      expect(screen.queryByText('Change Password', { selector: 'h2' })).not.toBeInTheDocument()
+      expect(screen.getByText('Password Changed Successfully')).toBeInTheDocument()
+    })
+  })
+
+  it('shows password API error message when request fails', async () => {
+    mockedAxios.put.mockRejectedValueOnce({
+      isAxiosError: true,
+      response: { data: { message: 'Current password is incorrect' } },
+    })
+
+    render(<ProfilePage />)
+
+    await waitFor(() => expect(screen.getByText('Acme Owner')).toBeInTheDocument())
+
+    fireEvent.click(screen.getByRole('button', { name: /^change password$/i }))
+    fireEvent.change(screen.getByPlaceholderText('Enter current password'), { target: { value: 'wrong' } })
+    fireEvent.change(screen.getByPlaceholderText('Enter new password'), { target: { value: 'newpassword' } })
+    fireEvent.change(screen.getByPlaceholderText('Confirm new password'), { target: { value: 'newpassword' } })
+
+    fireEvent.click(screen.getByRole('button', { name: /update password/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText('Current password is incorrect')).toBeInTheDocument()
+    })
+  })
 })

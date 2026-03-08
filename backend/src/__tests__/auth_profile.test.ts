@@ -79,20 +79,20 @@ describe('Auth Profile Endpoints', () => {
     });
 
     it('returns 500 if database error occurs', async () => {
-        const originalFindById = User.findById;
-        User.findById = jest.fn().mockImplementation(() => {
-            throw new Error('Database error');
-        });
+      const originalFindById = User.findById;
+      User.findById = jest.fn().mockImplementation(() => {
+        throw new Error('Database error');
+      });
 
-        const res = await request(app)
-            .get('/api/auth/me')
-            .set('Cookie', [`token=${userToken}`])
-            .expect(500);
+      const res = await request(app)
+        .get('/api/auth/me')
+        .set('Cookie', [`token=${userToken}`])
+        .expect(500);
 
-        expect(res.body.success).toBe(false);
-        expect(res.body.message).toBe('Something went wrong');
-        
-        User.findById = originalFindById;
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toBe('Something went wrong');
+
+      User.findById = originalFindById;
     });
   });
 
@@ -119,21 +119,21 @@ describe('Auth Profile Endpoints', () => {
       expect(res.body.message).toBe('Business profile not found');
     });
 
-     it('returns 500 if database error occurs', async () => {
-        const originalFindOne = Business.findOne;
-        Business.findOne = jest.fn().mockImplementation(() => {
-            throw new Error('Database error');
-        });
+    it('returns 500 if database error occurs', async () => {
+      const originalFindOne = Business.findOne;
+      Business.findOne = jest.fn().mockImplementation(() => {
+        throw new Error('Database error');
+      });
 
-        const res = await request(app)
-            .get('/api/auth/business')
-            .set('Cookie', [`token=${businessToken}`])
-            .expect(500);
+      const res = await request(app)
+        .get('/api/auth/business')
+        .set('Cookie', [`token=${businessToken}`])
+        .expect(500);
 
-        expect(res.body.success).toBe(false);
-        expect(res.body.message).toBe('Something went wrong');
-        
-        Business.findOne = originalFindOne;
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toBe('Something went wrong');
+
+      Business.findOne = originalFindOne;
     });
   });
 
@@ -177,21 +177,90 @@ describe('Auth Profile Endpoints', () => {
     });
 
     it('returns 500 if database error occurs', async () => {
-        const originalFindByIdAndUpdate = User.findByIdAndUpdate;
-        User.findByIdAndUpdate = jest.fn().mockImplementation(() => {
-            throw new Error('Database error');
-        });
+      const originalFindByIdAndUpdate = User.findByIdAndUpdate;
+      User.findByIdAndUpdate = jest.fn().mockImplementation(() => {
+        throw new Error('Database error');
+      });
 
-        const res = await request(app)
-            .put('/api/auth/me')
-            .set('Cookie', [`token=${userToken}`])
-            .send({ name: 'Updated Name' })
-            .expect(500);
+      const res = await request(app)
+        .put('/api/auth/me')
+        .set('Cookie', [`token=${userToken}`])
+        .send({ name: 'Updated Name' })
+        .expect(500);
 
-        expect(res.body.success).toBe(false);
-        expect(res.body.message).toBe('Something went wrong');
-        
-        User.findByIdAndUpdate = originalFindByIdAndUpdate;
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toBe('Something went wrong');
+
+      User.findByIdAndUpdate = originalFindByIdAndUpdate;
+    });
+  });
+
+  // ✅ No nested beforeEach — uses the outer one which already creates
+  // a fresh user with password 'password123' before each test
+  describe('PUT /api/auth/me/change-password', () => {
+    it('should return 401 if unauthenticated', async () => {
+      const res = await request(app)
+        .put('/api/auth/me/change-password')
+        .send({ currentPassword: 'password123', newPassword: 'newPassword', confirmPassword: 'newPassword' })
+        .expect(401);
+
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toBe('Unauthorized access');
+    });
+
+    it('should return 400 if any field missing', async () => {
+      const res = await request(app)
+        .put('/api/auth/me/change-password')
+        .set('Cookie', [`token=${userToken}`])
+        .send({ currentPassword: '', newPassword: '', confirmPassword: '' })
+        .expect(400);
+
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toBe('All Password fields are required');
+    });
+
+    it('should return 400 if passwords do not match', async () => {
+      const res = await request(app)
+        .put('/api/auth/me/change-password')
+        .set('Cookie', [`token=${userToken}`])
+        .send({ currentPassword: 'password123', newPassword: 'newPassword', confirmPassword: 'differentPassword' })
+        .expect(400);
+
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toBe('New passwords do not match');
+    });
+
+    it('should return 400 if newPassword is short', async () => {
+      const res = await request(app)
+        .put('/api/auth/me/change-password')
+        .set('Cookie', [`token=${userToken}`])
+        .send({ currentPassword: 'password123', newPassword: 'new', confirmPassword: 'new' })
+        .expect(400);
+
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toBe('Password must be at least 6 characters long');
+    });
+
+    it('should return 400 if current password is incorrect', async () => {
+      const res = await request(app)
+        .put('/api/auth/me/change-password')
+        .set('Cookie', [`token=${userToken}`])
+        .send({ currentPassword: 'wrongPassword', newPassword: 'newPassword', confirmPassword: 'newPassword' })
+        .expect(400);
+
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toBe('Current password is incorrect');
+    });
+
+    it('should return 200 if password changed successfully', async () => {
+      const res = await request(app)
+        .put('/api/auth/me/change-password')
+        .set('Cookie', [`token=${userToken}`])
+        .send({ currentPassword: 'password123', newPassword: 'newPassword123', confirmPassword: 'newPassword123' })
+        .expect(200);
+
+      expect(res.body.success).toBe(true);
+      expect(res.body.message).toBe('Password Changed Successfully');
     });
   });
 });

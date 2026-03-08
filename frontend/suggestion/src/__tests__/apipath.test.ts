@@ -2,6 +2,7 @@ import {
   userapi,
   loginapi,
   meapi,
+  changePasswordApi,
   businessmeapi,
   feedbackFormsApi,
   feedbackFormSubmissionsApi,
@@ -23,6 +24,10 @@ describe('apipath', () => {
 
   it('exports meapi with correct base and path', () => {
     expect(meapi).toBe(`${base}/api/auth/me`)
+  })
+
+  it('exports changePasswordApi with correct base and path', () => {
+    expect(changePasswordApi).toBe(`${base}/api/auth/me/change-password`)
   })
 
   it('exports businessmeapi with correct base and path', () => {

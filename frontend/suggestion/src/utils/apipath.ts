@@ -3,6 +3,7 @@ const base = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 export const userapi = `${base}/api/auth/register`;
 export const loginapi = `${base}/api/auth/login`;
 export const meapi = `${base}/api/auth/me`;
+export const changePasswordApi = `${base}/api/auth/me/change-password`;
 export const businessmeapi = `${base}/api/auth/business`;
 export const feedbackFormsApi = `${base}/api/feedback-forms`;
 export const feedbackFormSubmissionsApi = `${base}/api/feedback-forms/submissions`;

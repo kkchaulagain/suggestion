@@ -317,5 +317,49 @@ router.put('/me', isAuthenticated, async (req: AuthenticatedRequest, res: Respon
   }
 })
 
-
+router.put('/me/change-password',isAuthenticated,async(req:AuthenticatedRequest,res:Response)=>
+{
+ try {
+    const id=req.id
+    if(!id)
+      {
+       return res.status(401).json({success:false,message:'Unauthorized access'})
+      } 
+      const data=(req.body??{})as {currentPassword?:string,newPassword?:string,confirmPassword?:string}
+      const currentPassword=typeof data.currentPassword==='string'?data.currentPassword:''
+      const newPassword=typeof data.newPassword==='string'?data.newPassword:''
+      const confirmPassword=typeof data.confirmPassword==='string'?data.confirmPassword:''
+      if(!currentPassword||!newPassword||!confirmPassword)
+      {
+        return res.status(400).json({success:false,message:'All Password fields are required'})
+      }
+      if(newPassword!==confirmPassword)
+      {
+        return res.status(400).json({success:false,message:'New passwords do not match'})
+      }
+      if(newPassword.length<6)
+      {
+        return res.status(400).json({success:false,message:'Password must be at least 6 characters long'})
+      }
+      const user=await User.findById(id).select('+password') //+is used to fetch hashed password
+      if(!user)
+      {
+        return res.status(404).json({success:false,message:'User not found'})
+      }
+      const passwordMatches=await bcrypt.compare(currentPassword,user.password)
+      if (newPassword === currentPassword)
+      {
+        return res.status(400).json({ success: false, message: 'New password must be different from current password' });
+      }
+      if(!passwordMatches)
+      {
+        return res.status(400).json({success:false,message:'Current password is incorrect'})
+      }
+      user.password=newPassword
+      await user.save() //already hashed in User model pre-save hook,so its not plain text anymore
+      return res.status(200).json({success:true,message:'Password Changed Successfully'})
+ } catch (_error) {
+  return res.status(500).json({message:'Something went Wrong',success:false})
+ }
+})
 module.exports = router;
