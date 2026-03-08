@@ -62,6 +62,7 @@ function App() {
             <Route index element={<DashboardIndex />} />
             <Route path="forms" element={<FormsPage />} />
             <Route path="forms/create" element={<CreateFormPage />} />
+            <Route path="forms/:formId/edit" element={<CreateFormPage />} />
             <Route path="submissions" element={<SubmissionsPage />} />
             <Route path="businesses" element={<RoleGuard roles={['admin']}><BusinessesPage /></RoleGuard>} />
             <Route path="users" element={<RoleGuard roles={['admin']}><UsersPage /></RoleGuard>} />
@@ -71,6 +72,7 @@ function App() {
           <Route path="/business-dashboard" element={<Navigate to="/dashboard" replace />} />
           <Route path="/business-dashboard/forms" element={<Navigate to="/dashboard/forms" replace />} />
           <Route path="/business-dashboard/forms/create" element={<Navigate to="/dashboard/forms/create" replace />} />
+          <Route path="/business-dashboard/forms/:formId/edit" element={<Navigate to="/dashboard/forms" replace />} />
           <Route
             path="/business-form"
             element={

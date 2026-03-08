@@ -27,6 +27,9 @@ export default function BusinessDashboardLayout() {
   }, [currentRole])
 
   const pageTitle = useMemo(() => {
+    if (/^\/dashboard\/forms\/[^/]+\/edit$/.test(location.pathname)) {
+      return 'Edit Form'
+    }
     return pageTitles[location.pathname] ?? 'Business Dashboard'
   }, [location.pathname])
 
