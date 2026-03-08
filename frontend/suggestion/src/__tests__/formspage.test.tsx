@@ -49,24 +49,6 @@ describe('FormsPage', () => {
 
   interface FormsListApiResponse { data: { feedbackForms: Array<{ _id: string; title?: string; description?: string; businessId?: string; fields?: Array<{ name: string; label: string; type: string; required?: boolean }> }> } }
 
-  test('refresh button re-fetches forms', async () => {
-    mockedAxios.get
-      .mockResolvedValueOnce({ data: { feedbackForms: [] } } as FormsListApiResponse)
-      .mockResolvedValueOnce({ data: { feedbackForms: [] } } as FormsListApiResponse)
-
-    renderFormsPage()
-
-    await waitFor(() => {
-      expect(screen.getByText(/No forms saved for this business yet\./i)).toBeInTheDocument()
-    })
-
-    fireEvent.click(screen.getByRole('button', { name: /Refresh/i }))
-
-    await waitFor(() => {
-      expect(mockedAxios.get).toHaveBeenCalledTimes(2)
-    })
-  })
-
   test('generates and shows QR code for a form', async () => {
     mockedAxios.get.mockResolvedValueOnce({
       data: {

@@ -95,7 +95,7 @@ export default function SubmissionsPage() {
   const [viewSubmission, setViewSubmission] = useState<Submission | null>(null)
   const { getAuthHeaders } = useAuth()
 
-  // When URL formId changes (e.g. navigating from Saved Forms), sync filter and applied state
+  // When URL formId changes (e.g. navigating from Your Forms), sync filter and applied state
   useEffect(() => {
     if (formIdFromUrl) {
       setFormId(formIdFromUrl)
