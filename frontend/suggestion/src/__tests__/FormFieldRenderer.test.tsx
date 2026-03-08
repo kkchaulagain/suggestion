@@ -1,6 +1,58 @@
 import { render, screen, fireEvent } from '@testing-library/react'
 import '@testing-library/jest-dom'
-import FormFieldRenderer from '../components/forms/FormFieldRenderer'
+import {
+  FormFieldRenderer,
+  isStarRatingOptions,
+  StarRatingField,
+  FieldWrapper,
+  ShortTextField,
+  BigTextField,
+  CheckboxField,
+  RadioField,
+  ImageUploadField,
+} from '../components/forms'
+
+describe('isStarRatingOptions', () => {
+  test('returns true for 5 options matching star pattern', () => {
+    const options = ['★ 1 Star', '★★ 2 Stars', '★★★ 3 Stars', '★★★★ 4 Stars', '★★★★★ 5 Stars']
+    expect(isStarRatingOptions(options)).toBe(true)
+  })
+
+  test('returns false for fewer than 5 options', () => {
+    expect(isStarRatingOptions(['★ 1 Star', '★★ 2 Stars'])).toBe(false)
+  })
+
+  test('returns false for 5 options not matching pattern', () => {
+    expect(isStarRatingOptions(['Good', 'Bad', 'Okay', 'Great', 'Poor'])).toBe(false)
+  })
+})
+
+test('StarRatingField is exported and renderable', () => {
+  const onChange = jest.fn()
+  const options = ['★ 1 Star', '★★ 2 Stars', '★★★ 3 Stars', '★★★★ 4 Stars', '★★★★★ 5 Stars']
+  render(
+    <StarRatingField
+      id="rate"
+      name="rating"
+      label="Rating"
+      value=""
+      options={options}
+      onChange={onChange}
+    />,
+  )
+  expect(screen.getByRole('group', { name: /rating/i })).toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: /2 stars/i }))
+  expect(onChange).toHaveBeenCalledWith('★★ 2 Stars')
+})
+
+test('field-type components are exported from index', () => {
+  expect(FieldWrapper).toBeDefined()
+  expect(ShortTextField).toBeDefined()
+  expect(BigTextField).toBeDefined()
+  expect(CheckboxField).toBeDefined()
+  expect(RadioField).toBeDefined()
+  expect(ImageUploadField).toBeDefined()
+})
 
 describe('FormFieldRenderer', () => {
   test('renders short_text as Input', () => {

@@ -272,4 +272,70 @@ describe('FormRenderPage', () => {
       expect(screen.getByText(/Thank you/i)).toBeInTheDocument()
     })
   })
+
+  test('renders star rating as clickable stars and submits selected value', async () => {
+    const starOptions = ['★ 1 Star', '★★ 2 Stars', '★★★ 3 Stars', '★★★★ 4 Stars', '★★★★★ 5 Stars']
+    mockedAxios.get.mockResolvedValueOnce({
+      data: {
+        feedbackForm: {
+          _id: 'form-star',
+          title: 'Rate us',
+          description: 'Optional.',
+          fields: [
+            { name: 'experience', label: 'Overall experience', type: 'radio', required: true, options: starOptions },
+          ],
+        },
+      },
+    })
+    mockedAxios.post.mockResolvedValueOnce({ data: {} })
+
+    renderFormRenderPage('form-star')
+
+    await waitFor(() => {
+      expect(screen.getByRole('group', { name: /overall experience/i })).toBeInTheDocument()
+    })
+    const fourStarsButton = screen.getByRole('button', { name: /4 stars/i })
+    fireEvent.click(fourStarsButton)
+    fireEvent.click(screen.getByRole('button', { name: /submit/i }))
+
+    await waitFor(() => {
+      expect(mockedAxios.post).toHaveBeenCalledWith(
+        expect.stringMatching(/\/submit$/),
+        expect.objectContaining({ experience: '★★★★ 4 Stars' }),
+      )
+    })
+  })
+
+  test('star rating can be selected with keyboard (Enter)', async () => {
+    const starOptions = ['★ 1 Star', '★★ 2 Stars', '★★★ 3 Stars', '★★★★ 4 Stars', '★★★★★ 5 Stars']
+    mockedAxios.get.mockResolvedValueOnce({
+      data: {
+        feedbackForm: {
+          _id: 'form-star',
+          title: 'Rate us',
+          description: 'Optional.',
+          fields: [
+            { name: 'experience', label: 'Overall experience', type: 'radio', required: true, options: starOptions },
+          ],
+        },
+      },
+    })
+    mockedAxios.post.mockResolvedValueOnce({ data: {} })
+
+    renderFormRenderPage('form-star')
+
+    await waitFor(() => {
+      expect(screen.getByRole('group', { name: /overall experience/i })).toBeInTheDocument()
+    })
+    const threeStarsButton = screen.getByRole('button', { name: /3 stars/i })
+    fireEvent.keyDown(threeStarsButton, { key: 'Enter' })
+    fireEvent.click(screen.getByRole('button', { name: /submit/i }))
+
+    await waitFor(() => {
+      expect(mockedAxios.post).toHaveBeenCalledWith(
+        expect.stringMatching(/\/submit$/),
+        expect.objectContaining({ experience: '★★★ 3 Stars' }),
+      )
+    })
+  })
 })
