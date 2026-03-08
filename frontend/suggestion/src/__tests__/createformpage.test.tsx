@@ -37,6 +37,11 @@ function getFieldRow(labelText: string) {
   return label.closest('[data-field-row]') as HTMLElement
 }
 
+/** In create mode, advance from template selection to the form builder (Configure my own). */
+function goToFormBuilder() {
+  fireEvent.click(screen.getByRole('button', { name: /configure my own/i }))
+}
+
 describe('CreateFormPage', () => {
   beforeEach(() => {
     jest.clearAllMocks()
@@ -48,6 +53,7 @@ describe('CreateFormPage', () => {
 
   test('renders fixed starter fields and allows adding custom fields after them', async () => {
     renderCreateFormPage()
+    goToFormBuilder()
 
     expect(screen.getByText('subject')).toBeInTheDocument()
     expect(screen.getByText('description')).toBeInTheDocument()
@@ -66,6 +72,7 @@ describe('CreateFormPage', () => {
 
   test('allows editing fixed field labels', () => {
     renderCreateFormPage()
+    goToFormBuilder()
 
     const subjectRow = getFieldRow('subject')
     fireEvent.click(within(subjectRow).getByRole('button', { name: /edit/i }))
@@ -82,6 +89,7 @@ describe('CreateFormPage', () => {
     })
 
     renderCreateFormPage()
+    goToFormBuilder()
     fireEvent.click(screen.getByRole('button', { name: /save form/i }))
 
     await waitFor(() => {
@@ -91,6 +99,7 @@ describe('CreateFormPage', () => {
 
   test('validates empty title before save', async () => {
     renderCreateFormPage()
+    goToFormBuilder()
 
     fireEvent.change(screen.getByLabelText(/form title/i), {
       target: { value: '' },
@@ -104,6 +113,7 @@ describe('CreateFormPage', () => {
 
   test('validates duplicate field names', async () => {
     renderCreateFormPage()
+    goToFormBuilder()
 
     fireEvent.click(screen.getAllByRole('button', { name: /edit/i })[0])
     fireEvent.click(screen.getByRole('button', { name: /more options/i }))
@@ -130,6 +140,7 @@ describe('CreateFormPage', () => {
 
   test('validates radio fields with no options', async () => {
     renderCreateFormPage()
+    goToFormBuilder()
 
     fireEvent.click(screen.getByRole('button', { name: /\+ Add new field/i }))
     await waitFor(() => {
@@ -225,6 +236,7 @@ describe('CreateFormPage', () => {
 
   test('supports checkbox field editing including options, placeholder, required, and removal', async () => {
     renderCreateFormPage()
+    goToFormBuilder()
 
     fireEvent.click(screen.getByRole('button', { name: /\+ Add new field/i }))
     await waitFor(() => {
@@ -275,6 +287,7 @@ describe('CreateFormPage', () => {
 
   test('allows changing a field type to radio and closes the editor', () => {
     renderCreateFormPage()
+    goToFormBuilder()
 
     const subjectRow = getFieldRow('subject')
     fireEvent.click(within(subjectRow).getByRole('button', { name: /edit/i }))
@@ -295,6 +308,7 @@ describe('CreateFormPage', () => {
 
     mockedAxios.post.mockResolvedValueOnce({ data: {} } as CreateFormSaveResponse)
     renderCreateFormPage()
+    goToFormBuilder()
 
     fireEvent.click(screen.getByRole('button', { name: /\+ Add new field/i }))
     await waitFor(() => {
@@ -359,15 +373,17 @@ describe('CreateFormPage', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/dashboard/forms')
   })
 
-  test('Back without changes navigates to forms list', () => {
+  test('Back without changes returns to template selection (create mode)', () => {
     renderCreateFormPage()
+    goToFormBuilder()
     fireEvent.click(screen.getByRole('button', { name: /back/i }))
-    expect(mockNavigate).toHaveBeenCalledWith('/dashboard/forms')
-    expect(screen.queryByRole('heading', { name: /unsaved changes/i })).not.toBeInTheDocument()
+    expect(screen.getByText(/Customer Feedback/i)).toBeInTheDocument()
+    expect(mockNavigate).not.toHaveBeenCalled()
   })
 
   test('Back with changes opens unsaved changes modal', () => {
     renderCreateFormPage()
+    goToFormBuilder()
     fireEvent.change(screen.getByLabelText(/form title/i), { target: { value: 'My form' } })
     fireEvent.click(screen.getByRole('button', { name: /back/i }))
     expect(screen.getByRole('heading', { name: /unsaved changes/i })).toBeInTheDocument()
@@ -377,6 +393,7 @@ describe('CreateFormPage', () => {
 
   test('Unsaved changes modal Cancel closes modal and does not navigate', () => {
     renderCreateFormPage()
+    goToFormBuilder()
     fireEvent.change(screen.getByLabelText(/form title/i), { target: { value: 'My form' } })
     fireEvent.click(screen.getByRole('button', { name: /back/i }))
     fireEvent.click(screen.getByRole('button', { name: /cancel/i }))
@@ -386,6 +403,7 @@ describe('CreateFormPage', () => {
 
   test('Unsaved changes modal Leave navigates to forms list', () => {
     renderCreateFormPage()
+    goToFormBuilder()
     fireEvent.change(screen.getByLabelText(/form title/i), { target: { value: 'My form' } })
     fireEvent.click(screen.getByRole('button', { name: /back/i }))
     fireEvent.click(screen.getByRole('button', { name: /^leave$/i }))
@@ -394,6 +412,7 @@ describe('CreateFormPage', () => {
 
   test('beforeunload fires when form is dirty', () => {
     renderCreateFormPage()
+    goToFormBuilder()
     fireEvent.change(screen.getByLabelText(/form title/i), { target: { value: 'Changed' } })
     const event = new Event('beforeunload', { cancelable: true })
     window.dispatchEvent(event)
@@ -402,6 +421,7 @@ describe('CreateFormPage', () => {
 
   test('Add new field modal closes when backdrop is clicked', () => {
     renderCreateFormPage()
+    goToFormBuilder()
     fireEvent.click(screen.getByRole('button', { name: /\+ Add new field/i }))
     expect(screen.getByRole('heading', { name: /Add new field/i })).toBeInTheDocument()
     const dialog = screen.getByRole('dialog', { name: /Add new field/i })
@@ -411,6 +431,8 @@ describe('CreateFormPage', () => {
 
   test('Unsaved changes modal closes when backdrop is clicked', () => {
     renderCreateFormPage()
+    goToFormBuilder()
+
     fireEvent.change(screen.getByLabelText(/form title/i), { target: { value: 'My form' } })
     fireEvent.click(screen.getByRole('button', { name: /back/i }))
     expect(screen.getByRole('heading', { name: /unsaved changes/i })).toBeInTheDocument()
@@ -418,5 +440,60 @@ describe('CreateFormPage', () => {
     fireEvent.click(dialog)
     expect(screen.queryByRole('heading', { name: /unsaved changes/i })).not.toBeInTheDocument()
     expect(mockNavigate).not.toHaveBeenCalled()
+  })
+
+  describe('Create Form Wizard', () => {
+    test('shows template selection step on create', () => {
+      renderCreateFormPage()
+      expect(screen.getByText(/Customer Feedback/i)).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /configure my own/i })).toBeInTheDocument()
+    })
+
+    test('selecting a template pre-populates form fields', () => {
+      renderCreateFormPage()
+      fireEvent.click(screen.getByText(/Customer Feedback/i))
+      expect(screen.getByLabelText(/form title/i)).toHaveValue('Customer Feedback')
+      expect(screen.getByRole('button', { name: /save form/i })).toBeInTheDocument()
+    })
+
+    test('configure my own skips to blank form builder', () => {
+      renderCreateFormPage()
+      goToFormBuilder()
+      expect(screen.getByLabelText(/form title/i)).toHaveValue('Feedback form')
+      expect(screen.getByText('subject')).toBeInTheDocument()
+    })
+
+    test('back button in build step returns to template selection (create mode)', () => {
+      renderCreateFormPage()
+      goToFormBuilder()
+      fireEvent.click(screen.getByRole('button', { name: /back/i }))
+      expect(screen.getByText(/Customer Feedback/i)).toBeInTheDocument()
+      expect(mockNavigate).not.toHaveBeenCalled()
+    })
+
+    test('edit mode skips template selection', async () => {
+      mockedAxios.get.mockResolvedValueOnce({
+        data: {
+          feedbackForm: {
+            title: 'Existing form',
+            description: 'Desc',
+            fields: [
+              { name: 'subject', label: 'Subject', type: 'short_text', required: true },
+              { name: 'description', label: 'Description', type: 'big_text', required: false },
+              { name: 'attachment', label: 'Attachment', type: 'image_upload', required: false },
+            ],
+          },
+        },
+      })
+      renderCreateFormPage('/dashboard/forms/form-123/edit')
+      await waitFor(() => expect(screen.getByDisplayValue('Existing form')).toBeInTheDocument())
+      expect(screen.queryByText(/Customer Feedback/i)).not.toBeInTheDocument()
+    })
+
+    test('Back on template selection step is a link to forms list', () => {
+      renderCreateFormPage()
+      const backLink = screen.getByRole('link', { name: /back/i })
+      expect(backLink).toHaveAttribute('href', '/dashboard/forms')
+    })
   })
 })
