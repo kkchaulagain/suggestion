@@ -32,9 +32,9 @@ function renderCreateFormPage(path = '/dashboard/forms/create') {
   )
 }
 
-function getFieldCard(labelText: string) {
+function getFieldRow(labelText: string) {
   const label = screen.getByText(labelText)
-  return label.closest('.rounded-2xl') as HTMLElement
+  return label.closest('[data-field-row]') as HTMLElement
 }
 
 describe('CreateFormPage', () => {
@@ -53,7 +53,11 @@ describe('CreateFormPage', () => {
     expect(screen.getByText('description')).toBeInTheDocument()
     expect(screen.getByText('attachment')).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: /short text/i }))
+    fireEvent.click(screen.getByRole('button', { name: /\+ Add new field/i }))
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /Add new field/i })).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: /^Short Text$/i }))
 
     await waitFor(() => {
       expect(screen.getByDisplayValue('Short answer 4')).toBeInTheDocument()
@@ -63,13 +67,13 @@ describe('CreateFormPage', () => {
   test('allows editing fixed field labels', () => {
     renderCreateFormPage()
 
-    const subjectCard = getFieldCard('subject')
-    fireEvent.click(within(subjectCard).getByRole('button', { name: /edit/i }))
-    fireEvent.change(within(subjectCard).getByLabelText(/label/i), {
+    const subjectRow = getFieldRow('subject')
+    fireEvent.click(within(subjectRow).getByRole('button', { name: /edit/i }))
+    fireEvent.change(within(subjectRow).getByLabelText(/label/i), {
       target: { value: 'Issue subject' },
     })
 
-    expect(within(subjectCard).getByDisplayValue('Issue subject')).toBeInTheDocument()
+    expect(within(subjectRow).getByDisplayValue('Issue subject')).toBeInTheDocument()
   })
 
   test('shows backend error when save fails', async () => {
@@ -102,13 +106,18 @@ describe('CreateFormPage', () => {
     renderCreateFormPage()
 
     fireEvent.click(screen.getAllByRole('button', { name: /edit/i })[0])
+    fireEvent.click(screen.getByRole('button', { name: /more options/i }))
     fireEvent.change(screen.getByLabelText(/field name/i), {
       target: { value: 'duplicate_name' },
     })
 
-    fireEvent.click(screen.getByRole('button', { name: /short text/i }))
-    const customFieldEditor = getFieldCard('Short answer 4')
-    fireEvent.change(within(customFieldEditor).getByLabelText(/field name/i), {
+    fireEvent.click(screen.getByRole('button', { name: /\+ Add new field/i }))
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /Add new field/i })).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: /^Short Text$/i }))
+    // New field's editor opens with More options still expanded from first field
+    fireEvent.change(screen.getByLabelText(/field name/i), {
       target: { value: 'duplicate_name' },
     })
 
@@ -122,9 +131,13 @@ describe('CreateFormPage', () => {
   test('validates radio fields with no options', async () => {
     renderCreateFormPage()
 
-    fireEvent.click(screen.getByRole('button', { name: /radio/i }))
-    const radioFieldCard = getFieldCard('Single choice 4')
-    fireEvent.click(within(radioFieldCard).getByRole('button', { name: /remove option 1/i }))
+    fireEvent.click(screen.getByRole('button', { name: /\+ Add new field/i }))
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /Add new field/i })).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: /^Radio$/i }))
+    const radioFieldRow = getFieldRow('Single choice 4')
+    fireEvent.click(within(radioFieldRow).getByRole('button', { name: /remove option 1/i }))
     fireEvent.click(screen.getByRole('button', { name: /save form/i }))
 
     await waitFor(() => {
@@ -213,16 +226,21 @@ describe('CreateFormPage', () => {
   test('supports checkbox field editing including options, placeholder, required, and removal', async () => {
     renderCreateFormPage()
 
-    fireEvent.click(screen.getByRole('button', { name: /checkbox/i }))
-    const checkboxFieldCard = getFieldCard('Checkbox group 4')
+    fireEvent.click(screen.getByRole('button', { name: /\+ Add new field/i }))
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /Add new field/i })).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: /^Checkbox$/i }))
+    const checkboxFieldRow = getFieldRow('Checkbox group 4')
+    fireEvent.click(within(checkboxFieldRow).getByRole('button', { name: /more options/i }))
 
-    fireEvent.change(within(checkboxFieldCard).getByLabelText(/placeholder/i), {
+    fireEvent.change(within(checkboxFieldRow).getByLabelText(/placeholder/i), {
       target: { value: 'Pick all that apply' },
     })
-    fireEvent.click(within(checkboxFieldCard).getByLabelText(/required field/i))
-    fireEvent.click(within(checkboxFieldCard).getByRole('button', { name: /add option/i }))
+    fireEvent.click(within(checkboxFieldRow).getByLabelText(/required field/i))
+    fireEvent.click(within(checkboxFieldRow).getByRole('button', { name: /add option/i }))
 
-    const optionInputs = within(checkboxFieldCard).getAllByPlaceholderText(/option \d+/i)
+    const optionInputs = within(checkboxFieldRow).getAllByPlaceholderText(/option \d+/i)
     fireEvent.change(optionInputs[0], { target: { value: 'Phone' } })
     fireEvent.change(optionInputs[1], { target: { value: 'Email' } })
 
@@ -251,23 +269,23 @@ describe('CreateFormPage', () => {
       )
     })
 
-    fireEvent.click(within(checkboxFieldCard).getByRole('button', { name: /^remove$/i }))
+    fireEvent.click(within(checkboxFieldRow).getByRole('button', { name: /remove field: checkbox group 4/i }))
     expect(screen.queryByText('Checkbox group 4')).not.toBeInTheDocument()
   })
 
   test('allows changing a field type to radio and closes the editor', () => {
     renderCreateFormPage()
 
-    const subjectCard = getFieldCard('subject')
-    fireEvent.click(within(subjectCard).getByRole('button', { name: /edit/i }))
-    fireEvent.change(within(subjectCard).getByLabelText(/type/i), {
+    const subjectRow = getFieldRow('subject')
+    fireEvent.click(within(subjectRow).getByRole('button', { name: /edit/i }))
+    fireEvent.change(within(subjectRow).getByLabelText(/type/i), {
       target: { value: 'radio' },
     })
 
-    expect(within(subjectCard).getByText('Option 1')).toBeInTheDocument()
+    expect(within(subjectRow).getByDisplayValue('Option 1')).toBeInTheDocument()
 
-    fireEvent.click(within(subjectCard).getByRole('button', { name: /close/i }))
-    expect(within(subjectCard).queryByLabelText(/field name/i)).not.toBeInTheDocument()
+    fireEvent.click(within(subjectRow).getByRole('button', { name: /close/i }))
+    expect(within(subjectRow).queryByLabelText(/field name/i)).not.toBeInTheDocument()
   })
 
   test('saves form and navigates back to forms list', async () => {
@@ -278,9 +296,13 @@ describe('CreateFormPage', () => {
     mockedAxios.post.mockResolvedValueOnce({ data: {} } as CreateFormSaveResponse)
     renderCreateFormPage()
 
-    fireEvent.click(screen.getByRole('button', { name: /short text/i }))
-    const customFieldEditor = getFieldCard('Short answer 4')
-    fireEvent.change(within(customFieldEditor).getByLabelText(/label/i), {
+    fireEvent.click(screen.getByRole('button', { name: /\+ Add new field/i }))
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /Add new field/i })).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: /^Short Text$/i }))
+    const customFieldRow = getFieldRow('Short answer 4')
+    fireEvent.change(within(customFieldRow).getByLabelText(/label/i), {
       target: { value: 'Comment' },
     })
 
