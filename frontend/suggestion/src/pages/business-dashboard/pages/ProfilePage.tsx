@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { Check, KeyRound, Pencil, X } from 'lucide-react'
 import { useAuth } from '../../../context/AuthContext'
 import { Button, Card, Input, Modal } from '../../../components/ui'
-import { meapi } from '../../../utils/apipath'
+import { changePasswordApi, meapi } from '../../../utils/apipath'
 
 interface ProfileData {
   name: string
@@ -18,6 +18,13 @@ export default function ProfilePage() {
   const [editName, setEditName] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false)
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [isChangingPassword, setIsChangingPassword] = useState(false)
+  const [passwordError, setPasswordError] = useState<string | null>(null)
+  const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null)
   const { user, getAuthHeaders } = useAuth()
 
   useEffect(() => {
@@ -92,6 +99,70 @@ export default function ProfilePage() {
     }
   }
 
+  const resetPasswordForm = () => {
+    setCurrentPassword('')
+    setNewPassword('')
+    setConfirmPassword('')
+    setPasswordError(null)
+  }
+
+  const handleOpenPasswordModal = () => {
+    resetPasswordForm()
+    setPasswordSuccess(null)
+    setIsPasswordDialogOpen(true)
+  }
+
+  const handleClosePasswordModal = () => {
+    if (!isChangingPassword) {
+      setIsPasswordDialogOpen(false)
+      setPasswordError(null)
+    }
+  }
+
+  const handleChangePassword = async () => {
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setPasswordError('All password fields are required')
+      return
+    }
+    if (newPassword.length < 6) {
+      setPasswordError('Password must be at least 6 characters long')
+      return
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError('New passwords do not match')
+      return
+    }
+
+    setIsChangingPassword(true)
+    setPasswordError(null)
+    setPasswordSuccess(null)
+
+    try {
+      const response = await axios.put(
+        changePasswordApi,
+        { currentPassword, newPassword, confirmPassword },
+        {
+          withCredentials: true,
+          headers: getAuthHeaders(),
+        }
+      )
+
+      if (response.data?.success) {
+        setPasswordSuccess(response.data?.message ?? 'Password changed successfully')
+        resetPasswordForm()
+        setIsPasswordDialogOpen(false)
+      }
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error)) {
+        setPasswordError(error.response?.data?.message ?? 'Failed to change password.')
+      } else {
+        setPasswordError('Failed to change password.')
+      }
+    } finally {
+      setIsChangingPassword(false)
+    }
+  }
+
   const displayName = profile?.name ?? user?.name ?? 'N/A'
   const displayEmail = profile?.email ?? user?.email ?? 'N/A'
 
@@ -140,11 +211,14 @@ export default function ProfilePage() {
 
           <Card>
             <div className="flex flex-col sm:flex-row gap-4">
-              <Button type="button" variant="secondary" size="lg" className="flex-1">
+              <Button type="button" variant="secondary" size="lg" className="flex-1" onClick={handleOpenPasswordModal}>
                 <KeyRound className="h-4 w-4" />
                 Change Password
               </Button>
             </div>
+            {passwordSuccess ? (
+              <p className="mt-3 text-xs font-medium text-emerald-600 dark:text-emerald-400">{passwordSuccess}</p>
+            ) : null}
           </Card>
 
         </div>
@@ -190,6 +264,66 @@ export default function ProfilePage() {
           >
             <Check className="h-4 w-4" />
             {isSaving ? 'Saving...' : 'Save Changes'}
+          </Button>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={isPasswordDialogOpen}
+        onClose={handleClosePasswordModal}
+        title="Change Password"
+      >
+        <div className="space-y-4">
+          <Input
+            id="current-password"
+            label="Current Password"
+            type="password"
+            value={currentPassword}
+            onChange={setCurrentPassword}
+            placeholder="Enter current password"
+          />
+          <Input
+            id="new-password"
+            label="New Password"
+            type="password"
+            value={newPassword}
+            onChange={setNewPassword}
+            placeholder="Enter new password"
+          />
+          <Input
+            id="confirm-password"
+            label="Confirm New Password"
+            type="password"
+            value={confirmPassword}
+            onChange={setConfirmPassword}
+            placeholder="Confirm new password"
+          />
+          {passwordError ? (
+            <p className="text-xs font-medium text-rose-600 dark:text-rose-400">{passwordError}</p>
+          ) : null}
+        </div>
+        <div className="mt-6 flex gap-3">
+          <Button
+            type="button"
+            variant="secondary"
+            size="lg"
+            onClick={handleClosePasswordModal}
+            className="flex-1"
+            disabled={isChangingPassword}
+          >
+            <X className="h-4 w-4" />
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            variant="primary"
+            size="lg"
+            onClick={handleChangePassword}
+            className="flex-1"
+            disabled={isChangingPassword}
+          >
+            <Check className="h-4 w-4" />
+            {isChangingPassword ? 'Changing...' : 'Update Password'}
           </Button>
         </div>
       </Modal>
