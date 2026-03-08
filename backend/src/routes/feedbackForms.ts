@@ -258,6 +258,18 @@ router.get('/submissions', isAuthenticated, authorize('business', 'admin', 'gove
       query.submittedAt = query.submittedAt || {};
       (query.submittedAt as Record<string, Date>).$lte = dateTo;
     }
+    // When a form is selected, allow filtering by response field values (field_<name>=<value>)
+    const fieldNameRegex = /^[a-zA-Z0-9_]+$/;
+    if (formIdRaw && typeof formIdRaw === 'string' && req.query && typeof req.query === 'object') {
+      for (const [key, val] of Object.entries(req.query)) {
+        if (key.startsWith('field_') && typeof val === 'string' && val.trim() !== '') {
+          const fieldName = key.slice(6);
+          if (fieldNameRegex.test(fieldName)) {
+            (query as Record<string, unknown>)['responses.' + fieldName] = val.trim();
+          }
+        }
+      }
+    }
     const page = Math.max(1, parseInt(String(req.query.page), 10) || 1);
     const pageSize = Math.min(50, Math.max(1, parseInt(String(req.query.pageSize), 10) || 20));
     const skip = (page - 1) * pageSize;

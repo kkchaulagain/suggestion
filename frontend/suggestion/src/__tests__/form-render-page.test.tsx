@@ -3,6 +3,7 @@ import '@testing-library/jest-dom'
 import { MemoryRouter, Route, Routes, useParams } from 'react-router-dom'
 import axios from 'axios'
 
+import { ThemeProvider } from '../context/ThemeContext'
 import FormRenderPage from '../pages/feedback-form-render/FormRenderPage'
 
 jest.mock('axios')
@@ -42,11 +43,13 @@ const mockFormWithCheckboxBigTextImage = {
 function renderFormRenderPage(formId: string) {
   mockedUseParams.mockReturnValue({ formId })
   return render(
-    <MemoryRouter initialEntries={[`/feedback-forms/${formId}`]}>
-      <Routes>
-        <Route path="/feedback-forms/:formId" element={<FormRenderPage />} />
-      </Routes>
-    </MemoryRouter>,
+    <ThemeProvider>
+      <MemoryRouter initialEntries={[`/feedback-forms/${formId}`]}>
+        <Routes>
+          <Route path="/feedback-forms/:formId" element={<FormRenderPage />} />
+        </Routes>
+      </MemoryRouter>
+    </ThemeProvider>,
   )
 }
 
@@ -145,11 +148,13 @@ describe('FormRenderPage', () => {
   test('shows error when formId is missing', async () => {
     mockedUseParams.mockReturnValue({})
     render(
-      <MemoryRouter initialEntries={['/feedback-forms']}>
-        <Routes>
-          <Route path="/feedback-forms" element={<FormRenderPage />} />
-        </Routes>
-      </MemoryRouter>,
+      <ThemeProvider>
+        <MemoryRouter initialEntries={['/feedback-forms']}>
+          <Routes>
+            <Route path="/feedback-forms" element={<FormRenderPage />} />
+          </Routes>
+        </MemoryRouter>
+      </ThemeProvider>,
     )
     await waitFor(() => {
       expect(screen.getByText(/Missing form ID/i)).toBeInTheDocument()

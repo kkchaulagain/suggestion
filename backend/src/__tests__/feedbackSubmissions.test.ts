@@ -512,6 +512,36 @@ describe('Feedback Submissions API', () => {
       expect(res.body.submissions[0].responses.c).toBe('mid');
     });
 
+    it('filters by response field when formId and field_ param are provided', async () => {
+      const { authHeader, businessId } = await createBusinessAuth();
+      const form = await FeedbackForm.create({
+        businessId,
+        title: 'Survey',
+        fields: [{ name: 'rating', label: 'Rating', type: 'radio', options: ['Good', 'Bad'] }],
+      });
+      await FeedbackSubmission.create({
+        formId: form._id,
+        businessId,
+        formSnapshot: [{ name: 'rating', label: 'Rating', type: 'radio', options: ['Good', 'Bad'] }],
+        responses: { rating: 'Good' },
+      });
+      await FeedbackSubmission.create({
+        formId: form._id,
+        businessId,
+        formSnapshot: [{ name: 'rating', label: 'Rating', type: 'radio', options: ['Good', 'Bad'] }],
+        responses: { rating: 'Bad' },
+      });
+
+      const res = await request(app)
+        .get('/api/feedback-forms/submissions')
+        .query({ formId: form._id.toString(), field_rating: 'Good' })
+        .set(authHeader)
+        .expect(200);
+
+      expect(res.body.submissions).toHaveLength(1);
+      expect(res.body.submissions[0].responses.rating).toBe('Good');
+    });
+
     it('applies page and pageSize', async () => {
       const { authHeader, businessId } = await createBusinessAuth();
       const form = await FeedbackForm.create({

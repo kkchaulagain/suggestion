@@ -243,9 +243,147 @@ describe('SubmissionsPage', () => {
     })
   })
 
+  it('shows field-based filters when a form is selected and sends field_ params on Apply', async () => {
+    mockedAxios.get
+      .mockResolvedValueOnce({ data: { feedbackForms: [{ _id: 'f1', title: 'Survey' }] } })
+      .mockResolvedValueOnce({ data: { submissions: [], total: 0 } })
+      .mockResolvedValueOnce({ data: { feedbackForm: { fields: [{ name: 'rating', label: 'Rating', type: 'radio', options: ['Good', 'Bad'] }] } } })
+      .mockResolvedValueOnce({ data: { submissions: [], total: 0 } })
+
+    render(
+      <MemoryRouter>
+        <SubmissionsPage />
+      </MemoryRouter>,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText(/No submissions found/i)).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /Filters/i }))
+    const formSelect = screen.getByLabelText(/Form/i)
+    fireEvent.change(formSelect, { target: { value: 'f1' } })
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/Rating/i)).toBeInTheDocument()
+    })
+
+    const ratingSelect = screen.getByLabelText(/Rating/i)
+    fireEvent.change(ratingSelect, { target: { value: 'Good' } })
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /Apply/i }))
+    })
+
+    await waitFor(() => {
+      const submissionsCalls = mockedAxios.get.mock.calls.filter((c) => String(c[0]).includes('submissions'))
+      const lastSubmissionsCall = submissionsCalls[submissionsCalls.length - 1]
+      expect(lastSubmissionsCall).toBeDefined()
+      expect(lastSubmissionsCall![0]).toMatch(/field_rating=Good/)
+      expect(lastSubmissionsCall![0]).toMatch(/formId=f1/)
+    })
+  })
+
+  it('handles form fetch failure when form is selected and does not show field filters', async () => {
+    mockedAxios.get
+      .mockResolvedValueOnce({ data: { feedbackForms: [{ _id: 'f1', title: 'Survey' }] } })
+      .mockResolvedValueOnce({ data: { submissions: [], total: 0 } })
+      .mockRejectedValueOnce(new Error('Form not found'))
+
+    render(
+      <MemoryRouter>
+        <SubmissionsPage />
+      </MemoryRouter>,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText(/No submissions found/i)).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /Filters/i }))
+    fireEvent.change(screen.getByLabelText(/Form/i), { target: { value: 'f1' } })
+
+    await waitFor(() => {
+      expect(mockedAxios.get).toHaveBeenCalledTimes(3)
+    })
+    expect(screen.queryByLabelText(/Rating/i)).not.toBeInTheDocument()
+  })
+
+  it('clearing form selection clears field filters and refetches without formId', async () => {
+    mockedAxios.get
+      .mockResolvedValueOnce({ data: { feedbackForms: [{ _id: 'f1', title: 'Survey' }] } })
+      .mockResolvedValueOnce({ data: { submissions: [], total: 0 } })
+      .mockResolvedValueOnce({ data: { feedbackForm: { fields: [{ name: 'r', label: 'Rating', type: 'radio', options: ['Good'] }] } } })
+      .mockResolvedValueOnce({ data: { submissions: [], total: 0 } })
+      .mockResolvedValueOnce({ data: { submissions: [], total: 0 } })
+
+    render(
+      <MemoryRouter>
+        <SubmissionsPage />
+      </MemoryRouter>,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText(/No submissions found/i)).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /Filters/i }))
+    fireEvent.change(screen.getByLabelText(/Form/i), { target: { value: 'f1' } })
+    await waitFor(() => {
+      expect(screen.getByLabelText(/Rating/i)).toBeInTheDocument()
+    })
+    fireEvent.change(screen.getByLabelText(/Rating/i), { target: { value: 'Good' } })
+    fireEvent.change(screen.getByLabelText(/Form/i), { target: { value: '' } })
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /Apply/i }))
+    })
+
+    await waitFor(() => {
+      const submissionsCalls = mockedAxios.get.mock.calls.filter((c) => String(c[0]).includes('submissions'))
+      const lastCall = submissionsCalls[submissionsCalls.length - 1]
+      expect(lastCall![0]).not.toMatch(/formId=/)
+    })
+  })
+
+  it('applies text field filter and sends field_ param on Apply', async () => {
+    mockedAxios.get
+      .mockResolvedValueOnce({ data: { feedbackForms: [{ _id: 'f1', title: 'Survey' }] } })
+      .mockResolvedValueOnce({ data: { submissions: [], total: 0 } })
+      .mockResolvedValueOnce({ data: { feedbackForm: { fields: [{ name: 'comment', label: 'Comment', type: 'short_text' }] } } })
+      .mockResolvedValueOnce({ data: { submissions: [], total: 0 } })
+
+    render(
+      <MemoryRouter>
+        <SubmissionsPage />
+      </MemoryRouter>,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText(/No submissions found/i)).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /Filters/i }))
+    fireEvent.change(screen.getByLabelText(/Form/i), { target: { value: 'f1' } })
+    await waitFor(() => {
+      expect(screen.getByLabelText(/Comment/i)).toBeInTheDocument()
+    })
+    const commentInput = screen.getByLabelText(/Comment/i)
+    fireEvent.change(commentInput, { target: { value: 'nice' } })
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /Apply/i }))
+    })
+
+    await waitFor(() => {
+      const submissionsCalls = mockedAxios.get.mock.calls.filter((c) => String(c[0]).includes('submissions'))
+      const lastCall = submissionsCalls[submissionsCalls.length - 1]
+      expect(lastCall![0]).toMatch(/field_comment=nice/)
+      expect(lastCall![0]).toMatch(/formId=f1/)
+    })
+  })
+
   it('applies formId from URL and fetches submissions for that form', async () => {
     mockedAxios.get
       .mockResolvedValueOnce({ data: { feedbackForms: [{ _id: 'f-from-url', title: 'Form From URL' }] } })
+      .mockResolvedValueOnce({ data: { feedbackForm: { fields: [{ name: 'q', label: 'Question', type: 'short_text' }] } } })
       .mockResolvedValueOnce({ data: { submissions: [], total: 0 } })
 
     render(
@@ -258,7 +396,7 @@ describe('SubmissionsPage', () => {
       expect(screen.getByText(/No submissions found/i)).toBeInTheDocument()
     })
 
-    expect(mockedAxios.get).toHaveBeenCalledTimes(2)
+    expect(mockedAxios.get).toHaveBeenCalledTimes(3)
     const submissionsCall = mockedAxios.get.mock.calls.find((call) => String(call[0]).includes('submissions'))
     expect(submissionsCall).toBeDefined()
     expect(submissionsCall![0]).toMatch(/\?.*formId=f-from-url/)
