@@ -8,11 +8,19 @@ const mockedAxios = axios as jest.Mocked<typeof axios>
 const mockUser = { name: 'Test User', email: 'test@example.com' }
 const mockHeaders = { Authorization: 'Bearer fake-token' }
 const mockGetAuthHeaders = jest.fn(() => mockHeaders)
+const mockLogout = jest.fn()
+const mockNavigate = jest.fn()
+
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  useNavigate: () => mockNavigate,
+}))
 
 jest.mock('../context/AuthContext', () => ({
   useAuth: () => ({
     user: mockUser,
     getAuthHeaders: mockGetAuthHeaders,
+    logout: mockLogout,
   }),
 }))
 
@@ -26,6 +34,8 @@ const mockProfileResponse = {
 describe('ProfilePage Component', () => {
   beforeEach(() => {
     jest.clearAllMocks()
+    mockLogout.mockClear()
+    mockNavigate.mockClear()
     mockedAxios.get.mockResolvedValue(mockProfileResponse)
     mockedAxios.isAxiosError.mockImplementation((value: unknown) => {
       return Boolean((value as { isAxiosError?: boolean })?.isAxiosError)
@@ -35,8 +45,7 @@ describe('ProfilePage Component', () => {
   it('renders profile data from backend api', async () => {
     render(<ProfilePage />)
 
-    expect(screen.getByText('Personal Details')).toBeInTheDocument()
-    expect(screen.getAllByText('Loading profile...')).toHaveLength(2)
+    expect(screen.getByText('Loading...')).toBeInTheDocument()
 
     await waitFor(() => {
       expect(screen.getByText('Acme Owner')).toBeInTheDocument()
@@ -329,5 +338,16 @@ describe('ProfilePage Component', () => {
     await waitFor(() => {
       expect(screen.getByText('Failed to change password.')).toBeInTheDocument()
     })
+  })
+
+  it('logs out and redirects to login when logout button is clicked', async () => {
+    render(<ProfilePage />)
+
+    await waitFor(() => expect(screen.getByText('Acme Owner')).toBeInTheDocument())
+
+    fireEvent.click(screen.getByRole('button', { name: /logout/i }))
+
+    expect(mockLogout).toHaveBeenCalledTimes(1)
+    expect(mockNavigate).toHaveBeenCalledWith('/login')
   })
 })
