@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import axios from 'axios'
 import { ArrowLeft, ChevronDown, ChevronUp, Image, ListChecks, Pencil, Plus, Send, Text, Trash2 } from 'lucide-react'
@@ -98,6 +98,20 @@ function normalizeLoadedFields(fields: FeedbackField[] | undefined): FeedbackFie
     : defaultFields
 }
 
+/** Serialize fields for dirty check (ignore clientId). */
+function serializeFieldsForDirty(fields: FeedbackField[]): string {
+  return JSON.stringify(
+    fields.map((f) => ({
+      name: f.name,
+      label: f.label,
+      type: f.type,
+      required: f.required,
+      placeholder: f.placeholder ?? '',
+      options: f.options ?? [],
+    })),
+  )
+}
+
 export default function CreateFormPage() {
   const navigate = useNavigate()
   const { formId } = useParams<{ formId: string }>()
@@ -109,11 +123,19 @@ export default function CreateFormPage() {
   const [editingFieldIndex, setEditingFieldIndex] = useState<number | null>(null)
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false)
   const [showAddFieldModal, setShowAddFieldModal] = useState(false)
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false)
   const [loading, setLoading] = useState(isEditMode)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
 
+  const initialSnapshotRef = useRef<{ title: string; description: string; fieldsKey: string } | null>(null)
   const { getAuthHeaders } = useAuth()
+
+  const isDirty =
+    initialSnapshotRef.current !== null &&
+    (title !== initialSnapshotRef.current.title ||
+      description !== initialSnapshotRef.current.description ||
+      serializeFieldsForDirty(fields) !== initialSnapshotRef.current.fieldsKey)
 
   useEffect(() => {
     if (!isEditMode || !formId) return
@@ -129,10 +151,18 @@ export default function CreateFormPage() {
           headers: getAuthHeaders(),
         })
         if (!active) return
-        setTitle(data.feedbackForm.title || 'Feedback form')
-        setDescription(data.feedbackForm.description || '')
-        setFields(normalizeLoadedFields(data.feedbackForm.fields))
+        const loadedTitle = data.feedbackForm.title || 'Feedback form'
+        const loadedDescription = data.feedbackForm.description ?? ''
+        const loadedFields = normalizeLoadedFields(data.feedbackForm.fields)
+        setTitle(loadedTitle)
+        setDescription(loadedDescription)
+        setFields(loadedFields)
         setEditingFieldIndex(null)
+        initialSnapshotRef.current = {
+          title: loadedTitle,
+          description: loadedDescription,
+          fieldsKey: serializeFieldsForDirty(loadedFields),
+        }
       } catch (err: unknown) {
         if (!active) return
         const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error
@@ -150,6 +180,26 @@ export default function CreateFormPage() {
       active = false
     }
   }, [formId, isEditMode])
+
+  useEffect(() => {
+    if (isEditMode) return
+    if (initialSnapshotRef.current === null) {
+      initialSnapshotRef.current = {
+        title: 'Feedback form',
+        description: 'test',
+        fieldsKey: serializeFieldsForDirty(defaultFields),
+      }
+    }
+  }, [isEditMode])
+
+  useEffect(() => {
+    if (!isDirty) return
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+    }
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
+  }, [isDirty])
 
   const updateField = (index: number, updater: (field: FeedbackField) => FeedbackField) => {
     setFields((current) => current.map((field, fieldIndex) => (fieldIndex === index ? updater(field) : field)))
@@ -306,10 +356,23 @@ export default function CreateFormPage() {
     )
   }
 
+  const handleBackClick = () => {
+    if (isDirty) {
+      setShowLeaveConfirm(true)
+    } else {
+      navigate('/dashboard/forms')
+    }
+  }
+
+  const handleLeaveConfirm = () => {
+    setShowLeaveConfirm(false)
+    navigate('/dashboard/forms')
+  }
+
   return (
     <section className="mx-auto max-w-4xl">
       <div className="mb-4 flex justify-start">
-        <Button type="button" variant="secondary" size="sm" onClick={() => navigate('/dashboard/forms')}>
+        <Button type="button" variant="secondary" size="sm" onClick={handleBackClick}>
           <ArrowLeft className="h-4 w-4" />
           Back
         </Button>
@@ -547,6 +610,36 @@ export default function CreateFormPage() {
           </Button>
         </form>
       </Card>
+
+      <Modal
+        isOpen={showLeaveConfirm}
+        onClose={() => setShowLeaveConfirm(false)}
+        title="Unsaved changes"
+      >
+        <p className="text-sm text-slate-600 dark:text-slate-400">
+          You have unsaved changes. Leave anyway? Your changes will be lost.
+        </p>
+        <div className="mt-6 flex gap-3">
+          <Button
+            type="button"
+            variant="secondary"
+            size="lg"
+            onClick={() => setShowLeaveConfirm(false)}
+            className="flex-1"
+          >
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            variant="danger"
+            size="lg"
+            onClick={handleLeaveConfirm}
+            className="flex-1"
+          >
+            Leave
+          </Button>
+        </div>
+      </Modal>
     </section>
   )
 }

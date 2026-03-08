@@ -358,4 +358,37 @@ describe('CreateFormPage', () => {
 
     expect(mockNavigate).toHaveBeenCalledWith('/dashboard/forms')
   })
+
+  test('Back without changes navigates to forms list', () => {
+    renderCreateFormPage()
+    fireEvent.click(screen.getByRole('button', { name: /back/i }))
+    expect(mockNavigate).toHaveBeenCalledWith('/dashboard/forms')
+    expect(screen.queryByRole('heading', { name: /unsaved changes/i })).not.toBeInTheDocument()
+  })
+
+  test('Back with changes opens unsaved changes modal', () => {
+    renderCreateFormPage()
+    fireEvent.change(screen.getByLabelText(/form title/i), { target: { value: 'My form' } })
+    fireEvent.click(screen.getByRole('button', { name: /back/i }))
+    expect(screen.getByRole('heading', { name: /unsaved changes/i })).toBeInTheDocument()
+    expect(screen.getByText(/leave anyway/i)).toBeInTheDocument()
+    expect(mockNavigate).not.toHaveBeenCalled()
+  })
+
+  test('Unsaved changes modal Cancel closes modal and does not navigate', () => {
+    renderCreateFormPage()
+    fireEvent.change(screen.getByLabelText(/form title/i), { target: { value: 'My form' } })
+    fireEvent.click(screen.getByRole('button', { name: /back/i }))
+    fireEvent.click(screen.getByRole('button', { name: /cancel/i }))
+    expect(screen.queryByRole('heading', { name: /unsaved changes/i })).not.toBeInTheDocument()
+    expect(mockNavigate).not.toHaveBeenCalled()
+  })
+
+  test('Unsaved changes modal Leave navigates to forms list', () => {
+    renderCreateFormPage()
+    fireEvent.change(screen.getByLabelText(/form title/i), { target: { value: 'My form' } })
+    fireEvent.click(screen.getByRole('button', { name: /back/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^leave$/i }))
+    expect(mockNavigate).toHaveBeenCalledWith('/dashboard/forms')
+  })
 })

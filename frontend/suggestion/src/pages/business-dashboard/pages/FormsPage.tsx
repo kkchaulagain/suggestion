@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
-import { Copy, Eye, Plus, QrCode } from 'lucide-react'
+import { Copy, Eye, Pencil, Plus, QrCode } from 'lucide-react'
 import { useAuth } from '../../../context/AuthContext'
 import { feedbackFormsApi } from '../../../utils/apipath'
 import { Button, ErrorMessage, Modal } from '../../../components/ui'
@@ -160,6 +160,16 @@ export default function FormsPage() {
                 Share the form via QR or link, then use Responses to track submissions.
               </p>
               <div className="mt-3 flex flex-wrap items-center gap-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="min-h-0 rounded bg-slate-100 px-2 py-1 text-xs font-medium dark:bg-slate-700"
+                  onClick={() => navigate(`/dashboard/forms/${form._id}/edit`)}
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                  Edit
+                </Button>
                 <Button
                   type="button"
                   variant="ghost"

@@ -129,6 +129,31 @@ describe('FormsPage', () => {
     )
   })
 
+  test('Edit button navigates to edit form page', async () => {
+    mockedAxios.get.mockResolvedValueOnce({
+      data: {
+        feedbackForms: [
+          {
+            _id: 'form-xyz-456',
+            title: 'Survey',
+            businessId: 'b1',
+            fields: [{ name: 'q', label: 'Question', type: 'short_text', required: false }],
+          },
+        ],
+      },
+    } as FormsListApiResponse)
+
+    renderFormsPage()
+
+    await waitFor(() => {
+      expect(screen.getByText(/Survey/i)).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /^edit$/i }))
+
+    expect(mockNavigate).toHaveBeenCalledWith('/dashboard/forms/form-xyz-456/edit')
+  })
+
   test('Responses button navigates to submissions with formId param', async () => {
     mockedAxios.get.mockResolvedValueOnce({
       data: {
