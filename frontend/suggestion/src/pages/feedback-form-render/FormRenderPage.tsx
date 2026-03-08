@@ -4,7 +4,7 @@ import axios from 'axios'
 import { Home, Send } from 'lucide-react'
 import { feedbackFormsApi, uploadApi } from '../../utils/apipath'
 import type { FeedbackFormConfig, FeedbackFormField } from './types'
-import { Button, Card, ErrorMessage } from '../../components/ui'
+import { Button, Card, ErrorMessage, ThemeToggle } from '../../components/ui'
 import { EmptyState } from '../../components/layout'
 import { FormFieldRenderer } from '../../components/forms'
 import type { FormFieldConfig } from '../../components/forms'
@@ -67,6 +67,16 @@ function buildSubmitPayload(
     }
   }
   return payload
+}
+
+const currentYear = new Date().getFullYear()
+
+function FormRenderFooter() {
+  return (
+    <footer className="mt-8 text-center text-xs text-slate-500 dark:text-slate-400" role="contentinfo">
+      © {currentYear} Suggestion Platform
+    </footer>
+  )
 }
 
 export default function FormRenderPage() {
@@ -156,40 +166,60 @@ export default function FormRenderPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-[40vh] items-center justify-center">
+      <div className="relative flex min-h-[40vh] flex-col items-center justify-center">
+        <div className="absolute right-0 top-0 p-2">
+          <ThemeToggle />
+        </div>
         <EmptyState type="loading" message="Loading form..." />
+        <FormRenderFooter />
       </div>
     )
   }
 
   if (error || !config) {
     return (
-      <Card className="rounded-xl">
-        <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Form not found</h1>
-        <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{error ?? 'Invalid or missing form link.'}</p>
-        <Link
-          to="/"
-          className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300"
-        >
-          <Home className="h-4 w-4" />
-          Go to home
-        </Link>
-      </Card>
+      <div className="relative">
+        <div className="absolute right-0 top-0 p-2">
+          <ThemeToggle />
+        </div>
+        <Card className="rounded-xl">
+          <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Form not found</h1>
+          <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{error ?? 'Invalid or missing form link.'}</p>
+          <Link
+            to="/"
+            className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300"
+          >
+            <Home className="h-4 w-4" />
+            Go to home
+          </Link>
+        </Card>
+        <FormRenderFooter />
+      </div>
     )
   }
 
   if (submitted) {
     return (
-      <Card padding="lg" className="rounded-xl text-center">
-        <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Thank you</h2>
-        <p className="mt-2 text-slate-600 dark:text-slate-300">Your response has been recorded.</p>
-      </Card>
+      <div className="relative">
+        <div className="absolute right-0 top-0 p-2">
+          <ThemeToggle />
+        </div>
+        <Card padding="lg" className="rounded-xl text-center">
+          <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Thank you</h2>
+          <p className="mt-2 text-slate-600 dark:text-slate-300">Your response has been recorded.</p>
+        </Card>
+        <FormRenderFooter />
+      </div>
     )
   }
 
   return (
-    <Card className="rounded-xl sm:p-8">
-      <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">{config.title}</h1>
+    <div className="relative">
+      <div className="absolute right-0 top-0 p-2">
+        <ThemeToggle />
+      </div>
+      <Card className="rounded-xl sm:p-8">
+        <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">{config.title}</h1>
       {config.description ? (
         <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{config.description}</p>
       ) : null}
@@ -213,6 +243,8 @@ export default function FormRenderPage() {
           {submitting ? 'Submitting...' : 'Submit'}
         </Button>
       </form>
-    </Card>
+      </Card>
+      <FormRenderFooter />
+    </div>
   )
 }
