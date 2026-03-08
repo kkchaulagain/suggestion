@@ -234,6 +234,36 @@ describe('ProfilePage Component', () => {
     expect(screen.getByText('New passwords do not match')).toBeInTheDocument()
   })
 
+  it('shows validation error when new password is too short', async () => {
+    render(<ProfilePage />)
+
+    await waitFor(() => expect(screen.getByText('Acme Owner')).toBeInTheDocument())
+
+    fireEvent.click(screen.getByRole('button', { name: /^change password$/i }))
+    fireEvent.change(screen.getByPlaceholderText('Enter current password'), { target: { value: 'password123' } })
+    fireEvent.change(screen.getByPlaceholderText('Enter new password'), { target: { value: '123' } })
+    fireEvent.change(screen.getByPlaceholderText('Confirm new password'), { target: { value: '123' } })
+
+    fireEvent.click(screen.getByRole('button', { name: /update password/i }))
+
+    expect(screen.getByText('Password must be at least 6 characters long')).toBeInTheDocument()
+  })
+
+  it('closes change password modal when Cancel is clicked', async () => {
+    render(<ProfilePage />)
+
+    await waitFor(() => expect(screen.getByText('Acme Owner')).toBeInTheDocument())
+
+    fireEvent.click(screen.getByRole('button', { name: /^change password$/i }))
+    expect(screen.getByText('Change Password', { selector: 'h2' })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /cancel/i }))
+
+    await waitFor(() => {
+      expect(screen.queryByText('Change Password', { selector: 'h2' })).not.toBeInTheDocument()
+    })
+  })
+
   it('changes password successfully and shows success message', async () => {
     mockedAxios.put.mockResolvedValueOnce({
       data: {
@@ -279,6 +309,25 @@ describe('ProfilePage Component', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Current password is incorrect')).toBeInTheDocument()
+    })
+  })
+
+  it('shows generic password error when request fails with non-axios error', async () => {
+    mockedAxios.put.mockRejectedValueOnce(new Error('boom'))
+
+    render(<ProfilePage />)
+
+    await waitFor(() => expect(screen.getByText('Acme Owner')).toBeInTheDocument())
+
+    fireEvent.click(screen.getByRole('button', { name: /^change password$/i }))
+    fireEvent.change(screen.getByPlaceholderText('Enter current password'), { target: { value: 'password123' } })
+    fireEvent.change(screen.getByPlaceholderText('Enter new password'), { target: { value: 'newpassword' } })
+    fireEvent.change(screen.getByPlaceholderText('Confirm new password'), { target: { value: 'newpassword' } })
+
+    fireEvent.click(screen.getByRole('button', { name: /update password/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText('Failed to change password.')).toBeInTheDocument()
     })
   })
 })
