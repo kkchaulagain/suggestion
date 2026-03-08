@@ -132,7 +132,7 @@ export default function SubmissionsFilter({
                       label={field.label}
                       type="text"
                       value={fieldFilters[field.name] ?? ''}
-                      onChange={(e) => onFieldFilterChange(field.name, e.target.value)}
+                      onChange={(value) => onFieldFilterChange(field.name, value)}
                       placeholder={`Filter by ${field.label}`}
                     />
                   )}
