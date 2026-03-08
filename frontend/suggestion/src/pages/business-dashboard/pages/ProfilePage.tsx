@@ -1,9 +1,10 @@
 import axios from 'axios'
 import { useEffect, useState } from 'react'
-import { Check, KeyRound, Pencil, X } from 'lucide-react'
+import { Check, KeyRound, LogOut, Pencil, X, UserCircle } from 'lucide-react'
 import { useAuth } from '../../../context/AuthContext'
 import { Button, Card, Input, Modal } from '../../../components/ui'
 import { changePasswordApi, meapi } from '../../../utils/apipath'
+import { useNavigate } from 'react-router-dom'
 
 interface ProfileData {
   name: string
@@ -25,7 +26,13 @@ export default function ProfilePage() {
   const [isChangingPassword, setIsChangingPassword] = useState(false)
   const [passwordError, setPasswordError] = useState<string | null>(null)
   const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null)
-  const { user, getAuthHeaders } = useAuth()
+  const { user, getAuthHeaders, logout } = useAuth()
+  const navigate = useNavigate()
+
+  const handleLogout = () => {
+    logout()
+    navigate('/login')
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -172,48 +179,55 @@ export default function ProfilePage() {
         <div className="md:col-span-2 space-y-6">
 
           <Card>
-            <div className="flex items-center justify-between mb-6 border-b border-slate-100 dark:border-slate-700 pb-2">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                Personal Details
-              </h3>
+            
+            <div className="flex items-center gap-4 mb-6 pb-5 border-b border-slate-100 dark:border-slate-700">
+             
+              <div className="relative flex-shrink-0">
+                <div className="h-20 w-20 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-md">
+                  <UserCircle className="h-12 w-12 text-white" />
+                </div>
+              </div>
+
+              
+              <div className="flex-1 min-w-0">
+                <p className="text-xl font-bold text-slate-800 dark:text-slate-100 truncate">
+                  {isLoadingProfile ? 'Loading...' : displayName}
+                </p>
+                <p className="text-sm text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                  {isLoadingProfile ? '' : displayEmail}
+                </p>
+              </div>
+
+              
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
+                aria-label="Edit Profile"
                 onClick={handleOpenEdit}
-                className="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300"
+                className="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 flex-shrink-0"
               >
                 <Pencil className="h-4 w-4" />
-                Edit Profile
               </Button>
             </div>
 
+         
             <div className="space-y-5">
               {profileError ? (
                 <p className="text-xs font-medium text-rose-600 dark:text-rose-400">{profileError}</p>
               ) : null}
-
-              <div>
-                <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Name</label>
-                <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
-                  {isLoadingProfile ? 'Loading profile...' : displayName}
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Email Address</label>
-                <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
-                  {isLoadingProfile ? 'Loading profile...' : displayEmail}
-                </p>
-              </div>
             </div>
           </Card>
 
           <Card>
-            <div className="flex flex-col sm:flex-row gap-4">
-              <Button type="button" variant="secondary" size="lg" className="flex-1" onClick={handleOpenPasswordModal}>
+            <div className="flex flex-col gap-3">
+              <Button type="button" variant="secondary" size="lg" className="w-full" onClick={handleOpenPasswordModal}>
                 <KeyRound className="h-4 w-4" />
                 Change Password
+              </Button>
+              <Button type="button" variant="danger" size="lg" className="w-full" onClick={handleLogout}>
+                <LogOut className="h-4 w-4" />
+                Logout
               </Button>
             </div>
             {passwordSuccess ? (
