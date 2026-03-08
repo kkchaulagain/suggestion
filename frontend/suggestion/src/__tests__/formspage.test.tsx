@@ -95,6 +95,11 @@ describe('FormsPage', () => {
     await waitFor(() => {
       expect(screen.getByText(/Customer Feedback/i)).toBeInTheDocument()
     })
+    expect(screen.getByText('1 question - 0 required')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Questions included/i })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /Questions included/i }))
+    expect(screen.getByText('Comment - Long Text')).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: /Generate QR/i }))
 
@@ -156,5 +161,33 @@ describe('FormsPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /View Responses/i }))
 
     expect(mockNavigate).toHaveBeenCalledWith('/dashboard/submissions?formId=form-abc-123')
+  })
+
+  test('renders useful summary information instead of business id text', async () => {
+    mockedAxios.get.mockResolvedValueOnce({
+      data: {
+        feedbackForms: [
+          {
+            _id: 'f3',
+            title: 'Walk-in Form',
+            description: 'Collect quick front-desk details',
+            businessId: 'b1',
+            fields: [
+              { name: 'name', label: 'Name', type: 'short_text', required: true },
+              { name: 'purpose', label: 'Purpose', type: 'long_text', required: false },
+            ],
+          },
+        ],
+      },
+    } as FormsListApiResponse)
+
+    renderFormsPage()
+
+    await waitFor(() => {
+      expect(screen.getByText(/Walk-in Form/i)).toBeInTheDocument()
+    })
+
+    expect(screen.getByText('2 questions - 1 required')).toBeInTheDocument()
+    expect(screen.queryByText(/Business ID:/i)).not.toBeInTheDocument()
   })
 })
