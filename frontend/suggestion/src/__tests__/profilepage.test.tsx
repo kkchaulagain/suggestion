@@ -34,8 +34,6 @@ const mockProfileResponse = {
 describe('ProfilePage Component', () => {
   beforeEach(() => {
     jest.clearAllMocks()
-    mockLogout.mockClear()
-    mockNavigate.mockClear()
     mockedAxios.get.mockResolvedValue(mockProfileResponse)
     mockedAxios.isAxiosError.mockImplementation((value: unknown) => {
       return Boolean((value as { isAxiosError?: boolean })?.isAxiosError)
