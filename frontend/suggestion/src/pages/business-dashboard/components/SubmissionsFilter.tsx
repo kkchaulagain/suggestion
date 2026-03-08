@@ -34,11 +34,11 @@ export default function SubmissionsFilter({
   const optionList = forms.map((f) => ({ value: f._id, label: f.title }))
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-slate-50/50 dark:border-slate-700 dark:bg-slate-800/50">
+    <div className="border-b border-slate-200 pb-4 dark:border-slate-700">
       <button
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
-        className="flex w-full min-h-[44px] items-center justify-between gap-2 px-4 py-3 text-left transition hover:bg-slate-100/80 dark:hover:bg-slate-700/50 rounded-xl"
+        className="flex w-full min-h-[44px] items-center justify-between gap-2 rounded py-3 text-left transition hover:bg-slate-100/80 dark:hover:bg-slate-700/50"
         aria-expanded={isOpen}
         aria-controls="submissions-filter-panel"
         id="submissions-filter-toggle"
@@ -63,7 +63,7 @@ export default function SubmissionsFilter({
           id="submissions-filter-panel"
           role="region"
           aria-labelledby="submissions-filter-toggle"
-          className="border-t border-slate-200 px-4 pb-4 pt-3 dark:border-slate-700"
+          className="pt-3"
         >
           <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
             <div className="min-w-0 flex-1 sm:min-w-[10rem]">

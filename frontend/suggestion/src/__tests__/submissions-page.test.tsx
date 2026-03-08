@@ -102,6 +102,77 @@ describe('SubmissionsPage', () => {
     })
   })
 
+  it('renders image in modal when submission has image_upload field with URL', async () => {
+    const submissions = [
+      {
+        _id: 's-img',
+        formId: 'f1',
+        formTitle: 'Form With Image',
+        formSnapshot: [
+          { name: 'photo', label: 'Photo', type: 'image_upload' },
+          { name: 'note', label: 'Note', type: 'short_text' },
+        ],
+        responses: {
+          photo: 'https://example.r2.dev/uploads/abc.jpg',
+          note: 'Just a text note',
+        },
+        submittedAt: '2024-06-01T12:00:00.000Z',
+      },
+    ]
+    mockedAxios.get
+      .mockResolvedValueOnce({ data: { feedbackForms: [{ _id: 'f1', title: 'F1' }] } })
+      .mockResolvedValueOnce({ data: { submissions, total: 1 } })
+
+    render(
+      <MemoryRouter>
+        <SubmissionsPage />
+      </MemoryRouter>,
+    )
+
+    await waitFor(() => {
+      expect(screen.getAllByRole('button', { name: /View/i }).length).toBeGreaterThanOrEqual(1)
+    })
+    fireEvent.click(screen.getAllByRole('button', { name: /View/i })[0])
+
+    await waitFor(() => {
+      const img = screen.getByAltText('Photo')
+      expect(img).toHaveAttribute('src', 'https://example.r2.dev/uploads/abc.jpg')
+    })
+    expect(screen.getByRole('link', { name: /Open in new tab/i })).toBeInTheDocument()
+  })
+
+  it('renders image in modal when non-image field has image URL', async () => {
+    const submissions = [
+      {
+        _id: 's-url',
+        formId: 'f1',
+        formTitle: 'Form With URL',
+        formSnapshot: [{ name: 'screenshot', label: 'Screenshot', type: 'short_text' }],
+        responses: { screenshot: 'https://r2.dev/uploads/photo.png' },
+        submittedAt: '2024-06-01T12:00:00.000Z',
+      },
+    ]
+    mockedAxios.get
+      .mockResolvedValueOnce({ data: { feedbackForms: [{ _id: 'f1', title: 'F1' }] } })
+      .mockResolvedValueOnce({ data: { submissions, total: 1 } })
+
+    render(
+      <MemoryRouter>
+        <SubmissionsPage />
+      </MemoryRouter>,
+    )
+
+    await waitFor(() => {
+      expect(screen.getAllByRole('button', { name: /View/i }).length).toBeGreaterThanOrEqual(1)
+    })
+    fireEvent.click(screen.getAllByRole('button', { name: /View/i })[0])
+
+    await waitFor(() => {
+      const img = screen.getByAltText('Screenshot')
+      expect(img).toHaveAttribute('src', 'https://r2.dev/uploads/photo.png')
+    })
+  })
+
   it('modal dismisses on backdrop click', async () => {
     const submissions = [
       {
