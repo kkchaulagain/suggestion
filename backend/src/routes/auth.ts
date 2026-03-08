@@ -321,10 +321,6 @@ router.put('/me/change-password',isAuthenticated,async(req:AuthenticatedRequest,
 {
  try {
     const id=req.id
-    if(!id)
-      {
-       return res.status(401).json({success:false,message:'Unauthorized access'})
-      } 
       const data=(req.body??{})as {currentPassword?:string,newPassword?:string,confirmPassword?:string}
       const currentPassword=typeof data.currentPassword==='string'?data.currentPassword:''
       const newPassword=typeof data.newPassword==='string'?data.newPassword:''

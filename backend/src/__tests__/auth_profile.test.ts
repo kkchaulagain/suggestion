@@ -252,6 +252,50 @@ describe('Auth Profile Endpoints', () => {
       expect(res.body.message).toBe('Current password is incorrect');
     });
 
+    it('should return 404 if user not found', async () => {
+      await User.findByIdAndDelete(userId);
+
+      const res = await request(app)
+        .put('/api/auth/me/change-password')
+        .set('Cookie', [`token=${userToken}`])
+        .send({ currentPassword: 'password123', newPassword: 'newPassword', confirmPassword: 'newPassword' })
+        .expect(404);
+
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toBe('User not found');
+    });
+
+    it('should return 400 if new password matches current password', async () => {
+      const res = await request(app)
+        .put('/api/auth/me/change-password')
+        .set('Cookie', [`token=${userToken}`])
+        .send({ currentPassword: 'password123', newPassword: 'password123', confirmPassword: 'password123' })
+        .expect(400);
+
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toBe('New password must be different from current password');
+    });
+
+    it('should return 500 if database error occurs', async () => {
+      const originalFindById = User.findById;
+      User.findById = jest.fn().mockImplementation(() => ({
+        select: () => {
+          throw new Error('Database error');
+        },
+      }));
+
+      const res = await request(app)
+        .put('/api/auth/me/change-password')
+        .set('Cookie', [`token=${userToken}`])
+        .send({ currentPassword: 'password123', newPassword: 'newPassword', confirmPassword: 'newPassword' })
+        .expect(500);
+
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toBe('Something went Wrong');
+
+      User.findById = originalFindById;
+    });
+
     it('should return 200 if password changed successfully', async () => {
       const res = await request(app)
         .put('/api/auth/me/change-password')
