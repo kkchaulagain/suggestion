@@ -128,30 +128,6 @@ export default function FormsPage() {
               title={form.title}
               subtitle={`${questionCount} ${questionCount === 1 ? 'question' : 'questions'} - ${requiredCount} required`}
               description={form.description || undefined}
-              actions={
-                <>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="min-h-0 rounded bg-slate-100 px-2 py-1 text-xs font-medium dark:bg-slate-700"
-                    onClick={() => navigate(`/dashboard/submissions?formId=${encodeURIComponent(form._id)}`)}
-                  >
-                    <Eye className="h-3.5 w-3.5" />
-                    View Responses
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    className="min-h-0 rounded border-slate-200 px-2 py-1 text-xs font-medium dark:border-slate-600"
-                    onClick={() => void handleGenerateQr(form._id)}
-                  >
-                    <QrCode className="h-3.5 w-3.5" />
-                    Generate QR
-                  </Button>
-                </>
-              }
             >
               {form.fields.length > 0 ? (
                 <p className="mt-2 text-xs text-slate-500 dark:text-slate-400" id={`${form._id}-questions`}>
@@ -173,6 +149,28 @@ export default function FormsPage() {
                   />
                 </div>
               ) : null}
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="min-h-0 rounded bg-slate-100 px-2 py-1 text-xs font-medium dark:bg-slate-700"
+                  onClick={() => navigate(`/dashboard/submissions?formId=${encodeURIComponent(form._id)}`)}
+                >
+                  <Eye className="h-3.5 w-3.5" />
+                  Responses
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  className="min-h-0 rounded border-slate-200 px-2 py-1 text-xs font-medium dark:border-slate-600"
+                  onClick={() => void handleGenerateQr(form._id)}
+                >
+                  <QrCode className="h-3.5 w-3.5" />
+                  QR
+                </Button>
+              </div>
             </FormCard>
           )
         })}

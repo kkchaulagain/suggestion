@@ -99,7 +99,7 @@ describe('FormsPage', () => {
     expect(screen.getByText(/Questions included:/i)).toBeInTheDocument()
     expect(screen.getByText(/Comment/)).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: /Generate QR/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^QR$/i }))
 
     await waitFor(() => {
       expect(screen.getByAltText(/QR for Customer Feedback/i)).toBeInTheDocument()
@@ -129,14 +129,14 @@ describe('FormsPage', () => {
       expect(screen.getByText(/Issue Form/i)).toBeInTheDocument()
     })
 
-    fireEvent.click(screen.getByRole('button', { name: /Generate QR/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^QR$/i }))
 
     await waitFor(() => {
       expect(screen.getByText(/Failed to generate QR\./i)).toBeInTheDocument()
     })
   })
 
-  test('View Responses navigates to submissions with formId param', async () => {
+  test('Responses button navigates to submissions with formId param', async () => {
     mockedAxios.get.mockResolvedValueOnce({
       data: {
         feedbackForms: [
@@ -156,7 +156,7 @@ describe('FormsPage', () => {
       expect(screen.getByText(/Feedback Form/i)).toBeInTheDocument()
     })
 
-    fireEvent.click(screen.getByRole('button', { name: /View Responses/i }))
+    fireEvent.click(screen.getByRole('button', { name: /Responses/i }))
 
     expect(mockNavigate).toHaveBeenCalledWith('/dashboard/submissions?formId=form-abc-123')
   })
