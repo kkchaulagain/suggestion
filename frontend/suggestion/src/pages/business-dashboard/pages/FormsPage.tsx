@@ -4,7 +4,7 @@ import axios from 'axios'
 import { Eye, Plus, QrCode, RefreshCw } from 'lucide-react'
 import { useAuth } from '../../../context/AuthContext'
 import { feedbackFormsApi } from '../../../utils/apipath'
-import { Button, Card, Tag, ErrorMessage } from '../../../components/ui'
+import { Accordion, Button, Card, ErrorMessage } from '../../../components/ui'
 import { PageHeader, EmptyState, FormCard, QRDisplay } from '../../../components/layout'
 
 interface FeedbackField {
@@ -26,6 +26,21 @@ interface FeedbackForm {
 interface QrPayload {
   qrCodeDataUrl: string
   formUrl: string
+}
+
+function toSentenceCase(value: string) {
+  return value
+    .split('_')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join(' ')
+}
+
+function formatFieldLabel(field: FeedbackField) {
+  const base = `${field.label} - ${toSentenceCase(field.type)}`
+  const required = field.required ? ' (Required)' : ''
+  const options = field.options && field.options.length > 0 ? ` [Options: ${field.options.join(', ')}]` : ''
+
+  return `${base}${required}${options}`
 }
 
 export default function FormsPage() {
@@ -81,11 +96,23 @@ export default function FormsPage() {
         title="Saved Forms"
         actions={
           <>
-            <Button type="button" variant="secondary" size="sm" onClick={() => void loadForms()}>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="min-h-0 rounded-md bg-slate-100 px-2.5 py-1.5 text-xs dark:bg-slate-700"
+              onClick={() => void loadForms()}
+            >
               <RefreshCw className="h-4 w-4" />
               Refresh
             </Button>
-            <Button type="button" variant="primary" size="sm" onClick={() => navigate('/dashboard/forms/create')}>
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              className="min-h-0 rounded-md px-2.5 py-1.5 text-xs"
+              onClick={() => navigate('/dashboard/forms/create')}
+            >
               <Plus className="h-4 w-4" />
               Make Form
             </Button>
@@ -100,48 +127,87 @@ export default function FormsPage() {
       ) : null}
 
       <div className="mt-4 space-y-4">
-        {savedForms.map((form) => (
-          <FormCard
-            key={form._id}
-            title={form.title}
-            subtitle={`Business ID: ${form.businessId}`}
-            description={form.description}
-            actions={
-              <>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => navigate(`/dashboard/submissions?formId=${encodeURIComponent(form._id)}`)}
-                >
-                  <Eye className="h-4 w-4" />
-                  View Responses
-                </Button>
-                <Button type="button" variant="primary" size="sm" onClick={() => void handleGenerateQr(form._id)}>
-                  <QrCode className="h-4 w-4" />
-                  Generate QR
-                </Button>
-              </>
-            }
-          >
-            <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Fields</p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {form.fields.map((field) => (
-                <Tag key={`${form._id}-${field.name}`}>
-                  {field.label} ({field.type})
-                  {field.options && field.options.length > 0 ? `: ${field.options.join(', ')}` : ''}
-                </Tag>
-              ))}
-            </div>
-            {qrByFormId[form._id] ? (
-              <QRDisplay
-                imageDataUrl={qrByFormId[form._id].qrCodeDataUrl}
-                formUrl={qrByFormId[form._id].formUrl}
-                title={form.title}
+        {savedForms.map((form) => {
+          const questionCount = form.fields.length
+          const requiredCount = form.fields.filter((field) => field.required).length
+
+          return (
+            <FormCard
+              key={form._id}
+              title={form.title}
+              subtitle={`${questionCount} ${questionCount === 1 ? 'question' : 'questions'} - ${requiredCount} required`}
+              description={form.description || 'No description added yet.'}
+              actions={
+                <>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="min-h-0 rounded-md bg-slate-100 px-2.5 py-1.5 text-xs dark:bg-slate-700"
+                    onClick={() => navigate(`/dashboard/submissions?formId=${encodeURIComponent(form._id)}`)}
+                  >
+                    <Eye className="h-4 w-4" />
+                    View Responses
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="primary"
+                    size="sm"
+                    className="min-h-0 rounded-md px-2.5 py-1.5 text-xs"
+                    onClick={() => void handleGenerateQr(form._id)}
+                  >
+                    <QrCode className="h-4 w-4" />
+                    Generate QR
+                  </Button>
+                </>
+              }
+            >
+              <Accordion
+                className="mt-3"
+                defaultOpenId={`${form._id}-overview`}
+                items={[
+                  {
+                    id: `${form._id}-overview`,
+                    title: 'Overview',
+                    content: (
+                      <p>
+                        Use this form to collect visitor details quickly and keep responses organized in one place.
+                      </p>
+                    ),
+                  },
+                  {
+                    id: `${form._id}-questions`,
+                    title: 'Questions included',
+                    content:
+                      form.fields.length > 0 ? (
+                        <ul className="list-inside list-disc space-y-1">
+                          {form.fields.map((field) => (
+                            <li key={`${form._id}-${field.name}`}>{formatFieldLabel(field)}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p>No questions have been added yet.</p>
+                      ),
+                  },
+                  {
+                    id: `${form._id}-sharing`,
+                    title: 'Sharing and follow-up',
+                    content: (
+                      <p>Generate a QR to share this form instantly, then use View Responses to track submissions.</p>
+                    ),
+                  },
+                ]}
               />
-            ) : null}
-          </FormCard>
-        ))}
+              {qrByFormId[form._id] ? (
+                <QRDisplay
+                  imageDataUrl={qrByFormId[form._id].qrCodeDataUrl}
+                  formUrl={qrByFormId[form._id].formUrl}
+                  title={form.title}
+                />
+              ) : null}
+            </FormCard>
+          )
+        })}
       </div>
 
       {error ? <ErrorMessage message={error} className="mt-4" /> : null}
