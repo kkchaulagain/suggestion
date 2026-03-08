@@ -134,6 +134,9 @@ export default function SubmissionsPage() {
   const [formIdApplied, setFormIdApplied] = useState(formIdFromUrl)
   const [dateFromApplied, setDateFromApplied] = useState('')
   const [dateToApplied, setDateToApplied] = useState('')
+  const [fieldFilters, setFieldFilters] = useState<Record<string, string>>({})
+  const [fieldFiltersApplied, setFieldFiltersApplied] = useState<Record<string, string>>({})
+  const [selectedFormFields, setSelectedFormFields] = useState<FormSnapshotField[] | null>(null)
   const [viewSubmission, setViewSubmission] = useState<Submission | null>(null)
   const { getAuthHeaders } = useAuth()
 
@@ -145,6 +148,32 @@ export default function SubmissionsPage() {
       setPage(1)
     }
   }, [formIdFromUrl])
+
+  // When a form is selected in the filter, fetch its fields so we can show field-based filters
+  useEffect(() => {
+    if (!formId || !formId.trim()) {
+      setSelectedFormFields(null)
+      setFieldFilters({})
+      return
+    }
+    let cancelled = false
+    const headers = authHeadersRef.current
+    axios
+      .get<{ feedbackForm: { fields?: FormSnapshotField[] } }>(`${feedbackFormsApi}/${formId}`, headers)
+      .then((res) => {
+        if (!cancelled && res.data?.feedbackForm?.fields) {
+          setSelectedFormFields(res.data.feedbackForm.fields)
+        } else if (!cancelled) {
+          setSelectedFormFields([])
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setSelectedFormFields(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [formId])
 
   const authHeaders = useMemo(
     () => ({
@@ -177,6 +206,9 @@ export default function SubmissionsPage() {
       if (formIdApplied) params.set('formId', formIdApplied)
       if (dateFromApplied) params.set('dateFrom', dateFromApplied)
       if (dateToApplied) params.set('dateTo', dateToApplied)
+      Object.entries(fieldFiltersApplied).forEach(([name, value]) => {
+        if (value.trim() !== '') params.set(`field_${name}`, value.trim())
+      })
       const url = `${feedbackFormSubmissionsApi}?${params.toString()}`
       const res = await axios.get<{ submissions: Submission[]; total: number }>(url, headers)
       setSubmissions(res.data.submissions ?? [])
@@ -188,7 +220,7 @@ export default function SubmissionsPage() {
     } finally {
       setLoading(false)
     }
-  }, [page, pageSize, formIdApplied, dateFromApplied, dateToApplied])
+  }, [page, pageSize, formIdApplied, dateFromApplied, dateToApplied, fieldFiltersApplied])
 
   useEffect(() => {
     void loadForms()
@@ -202,8 +234,29 @@ export default function SubmissionsPage() {
     setFormIdApplied(formId)
     setDateFromApplied(dateFrom)
     setDateToApplied(dateTo)
+    setFieldFiltersApplied({ ...fieldFilters })
     setPage(1)
-  }, [formId, dateFrom, dateTo])
+  }, [formId, dateFrom, dateTo, fieldFilters])
+
+  const handleFormIdChange = useCallback((value: string) => {
+    setFormId(value)
+    if (!value.trim()) {
+      setFieldFilters({})
+      setFieldFiltersApplied({})
+    }
+  }, [])
+
+  const handleFieldFilterChange = useCallback((name: string, value: string) => {
+    setFieldFilters((prev) => {
+      const next = { ...prev }
+      if (value.trim() === '') {
+        delete next[name]
+      } else {
+        next[name] = value
+      }
+      return next
+    })
+  }, [])
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
 
@@ -244,11 +297,14 @@ export default function SubmissionsPage() {
         <SubmissionsFilter
           forms={forms}
           formId={formId}
-          onFormIdChange={setFormId}
+          onFormIdChange={handleFormIdChange}
           dateFrom={dateFrom}
           onDateFromChange={setDateFrom}
           dateTo={dateTo}
           onDateToChange={setDateTo}
+          selectedFormFields={selectedFormFields}
+          fieldFilters={fieldFilters}
+          onFieldFilterChange={handleFieldFilterChange}
           onApply={handleApplyFilters}
         />
       </div>

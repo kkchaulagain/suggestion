@@ -7,6 +7,13 @@ export interface FormOption {
   title: string
 }
 
+export interface FormFieldForFilter {
+  name: string
+  label: string
+  type: string
+  options?: string[]
+}
+
 export interface SubmissionsFilterProps {
   forms: FormOption[]
   formId: string
@@ -15,8 +22,13 @@ export interface SubmissionsFilterProps {
   onDateFromChange: (value: string) => void
   dateTo: string
   onDateToChange: (value: string) => void
+  selectedFormFields?: FormFieldForFilter[] | null
+  fieldFilters?: Record<string, string>
+  onFieldFilterChange?: (fieldName: string, value: string) => void
   onApply: () => void
 }
+
+const FILTERABLE_FIELD_TYPES = ['short_text', 'long_text', 'big_text', 'radio', 'checkbox']
 
 export default function SubmissionsFilter({
   forms,
@@ -26,12 +38,20 @@ export default function SubmissionsFilter({
   onDateFromChange,
   dateTo,
   onDateToChange,
+  selectedFormFields = null,
+  fieldFilters = {},
+  onFieldFilterChange,
   onApply,
 }: SubmissionsFilterProps) {
   const [isOpen, setIsOpen] = useState(false)
 
-  const hasActiveFilters = Boolean(formId || dateFrom || dateTo)
+  const hasActiveFilters = Boolean(
+    formId || dateFrom || dateTo || (onFieldFilterChange && Object.values(fieldFilters).some((v) => v.trim() !== '')),
+  )
   const optionList = forms.map((f) => ({ value: f._id, label: f.title }))
+  const filterableFields =
+    selectedFormFields?.filter((f) => FILTERABLE_FIELD_TYPES.includes(f.type)) ?? []
+  const hasOptions = (f: FormFieldForFilter) => Array.isArray(f.options) && f.options.length > 0
 
   return (
     <div className="border-b border-slate-200 pb-4 dark:border-slate-700">
@@ -94,6 +114,30 @@ export default function SubmissionsFilter({
                 onChange={onDateToChange}
               />
             </div>
+            {onFieldFilterChange &&
+              filterableFields.map((field) => (
+                <div key={field.name} className="min-w-0 flex-1 sm:min-w-[10rem]">
+                  {hasOptions(field) ? (
+                    <Select
+                      id={`filter-field-${field.name}`}
+                      label={field.label}
+                      value={fieldFilters[field.name] ?? ''}
+                      onChange={(value) => onFieldFilterChange(field.name, value)}
+                      options={[{ value: '', label: 'Any' }, ...(field.options ?? []).map((o) => ({ value: o, label: o }))]}
+                      placeholder="Any"
+                    />
+                  ) : (
+                    <Input
+                      id={`filter-field-${field.name}`}
+                      label={field.label}
+                      type="text"
+                      value={fieldFilters[field.name] ?? ''}
+                      onChange={(e) => onFieldFilterChange(field.name, e.target.value)}
+                      placeholder={`Filter by ${field.label}`}
+                    />
+                  )}
+                </div>
+              ))}
             <Button
               type="button"
               variant="primary"
