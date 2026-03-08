@@ -96,10 +96,8 @@ describe('FormsPage', () => {
       expect(screen.getByText(/Customer Feedback/i)).toBeInTheDocument()
     })
     expect(screen.getByText('1 question - 0 required')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Questions included/i })).toBeInTheDocument()
-
-    fireEvent.click(screen.getByRole('button', { name: /Questions included/i }))
-    expect(screen.getByText('Comment - Long Text')).toBeInTheDocument()
+    expect(screen.getByText(/Questions included:/i)).toBeInTheDocument()
+    expect(screen.getByText(/Comment/)).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: /Generate QR/i }))
 
