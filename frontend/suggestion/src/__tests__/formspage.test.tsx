@@ -35,6 +35,7 @@ describe('FormsPage', () => {
     mockedAxios.post.mockReset()
     mockNavigate.mockReset()
     localStorage.clear()
+    Object.assign(navigator, { clipboard: { writeText: jest.fn().mockResolvedValue(undefined) } })
   })
 
   test('shows load error when fetching forms fails', async () => {
@@ -90,6 +91,33 @@ describe('FormsPage', () => {
       expect(screen.getByAltText(/QR for Customer Feedback/i)).toBeInTheDocument()
       expect(screen.getByText(/https:\/\/frontend\.example\.com\/feedback-forms\/f1/i)).toBeInTheDocument()
     })
+    fireEvent.click(screen.getByRole('button', { name: /copy link/i }))
+  })
+
+  test('Share modal closes when backdrop is clicked', async () => {
+    mockedAxios.get.mockResolvedValueOnce({
+      data: {
+        feedbackForms: [
+          {
+            _id: 'f1',
+            title: 'Test Form',
+            businessId: 'b1',
+            fields: [{ name: 'q', label: 'Q', type: 'short_text', required: false }],
+          },
+        ],
+      },
+    } as FormsListApiResponse)
+    mockedAxios.post.mockResolvedValueOnce({
+      data: { qrCodeDataUrl: 'data:image/png,xyz', formUrl: 'https://example.com/f1' },
+    })
+
+    renderFormsPage()
+    await waitFor(() => expect(screen.getByText(/Test Form/i)).toBeInTheDocument())
+    fireEvent.click(screen.getByRole('button', { name: /share/i }))
+    await waitFor(() => expect(screen.getByRole('heading', { name: /Share: Test Form/i })).toBeInTheDocument())
+    const dialog = screen.getByRole('dialog', { name: /Share: Test Form/i })
+    fireEvent.click(dialog)
+    await waitFor(() => expect(screen.queryByRole('heading', { name: /Share: Test Form/i })).not.toBeInTheDocument())
   })
 
   test('shows fallback QR error when backend does not provide error message', async () => {
