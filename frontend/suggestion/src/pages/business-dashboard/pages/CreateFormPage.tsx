@@ -1,7 +1,27 @@
-import { useEffect, useRef, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import React, { useEffect, useRef, useState } from 'react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import axios from 'axios'
-import { ArrowLeft, ChevronDown, ChevronUp, Image, ListChecks, Pencil, Plus, Send, Text, Trash2 } from 'lucide-react'
+import {
+  ArrowLeft,
+  Briefcase,
+  Bug,
+  Calendar,
+  CalendarClock,
+  ChevronDown,
+  ChevronUp,
+  Image,
+  ListChecks,
+  Mail,
+  MessageSquare,
+  Pencil,
+  Plus,
+  Send,
+  Settings2,
+  Star,
+  Text,
+  Trash2,
+  Users,
+} from 'lucide-react'
 import { useAuth } from '../../../context/AuthContext'
 import { feedbackFormsApi } from '../../../utils/apipath'
 import { Button, Card, ErrorMessage, Input, Modal, Select, Textarea } from '../../../components/ui'
@@ -27,6 +47,16 @@ interface FeedbackFormResponse {
   }
 }
 
+export interface FormTemplate {
+  id: string
+  label: string
+  description: string
+  iconName: 'MessageSquare' | 'Calendar' | 'Bug' | 'Briefcase' | 'Star' | 'Mail' | 'CalendarClock' | 'Users'
+  title: string
+  formDescription: string
+  fields: Omit<FeedbackField, 'clientId'>[]
+}
+
 const OPTION_TYPES: FeedbackFieldType[] = ['checkbox', 'radio']
 
 const fieldTypeOptions: Array<{ value: FeedbackFieldType; label: string }> = [
@@ -42,6 +72,163 @@ const defaultFields: FeedbackField[] = [
   { clientId: 'default-subject', name: 'subject', label: 'subject', type: 'short_text', required: true, placeholder: '' },
   { clientId: 'default-description', name: 'description', label: 'description', type: 'big_text', required: false, placeholder: '' },
   { clientId: 'default-attachment', name: 'attachment', label: 'attachment', type: 'image_upload', required: false, placeholder: '' },
+]
+
+const STAR_RATING_OPTIONS = ['★ 1 Star', '★★ 2 Stars', '★★★ 3 Stars', '★★★★ 4 Stars', '★★★★★ 5 Stars']
+
+const FORM_TEMPLATES: FormTemplate[] = [
+  {
+    id: 'customer-feedback',
+    label: 'Customer Feedback',
+    description: 'Collect ratings and comments from customers.',
+    iconName: 'MessageSquare',
+    title: 'Customer Feedback',
+    formDescription: 'We value your feedback. Please take a moment to share your experience.',
+    fields: [
+      { name: 'name', label: 'Your name', type: 'short_text', required: true, placeholder: '' },
+      { name: 'email', label: 'Email', type: 'short_text', required: true, placeholder: '' },
+      { name: 'phone', label: 'Phone', type: 'short_text', required: false, placeholder: '' },
+      { name: 'visit_date', label: 'Visit / service date', type: 'short_text', required: false, placeholder: '' },
+      { name: 'overall_rating', label: 'Overall experience', type: 'radio', required: true, options: STAR_RATING_OPTIONS },
+      { name: 'enjoyed', label: 'What did you enjoy?', type: 'long_text', required: false, placeholder: '' },
+      { name: 'improve', label: 'What could we improve?', type: 'long_text', required: false, placeholder: '' },
+      { name: 'would_recommend', label: 'Would you recommend us?', type: 'radio', required: true, options: ['Yes', 'No', 'Maybe'] },
+      { name: 'comments', label: 'Any other comments?', type: 'big_text', required: false, placeholder: '' },
+    ],
+  },
+  {
+    id: 'event-registration',
+    label: 'Event Registration',
+    description: 'Register attendees for workshops and events.',
+    iconName: 'Calendar',
+    title: 'Event Registration',
+    formDescription: 'Register for our event. We will confirm your attendance by email.',
+    fields: [
+      { name: 'name', label: 'Full name', type: 'short_text', required: true, placeholder: '' },
+      { name: 'email', label: 'Email', type: 'short_text', required: true, placeholder: '' },
+      { name: 'phone', label: 'Phone', type: 'short_text', required: false, placeholder: '' },
+      { name: 'organisation', label: 'Organisation / company', type: 'short_text', required: false, placeholder: '' },
+      { name: 'event_name', label: 'Event you\'re registering for', type: 'short_text', required: true, placeholder: '' },
+      { name: 'attendees_count', label: 'Number of attendees', type: 'short_text', required: true, placeholder: '' },
+      { name: 'dietary_requests', label: 'Dietary requirements / special requests', type: 'long_text', required: false, placeholder: '' },
+      { name: 'how_heard', label: 'How did you hear about us?', type: 'radio', required: false, options: ['Social Media', 'Friend', 'Email', 'Website', 'Other'] },
+      { name: 'supporting_doc', label: 'Upload supporting document', type: 'image_upload', required: false, placeholder: '' },
+    ],
+  },
+  {
+    id: 'bug-report',
+    label: 'Bug / Issue Report',
+    description: 'Report bugs and technical issues.',
+    iconName: 'Bug',
+    title: 'Bug / Issue Report',
+    formDescription: 'Help us improve by describing the issue you encountered.',
+    fields: [
+      { name: 'name', label: 'Your name', type: 'short_text', required: true, placeholder: '' },
+      { name: 'email', label: 'Email', type: 'short_text', required: true, placeholder: '' },
+      { name: 'phone', label: 'Phone', type: 'short_text', required: false, placeholder: '' },
+      { name: 'issue_title', label: 'Issue title', type: 'short_text', required: true, placeholder: '' },
+      { name: 'system_area', label: 'Which part of the system?', type: 'short_text', required: false, placeholder: '' },
+      { name: 'steps_to_reproduce', label: 'Steps to reproduce', type: 'big_text', required: true, placeholder: '' },
+      { name: 'expected', label: 'Expected behaviour', type: 'long_text', required: false, placeholder: '' },
+      { name: 'actual', label: 'Actual behaviour', type: 'long_text', required: true, placeholder: '' },
+      { name: 'severity', label: 'Severity', type: 'radio', required: true, options: ['Low', 'Medium', 'High', 'Critical'] },
+      { name: 'screenshot', label: 'Screenshot / attachment', type: 'image_upload', required: false, placeholder: '' },
+    ],
+  },
+  {
+    id: 'job-application',
+    label: 'Job Application',
+    description: 'Collect applications for open positions.',
+    iconName: 'Briefcase',
+    title: 'Job Application',
+    formDescription: 'Apply for this position. We will review your application and get in touch.',
+    fields: [
+      { name: 'name', label: 'Full name', type: 'short_text', required: true, placeholder: '' },
+      { name: 'email', label: 'Email', type: 'short_text', required: true, placeholder: '' },
+      { name: 'phone', label: 'Phone', type: 'short_text', required: false, placeholder: '' },
+      { name: 'position', label: 'Position applied for', type: 'short_text', required: true, placeholder: '' },
+      { name: 'experience', label: 'Years of experience', type: 'radio', required: true, options: ['0–1', '1–3', '3–5', '5+'] },
+      { name: 'how_heard', label: 'How did you hear about this role?', type: 'radio', required: false, options: ['Website', 'LinkedIn', 'Referral', 'Other'] },
+      { name: 'cover_letter', label: 'Cover letter', type: 'big_text', required: true, placeholder: '' },
+      { name: 'links', label: 'Portfolio / LinkedIn / GitHub links', type: 'long_text', required: false, placeholder: '' },
+      { name: 'resume', label: 'Resume / CV', type: 'image_upload', required: true, placeholder: '' },
+    ],
+  },
+  {
+    id: 'product-review',
+    label: 'Product Review',
+    description: 'Gather product ratings and reviews.',
+    iconName: 'Star',
+    title: 'Product Review',
+    formDescription: 'Share your experience with this product.',
+    fields: [
+      { name: 'name', label: 'Your name', type: 'short_text', required: true, placeholder: '' },
+      { name: 'email', label: 'Email', type: 'short_text', required: true, placeholder: '' },
+      { name: 'phone', label: 'Phone', type: 'short_text', required: false, placeholder: '' },
+      { name: 'product_name', label: 'Product name', type: 'short_text', required: true, placeholder: '' },
+      { name: 'rating', label: 'Overall rating', type: 'radio', required: true, options: STAR_RATING_OPTIONS },
+      { name: 'liked', label: 'What did you like?', type: 'long_text', required: false, placeholder: '' },
+      { name: 'improve', label: 'What could be improved?', type: 'long_text', required: false, placeholder: '' },
+      { name: 'buy_again', label: 'Would you buy this again?', type: 'radio', required: true, options: ['Yes', 'No', 'Maybe'] },
+      { name: 'product_photo', label: 'Upload a product photo', type: 'image_upload', required: false, placeholder: '' },
+    ],
+  },
+  {
+    id: 'contact-inquiry',
+    label: 'Contact / Inquiry',
+    description: 'General contact and support inquiries.',
+    iconName: 'Mail',
+    title: 'Contact / Inquiry',
+    formDescription: 'Send us a message. We will respond as soon as possible.',
+    fields: [
+      { name: 'name', label: 'Your name', type: 'short_text', required: true, placeholder: '' },
+      { name: 'email', label: 'Email', type: 'short_text', required: true, placeholder: '' },
+      { name: 'phone', label: 'Phone', type: 'short_text', required: false, placeholder: '' },
+      { name: 'subject', label: 'Subject', type: 'short_text', required: true, placeholder: '' },
+      { name: 'inquiry_type', label: 'Inquiry type', type: 'radio', required: true, options: ['General', 'Support', 'Sales', 'Partnership', 'Other'] },
+      { name: 'message', label: 'Your message', type: 'big_text', required: true, placeholder: '' },
+      { name: 'preferred_contact', label: 'Preferred contact method', type: 'radio', required: false, options: ['Email', 'Phone'] },
+      { name: 'best_time', label: 'Best time to contact', type: 'short_text', required: false, placeholder: '' },
+    ],
+  },
+  {
+    id: 'appointment-booking',
+    label: 'Appointment / Booking',
+    description: 'Request appointments and bookings.',
+    iconName: 'CalendarClock',
+    title: 'Appointment / Booking Request',
+    formDescription: 'Request an appointment. We will confirm availability by email or phone.',
+    fields: [
+      { name: 'name', label: 'Your name', type: 'short_text', required: true, placeholder: '' },
+      { name: 'email', label: 'Email', type: 'short_text', required: true, placeholder: '' },
+      { name: 'phone', label: 'Phone', type: 'short_text', required: false, placeholder: '' },
+      { name: 'service', label: 'Service requested', type: 'short_text', required: true, placeholder: '' },
+      { name: 'preferred_date', label: 'Preferred date', type: 'short_text', required: true, placeholder: '' },
+      { name: 'preferred_time', label: 'Preferred time', type: 'radio', required: true, options: ['Morning', 'Afternoon', 'Evening'] },
+      { name: 'alt_date', label: 'Alternative date', type: 'short_text', required: false, placeholder: '' },
+      { name: 'notes', label: 'Special requirements / notes', type: 'long_text', required: false, placeholder: '' },
+      { name: 'how_found', label: 'How did you find us?', type: 'radio', required: false, options: ['Search', 'Referral', 'Social Media', 'Other'] },
+    ],
+  },
+  {
+    id: 'employee-survey',
+    label: 'Employee Survey',
+    description: 'Internal feedback and satisfaction survey.',
+    iconName: 'Users',
+    title: 'Employee Survey',
+    formDescription: 'Your feedback helps us improve the workplace. All responses are confidential.',
+    fields: [
+      { name: 'employee_name', label: 'Your name (optional)', type: 'short_text', required: false, placeholder: '' },
+      { name: 'department', label: 'Department (optional)', type: 'short_text', required: false, placeholder: '' },
+      { name: 'job_satisfaction', label: 'Job satisfaction', type: 'radio', required: true, options: STAR_RATING_OPTIONS },
+      { name: 'management', label: 'Management satisfaction', type: 'radio', required: true, options: STAR_RATING_OPTIONS },
+      { name: 'work_life_balance', label: 'Work-life balance', type: 'radio', required: true, options: STAR_RATING_OPTIONS },
+      { name: 'doing_well', label: 'What are we doing well?', type: 'long_text', required: false, placeholder: '' },
+      { name: 'improve', label: 'What could be improved?', type: 'long_text', required: false, placeholder: '' },
+      { name: 'recommend', label: 'Would you recommend working here?', type: 'radio', required: true, options: ['Yes', 'No', 'Maybe'] },
+      { name: 'comments', label: 'Additional comments', type: 'big_text', required: false, placeholder: '' },
+    ],
+  },
 ]
 
 function makeClientId() {
@@ -112,11 +299,27 @@ function serializeFieldsForDirty(fields: FeedbackField[]): string {
   )
 }
 
+function templateFieldsWithClientIds(templateId: string, fields: FormTemplate['fields']): FeedbackField[] {
+  return fields.map((f, i) => ({ ...f, clientId: `template-${templateId}-${i}` }))
+}
+
+const TEMPLATE_ICONS: Record<FormTemplate['iconName'], React.ComponentType<{ className?: string }>> = {
+  MessageSquare,
+  Calendar,
+  Bug,
+  Briefcase,
+  Star,
+  Mail,
+  CalendarClock,
+  Users,
+}
+
 export default function CreateFormPage() {
   const navigate = useNavigate()
   const { formId } = useParams<{ formId: string }>()
   const isEditMode = Boolean(formId)
 
+  const [step, setStep] = useState<'select' | 'build'>(isEditMode ? 'build' : 'select')
   const [title, setTitle] = useState('Feedback form')
   const [description, setDescription] = useState('test')
   const [fields, setFields] = useState<FeedbackField[]>(defaultFields)
@@ -138,6 +341,33 @@ export default function CreateFormPage() {
     (title !== initialSnapshotRef.current.title ||
       description !== initialSnapshotRef.current.description ||
       serializeFieldsForDirty(fields) !== initialSnapshotRef.current.fieldsKey)
+
+  const handleSelectTemplate = (template: FormTemplate | null) => {
+    if (template) {
+      const nextFields = templateFieldsWithClientIds(template.id, template.fields)
+      setTitle(template.title)
+      setDescription(template.formDescription)
+      setFields(nextFields)
+      initialSnapshotRef.current = {
+        title: template.title,
+        description: template.formDescription,
+        fieldsKey: serializeFieldsForDirty(nextFields),
+      }
+    } else {
+      setTitle('Feedback form')
+      setDescription('test')
+      setFields(defaultFields)
+      initialSnapshotRef.current = {
+        title: 'Feedback form',
+        description: 'test',
+        fieldsKey: serializeFieldsForDirty(defaultFields),
+      }
+    }
+    setEditingFieldIndex(null)
+    setShowAdvancedOptions(false)
+    setError('')
+    setStep('build')
+  }
 
   useEffect(() => {
     if (!isEditMode || !formId) return
@@ -181,19 +411,7 @@ export default function CreateFormPage() {
     return () => {
       active = false
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- getAuthHeaders read via ref to avoid effect re-running on context identity change
   }, [formId, isEditMode])
-
-  useEffect(() => {
-    if (isEditMode) return
-    if (initialSnapshotRef.current === null) {
-      initialSnapshotRef.current = {
-        title: 'Feedback form',
-        description: 'test',
-        fieldsKey: serializeFieldsForDirty(defaultFields),
-      }
-    }
-  }, [isEditMode])
 
   useEffect(() => {
     if (!isDirty) return
@@ -362,8 +580,10 @@ export default function CreateFormPage() {
   const handleBackClick = () => {
     if (isDirty) {
       setShowLeaveConfirm(true)
-    } else {
+    } else if (isEditMode) {
       navigate('/dashboard/forms')
+    } else {
+      setStep('select')
     }
   }
 
@@ -372,13 +592,66 @@ export default function CreateFormPage() {
     navigate('/dashboard/forms')
   }
 
+  const backClass =
+    'inline-flex items-center gap-1 rounded border border-slate-200 bg-transparent px-2 py-1 text-xs font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-slate-200'
+
+  if (step === 'select') {
+    return (
+      <section className="mx-auto max-w-4xl" aria-label="Choose form template">
+        <div className="mb-4 flex justify-start">
+          <Link to="/dashboard/forms" className={backClass}>
+            <ArrowLeft className="h-3.5 w-3.5" />
+            Back
+          </Link>
+        </div>
+        <Card className="rounded-xl sm:p-8">
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Choose a template</h2>
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+            Start with a pre-built form or configure your own from scratch.
+          </p>
+          <div className="mt-6 grid gap-3 sm:grid-cols-2">
+            {FORM_TEMPLATES.map((template) => {
+              const Icon = TEMPLATE_ICONS[template.iconName]
+              return (
+                <button
+                  key={template.id}
+                  type="button"
+                  onClick={() => handleSelectTemplate(template)}
+                  className="flex items-start gap-3 rounded-xl border border-slate-200 p-4 text-left transition hover:border-emerald-300 hover:bg-emerald-50/50 dark:border-slate-700 dark:hover:border-emerald-600 dark:hover:bg-emerald-900/20"
+                >
+                  <Icon className="h-5 w-5 shrink-0 text-slate-500 dark:text-slate-400" />
+                  <div className="min-w-0 flex-1">
+                    <span className="font-medium text-slate-900 dark:text-slate-100">{template.label}</span>
+                    <p className="mt-0.5 text-xs text-slate-600 dark:text-slate-400">{template.description}</p>
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+          <div className="mt-6 border-t border-slate-200 pt-6 dark:border-slate-700">
+            <Button
+              type="button"
+              variant="secondary"
+              size="md"
+              onClick={() => handleSelectTemplate(null)}
+              className="w-full sm:w-auto"
+            >
+              <Settings2 className="h-4 w-4" />
+              Configure my own
+            </Button>
+          </div>
+        </Card>
+      </section>
+    )
+  }
+
   return (
     <section className="mx-auto max-w-4xl">
       <div className="mb-4 flex justify-start">
-        <Button type="button" variant="secondary" size="sm" onClick={handleBackClick}>
-          <ArrowLeft className="h-4 w-4" />
+        <button type="button" onClick={handleBackClick} className={backClass}>
+          <ArrowLeft className="h-3.5 w-3.5" />
           Back
-        </Button>
+        </button>
       </div>
 
       <Card className="rounded-xl sm:p-8">

@@ -1,5 +1,13 @@
-import type { ChangeEvent, ReactNode } from 'react'
-import { Input, Label, Textarea, ErrorMessage } from '../ui'
+import type { ReactNode } from 'react'
+import {
+  ShortTextField,
+  BigTextField,
+  CheckboxField,
+  RadioField,
+  StarRatingField,
+  ImageUploadField,
+} from './field-types'
+import { isStarRatingOptions } from './formFieldUtils'
 
 export type FormFieldType =
   | 'short_text'
@@ -46,135 +54,95 @@ export default function FormFieldRenderer({
     </span>
   )
 
+  const handleChange = (v: string | string[] | File | undefined) => onChange(field.name, v)
+
   if (field.type === 'short_text' || field.type === 'long_text') {
     return (
-      <div className="space-y-2">
-        <Label htmlFor={id} size="md" className="inline-flex items-center">
-          {labelNode}
-        </Label>
-        <Input
-          id={id}
-          type="text"
-          value={(value as string) ?? ''}
-          onChange={(v) => onChange(field.name, v)}
-          placeholder={field.placeholder}
-          required={field.required}
-          disabled={disabled}
-          error={error}
-        />
-      </div>
+      <ShortTextField
+        id={id}
+        label={labelNode}
+        value={(value as string) ?? ''}
+        onChange={(v) => handleChange(v)}
+        placeholder={field.placeholder}
+        disabled={disabled}
+        required={field.required}
+        error={error}
+      />
     )
   }
 
   if (field.type === 'big_text') {
     return (
-      <div className="space-y-2">
-        <Label htmlFor={id} size="md" className="inline-flex items-center">
-          {labelNode}
-        </Label>
-        <Textarea
-          id={id}
-          value={(value as string) ?? ''}
-          onChange={(v) => onChange(field.name, v)}
-          placeholder={field.placeholder}
-          rows={4}
-          required={field.required}
-          disabled={disabled}
-          error={error}
-        />
-      </div>
+      <BigTextField
+        id={id}
+        label={labelNode}
+        value={(value as string) ?? ''}
+        onChange={(v) => handleChange(v)}
+        placeholder={field.placeholder}
+        disabled={disabled}
+        required={field.required}
+        error={error}
+      />
     )
   }
 
   if (field.type === 'checkbox' && field.options?.length) {
-    const arr = (Array.isArray(value) ? value : []) as string[]
     return (
-      <div className="space-y-2">
-        <Label htmlFor={id} size="md" className="inline-flex items-center text-slate-800 dark:text-slate-200">
-          {labelNode}
-        </Label>
-        <div className="space-y-2">
-          {field.options.map((option) => (
-            <label
-              key={`${field.name}-${option}`}
-              className="flex cursor-pointer items-center gap-2 text-sm text-slate-700 dark:text-slate-300"
-            >
-              <input
-                type="checkbox"
-                name={field.name}
-                checked={arr.includes(option)}
-                onChange={(e) => {
-                  const checked = e.target.checked
-                  if (checked) {
-                    onChange(field.name, [...arr, option])
-                  } else {
-                    onChange(field.name, arr.filter((o) => o !== option))
-                  }
-                }}
-                disabled={disabled}
-                className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 dark:border-slate-600 dark:focus:ring-emerald-500"
-              />
-              {option}
-            </label>
-          ))}
-        </div>
-        {error ? <ErrorMessage message={error} size="sm" /> : null}
-      </div>
+      <CheckboxField
+        id={id}
+        name={field.name}
+        label={labelNode}
+        value={(Array.isArray(value) ? value : []) as string[]}
+        options={field.options}
+        onChange={(v) => handleChange(v)}
+        disabled={disabled}
+        error={error}
+      />
+    )
+  }
+
+  if (field.type === 'radio' && field.options?.length && isStarRatingOptions(field.options)) {
+    return (
+      <StarRatingField
+        id={id}
+        name={field.name}
+        label={labelNode}
+        value={typeof value === 'string' ? value : ''}
+        options={field.options}
+        onChange={(v) => handleChange(v)}
+        disabled={disabled}
+        required={field.required}
+        error={error}
+      />
     )
   }
 
   if (field.type === 'radio' && field.options?.length) {
-    const str = typeof value === 'string' ? value : ''
     return (
-      <div className="space-y-2">
-        <Label htmlFor={id} size="md" className="inline-flex items-center text-slate-800 dark:text-slate-200">
-          {labelNode}
-        </Label>
-        <div className="space-y-2">
-          {field.options.map((option) => (
-            <label
-              key={`${field.name}-${option}`}
-              className="flex cursor-pointer items-center gap-2 text-sm text-slate-700 dark:text-slate-300"
-            >
-              <input
-                type="radio"
-                name={field.name}
-                value={option}
-                checked={str === option}
-                onChange={(e) => onChange(field.name, e.target.value)}
-                disabled={disabled}
-                required={field.required}
-                className="border-slate-300 text-emerald-600 focus:ring-emerald-500 dark:border-slate-600 dark:focus:ring-emerald-500"
-              />
-              {option}
-            </label>
-          ))}
-        </div>
-        {error ? <ErrorMessage message={error} size="sm" /> : null}
-      </div>
+      <RadioField
+        id={id}
+        name={field.name}
+        label={labelNode}
+        value={typeof value === 'string' ? value : ''}
+        options={field.options}
+        onChange={(v) => handleChange(v)}
+        disabled={disabled}
+        required={field.required}
+        error={error}
+      />
     )
   }
 
   if (field.type === 'image_upload') {
     return (
-      <div className="space-y-2">
-        <Label htmlFor={id} size="md" className="inline-flex items-center text-slate-800 dark:text-slate-200">
-          {labelNode}
-        </Label>
-        <input
-          id={id}
-          type="file"
-          name={field.name}
-          accept="image/*"
-          disabled={disabled}
-          onChange={(e: ChangeEvent<HTMLInputElement>) => {
-            const file = e.target.files?.[0]
-            onChange(field.name, file)
-          }}
-          className="w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-emerald-50 file:px-3 file:py-2 file:text-sm file:font-medium file:text-emerald-700 dark:text-slate-300 dark:file:bg-emerald-900/40 dark:file:text-emerald-300"
-        />
-        {error ? <ErrorMessage message={error} size="sm" /> : null}
-      </div>
+      <ImageUploadField
+        id={id}
+        name={field.name}
+        label={labelNode}
+        onChange={(v) => handleChange(v)}
+        disabled={disabled}
+        error={error}
+      />
     )
   }
 
