@@ -1,4 +1,4 @@
-import type { ChangeEvent } from 'react'
+import type { ChangeEvent, ReactNode } from 'react'
 import { Input, Label, Textarea, ErrorMessage } from '../ui'
 
 export type FormFieldType =
@@ -24,6 +24,7 @@ export interface FormFieldRendererProps {
   onChange: (name: string, value: string | string[] | File | undefined) => void
   disabled?: boolean
   error?: string
+  labelActions?: ReactNode
 }
 
 export default function FormFieldRenderer({
@@ -32,15 +33,27 @@ export default function FormFieldRenderer({
   onChange,
   disabled = false,
   error,
+  labelActions,
 }: FormFieldRendererProps) {
   const id = `field-${field.name}`
+  const labelNode = (
+    <span className="inline-flex flex-wrap items-center gap-3">
+      <span className="inline-flex min-w-0 items-center gap-1">
+        <span className="truncate">{field.label}</span>
+        {field.required ? <span className="text-rose-600 dark:text-rose-400" aria-hidden>*</span> : null}
+      </span>
+      {labelActions ? <span className="inline-flex shrink-0 items-center">{labelActions}</span> : null}
+    </span>
+  )
 
   if (field.type === 'short_text' || field.type === 'long_text') {
     return (
       <div className="space-y-2">
+        <Label htmlFor={id} size="md" className="inline-flex items-center">
+          {labelNode}
+        </Label>
         <Input
           id={id}
-          label={field.label}
           type="text"
           value={(value as string) ?? ''}
           onChange={(v) => onChange(field.name, v)}
@@ -56,9 +69,11 @@ export default function FormFieldRenderer({
   if (field.type === 'big_text') {
     return (
       <div className="space-y-2">
+        <Label htmlFor={id} size="md" className="inline-flex items-center">
+          {labelNode}
+        </Label>
         <Textarea
           id={id}
-          label={field.label}
           value={(value as string) ?? ''}
           onChange={(v) => onChange(field.name, v)}
           placeholder={field.placeholder}
@@ -75,8 +90,8 @@ export default function FormFieldRenderer({
     const arr = (Array.isArray(value) ? value : []) as string[]
     return (
       <div className="space-y-2">
-        <Label htmlFor={id} size="md" required={field.required} className="text-slate-800 dark:text-slate-200">
-          {field.label}
+        <Label htmlFor={id} size="md" className="inline-flex items-center text-slate-800 dark:text-slate-200">
+          {labelNode}
         </Label>
         <div className="space-y-2">
           {field.options.map((option) => (
@@ -112,8 +127,8 @@ export default function FormFieldRenderer({
     const str = typeof value === 'string' ? value : ''
     return (
       <div className="space-y-2">
-        <Label htmlFor={id} size="md" required={field.required} className="text-slate-800 dark:text-slate-200">
-          {field.label}
+        <Label htmlFor={id} size="md" className="inline-flex items-center text-slate-800 dark:text-slate-200">
+          {labelNode}
         </Label>
         <div className="space-y-2">
           {field.options.map((option) => (
@@ -143,8 +158,8 @@ export default function FormFieldRenderer({
   if (field.type === 'image_upload') {
     return (
       <div className="space-y-2">
-        <Label htmlFor={id} size="md" required={field.required} className="text-slate-800 dark:text-slate-200">
-          {field.label}
+        <Label htmlFor={id} size="md" className="inline-flex items-center text-slate-800 dark:text-slate-200">
+          {labelNode}
         </Label>
         <input
           id={id}
