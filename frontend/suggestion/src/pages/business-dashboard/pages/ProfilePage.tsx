@@ -188,7 +188,7 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              {/* Name + Email */}
+              
               <div className="flex-1 min-w-0">
                 <p className="text-xl font-bold text-slate-800 dark:text-slate-100 truncate">
                   {isLoadingProfile ? 'Loading...' : displayName}
@@ -225,7 +225,7 @@ export default function ProfilePage() {
                 <KeyRound className="h-4 w-4" />
                 Change Password
               </Button>
-              <Button type="button" variant="ghost" size="lg" className="w-full text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-900/20" onClick={handleLogout}>
+              <Button type="button" variant="secondary" size="lg" className="w-full text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-900/20" onClick={handleLogout}>
                 <LogOut className="h-4 w-4" />
                 Logout
               </Button>
