@@ -81,8 +81,11 @@ describe('FormsPage', () => {
     expect(screen.getByText(/Questions included:/i)).toBeInTheDocument()
     expect(screen.getByText(/Comment/)).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: /^QR$/i }))
+    fireEvent.click(screen.getByRole('button', { name: /share/i }))
 
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /Share: Customer Feedback/i })).toBeInTheDocument()
+    })
     await waitFor(() => {
       expect(screen.getByAltText(/QR for Customer Feedback/i)).toBeInTheDocument()
       expect(screen.getByText(/https:\/\/frontend\.example\.com\/feedback-forms\/f1/i)).toBeInTheDocument()
@@ -111,11 +114,19 @@ describe('FormsPage', () => {
       expect(screen.getByText(/Issue Form/i)).toBeInTheDocument()
     })
 
-    fireEvent.click(screen.getByRole('button', { name: /^QR$/i }))
+    fireEvent.click(screen.getByRole('button', { name: /share/i }))
 
     await waitFor(() => {
-      expect(screen.getByText(/Failed to generate QR\./i)).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: /Share: Issue Form/i })).toBeInTheDocument()
     })
+
+    await waitFor(
+      () => {
+        const alerts = screen.getAllByText(/Failed to generate QR/i)
+        expect(alerts.length).toBeGreaterThanOrEqual(1)
+      },
+      { timeout: 3000 },
+    )
   })
 
   test('Responses button navigates to submissions with formId param', async () => {
