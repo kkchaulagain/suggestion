@@ -338,12 +338,15 @@ describe('ProfilePage Component', () => {
     })
   })
 
-  it('logs out and redirects to login when logout button is clicked', async () => {
+  it('logs out and redirects to login when logout is confirmed', async () => {
     render(<ProfilePage />)
 
     await waitFor(() => expect(screen.getByText('Acme Owner')).toBeInTheDocument())
 
     fireEvent.click(screen.getByRole('button', { name: /logout/i }))
+    expect(screen.getByText(/are you sure you want to log out/i)).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /^log out$/i }))
 
     expect(mockLogout).toHaveBeenCalledTimes(1)
     expect(mockNavigate).toHaveBeenCalledWith('/login')
