@@ -48,7 +48,7 @@ export default function SubmissionsFilter({
   const hasActiveFilters = Boolean(
     formId || dateFrom || dateTo || (onFieldFilterChange && Object.values(fieldFilters).some((v) => v.trim() !== '')),
   )
-  const optionList = forms.map((f) => ({ value: f._id, label: f.title }))
+  const optionList = [{ value: '', label: 'All forms' }, ...forms.map((f) => ({ value: f._id, label: f.title }))]
   const filterableFields =
     selectedFormFields?.filter((f) => FILTERABLE_FIELD_TYPES.includes(f.type)) ?? []
   const hasOptions = (f: FormFieldForFilter) => Array.isArray(f.options) && f.options.length > 0
