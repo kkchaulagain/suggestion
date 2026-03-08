@@ -4,8 +4,8 @@ import axios from 'axios'
 import { Eye, X } from 'lucide-react'
 import { useAuth } from '../../../context/AuthContext'
 import { feedbackFormsApi, feedbackFormSubmissionsApi } from '../../../utils/apipath'
-import { Button, Card, ErrorMessage, Modal } from '../../../components/ui'
-import { DataTable, EmptyState, Pagination } from '../../../components/layout'
+import { Button, ErrorMessage, Modal } from '../../../components/ui'
+import { DataTable, EmptyState, PageHeader, Pagination } from '../../../components/layout'
 import SubmissionsFilter from '../components/SubmissionsFilter'
 
 interface FormSnapshotField {
@@ -38,6 +38,21 @@ function formatSubmittedAt(iso: string): string {
   }
 }
 
+function isImageUrl(value: string, fieldType: string): boolean {
+  if (!value || typeof value !== 'string') return false
+  const trimmed = value.trim()
+  const lower = trimmed.toLowerCase()
+  const isHttpOrData =
+    lower.startsWith('http://') || lower.startsWith('https://') || lower.startsWith('data:image/')
+  if (!isHttpOrData) return false
+  if (fieldType === 'image_upload' || fieldType === 'image') return true
+  return (
+    /\.(jpe?g|png|gif|webp)(\?|$)/i.test(lower) ||
+    lower.includes('data:image/') ||
+    /\/uploads\/|r2\.|cloudflare/i.test(lower)
+  )
+}
+
 function ResponseDetailModal({
   submission,
   onClose,
@@ -52,16 +67,43 @@ function ResponseDetailModal({
         <dl className="mt-4 space-y-3">
           {submission.formSnapshot.map((field) => {
             const value = submission.responses[field.name]
-            const display =
-              field.type === 'checkbox' && Array.isArray(value)
+            const isCheckbox = field.type === 'checkbox' && Array.isArray(value)
+            const displayText =
+              isCheckbox
                 ? value.length ? value.join(', ') : '—'
                 : typeof value === 'string'
                   ? value || '—'
                   : '—'
+            const isImage =
+              typeof value === 'string' &&
+              value.trim() !== '' &&
+              isImageUrl(value, field.type)
+            const imageUrl = isImage ? (value as string).trim() : null
+
             return (
               <div key={field.name}>
                 <dt className="text-sm font-medium text-slate-700 dark:text-slate-300">{field.label}</dt>
-                <dd className="mt-0.5 text-sm text-slate-900 dark:text-slate-200">{display}</dd>
+                <dd className="mt-0.5 text-sm text-slate-900 dark:text-slate-200">
+                  {imageUrl ? (
+                    <span className="block space-y-2">
+                      <img
+                        src={imageUrl}
+                        alt={field.label}
+                        className="max-h-64 w-auto max-w-full rounded-lg border border-slate-200 object-contain dark:border-slate-600"
+                      />
+                      <a
+                        href={imageUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-emerald-600 hover:underline dark:text-emerald-400"
+                      >
+                        Open in new tab
+                      </a>
+                    </span>
+                  ) : (
+                    displayText
+                  )}
+                </dd>
               </div>
             )
           })}
@@ -95,7 +137,7 @@ export default function SubmissionsPage() {
   const [viewSubmission, setViewSubmission] = useState<Submission | null>(null)
   const { getAuthHeaders } = useAuth()
 
-  // When URL formId changes (e.g. navigating from Saved Forms), sync filter and applied state
+  // When URL formId changes (e.g. navigating from Your Forms), sync filter and applied state
   useEffect(() => {
     if (formIdFromUrl) {
       setFormId(formIdFromUrl)
@@ -182,11 +224,12 @@ export default function SubmissionsPage() {
       render: (row: Submission) => (
         <Button
           type="button"
-          variant="secondary"
+          variant="ghost"
           size="sm"
+          className="min-h-0 rounded bg-slate-100 px-2 py-1 text-xs font-medium dark:bg-slate-700"
           onClick={() => setViewSubmission(row)}
         >
-          <Eye className="h-4 w-4" />
+          <Eye className="h-3.5 w-3.5" />
           View
         </Button>
       ),
@@ -194,10 +237,10 @@ export default function SubmissionsPage() {
   ]
 
   return (
-    <Card>
-      <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">Submissions</h3>
+    <section className="space-y-6" aria-label="Submissions">
+      <PageHeader title="Submissions" />
 
-      <div className="mt-4">
+      <div>
         <SubmissionsFilter
           forms={forms}
           formId={formId}
@@ -218,26 +261,28 @@ export default function SubmissionsPage() {
         <EmptyState type="empty" message="No submissions found." />
       ) : (
         <>
-          <div className="md:hidden mt-4 space-y-3">
+          <div className="md:hidden mt-4 space-y-0">
             {submissions.map((row) => (
               <div
                 key={row._id}
-                className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-slate-50/50 p-4 dark:border-slate-700 dark:bg-slate-800/50"
+                className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 py-4 first:pt-0 dark:border-slate-700"
               >
-                <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">
-                  {row.formTitle || row.formId}
-                </p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  {formatSubmittedAt(row.submittedAt)}
-                </p>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">
+                    {row.formTitle || row.formId}
+                  </p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    {formatSubmittedAt(row.submittedAt)}
+                  </p>
+                </div>
                 <Button
                   type="button"
-                  variant="secondary"
-                  size="md"
-                  className="w-full min-h-[44px] justify-center"
+                  variant="ghost"
+                  size="sm"
+                  className="min-h-0 rounded bg-slate-100 px-2 py-1 text-xs font-medium dark:bg-slate-700 shrink-0"
                   onClick={() => setViewSubmission(row)}
                 >
-                  <Eye className="h-4 w-4" />
+                  <Eye className="h-3.5 w-3.5" />
                   View
                 </Button>
               </div>
@@ -269,6 +314,6 @@ export default function SubmissionsPage() {
       {viewSubmission ? (
         <ResponseDetailModal submission={viewSubmission} onClose={() => setViewSubmission(null)} />
       ) : null}
-    </Card>
+    </section>
   )
 }

@@ -49,24 +49,6 @@ describe('FormsPage', () => {
 
   interface FormsListApiResponse { data: { feedbackForms: Array<{ _id: string; title?: string; description?: string; businessId?: string; fields?: Array<{ name: string; label: string; type: string; required?: boolean }> }> } }
 
-  test('refresh button re-fetches forms', async () => {
-    mockedAxios.get
-      .mockResolvedValueOnce({ data: { feedbackForms: [] } } as FormsListApiResponse)
-      .mockResolvedValueOnce({ data: { feedbackForms: [] } } as FormsListApiResponse)
-
-    renderFormsPage()
-
-    await waitFor(() => {
-      expect(screen.getByText(/No forms saved for this business yet\./i)).toBeInTheDocument()
-    })
-
-    fireEvent.click(screen.getByRole('button', { name: /Refresh/i }))
-
-    await waitFor(() => {
-      expect(mockedAxios.get).toHaveBeenCalledTimes(2)
-    })
-  })
-
   test('generates and shows QR code for a form', async () => {
     mockedAxios.get.mockResolvedValueOnce({
       data: {
@@ -99,7 +81,7 @@ describe('FormsPage', () => {
     expect(screen.getByText(/Questions included:/i)).toBeInTheDocument()
     expect(screen.getByText(/Comment/)).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: /Generate QR/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^QR$/i }))
 
     await waitFor(() => {
       expect(screen.getByAltText(/QR for Customer Feedback/i)).toBeInTheDocument()
@@ -129,14 +111,14 @@ describe('FormsPage', () => {
       expect(screen.getByText(/Issue Form/i)).toBeInTheDocument()
     })
 
-    fireEvent.click(screen.getByRole('button', { name: /Generate QR/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^QR$/i }))
 
     await waitFor(() => {
       expect(screen.getByText(/Failed to generate QR\./i)).toBeInTheDocument()
     })
   })
 
-  test('View Responses navigates to submissions with formId param', async () => {
+  test('Responses button navigates to submissions with formId param', async () => {
     mockedAxios.get.mockResolvedValueOnce({
       data: {
         feedbackForms: [
@@ -156,7 +138,7 @@ describe('FormsPage', () => {
       expect(screen.getByText(/Feedback Form/i)).toBeInTheDocument()
     })
 
-    fireEvent.click(screen.getByRole('button', { name: /View Responses/i }))
+    fireEvent.click(screen.getByRole('button', { name: /Responses/i }))
 
     expect(mockNavigate).toHaveBeenCalledWith('/dashboard/submissions?formId=form-abc-123')
   })

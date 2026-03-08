@@ -193,8 +193,7 @@ describe('BusinessDashboardLayout and page', () => {
       expect(mockedAxios.get).toHaveBeenCalled()
     })
 
-    expect(screen.getByRole('heading', { name: /Saved Forms/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Refresh/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Make Form/i })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /Your Forms/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Add Form/i })).toBeInTheDocument()
   })
 })
