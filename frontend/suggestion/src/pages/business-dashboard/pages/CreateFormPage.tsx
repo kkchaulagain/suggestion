@@ -130,6 +130,8 @@ export default function CreateFormPage() {
 
   const initialSnapshotRef = useRef<{ title: string; description: string; fieldsKey: string } | null>(null)
   const { getAuthHeaders } = useAuth()
+  const getAuthHeadersRef = useRef(getAuthHeaders)
+  getAuthHeadersRef.current = getAuthHeaders
 
   const isDirty =
     initialSnapshotRef.current !== null &&
@@ -148,7 +150,7 @@ export default function CreateFormPage() {
         setError('')
         const { data } = await axios.get<FeedbackFormResponse>(`${feedbackFormsApi}/${formId}`, {
           withCredentials: true,
-          headers: getAuthHeaders(),
+          headers: getAuthHeadersRef.current(),
         })
         if (!active) return
         const loadedTitle = data.feedbackForm.title || 'Feedback form'
@@ -179,6 +181,7 @@ export default function CreateFormPage() {
     return () => {
       active = false
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- getAuthHeaders read via ref to avoid effect re-running on context identity change
   }, [formId, isEditMode])
 
   useEffect(() => {

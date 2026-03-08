@@ -351,4 +351,25 @@ describe('ProfilePage Component', () => {
     expect(mockLogout).toHaveBeenCalledTimes(1)
     expect(mockNavigate).toHaveBeenCalledWith('/login')
   })
+
+  it('logout confirm modal closes when Cancel is clicked', async () => {
+    render(<ProfilePage />)
+    await waitFor(() => expect(screen.getByText('Acme Owner')).toBeInTheDocument())
+    fireEvent.click(screen.getByRole('button', { name: /logout/i }))
+    expect(screen.getByText(/are you sure you want to log out/i)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /cancel/i }))
+    expect(screen.queryByText(/are you sure you want to log out/i)).not.toBeInTheDocument()
+    expect(mockLogout).not.toHaveBeenCalled()
+  })
+
+  it('logout confirm modal closes when backdrop is clicked', async () => {
+    render(<ProfilePage />)
+    await waitFor(() => expect(screen.getByText('Acme Owner')).toBeInTheDocument())
+    fireEvent.click(screen.getByRole('button', { name: /logout/i }))
+    expect(screen.getByRole('dialog', { name: /log out/i })).toBeInTheDocument()
+    const dialog = screen.getByRole('dialog', { name: /log out/i })
+    fireEvent.click(dialog)
+    expect(screen.queryByRole('dialog', { name: /log out/i })).not.toBeInTheDocument()
+    expect(mockLogout).not.toHaveBeenCalled()
+  })
 })

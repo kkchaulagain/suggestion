@@ -391,4 +391,32 @@ describe('CreateFormPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /^leave$/i }))
     expect(mockNavigate).toHaveBeenCalledWith('/dashboard/forms')
   })
+
+  test('beforeunload fires when form is dirty', () => {
+    renderCreateFormPage()
+    fireEvent.change(screen.getByLabelText(/form title/i), { target: { value: 'Changed' } })
+    const event = new Event('beforeunload', { cancelable: true })
+    window.dispatchEvent(event)
+    expect(event.defaultPrevented).toBe(true)
+  })
+
+  test('Add new field modal closes when backdrop is clicked', () => {
+    renderCreateFormPage()
+    fireEvent.click(screen.getByRole('button', { name: /\+ Add new field/i }))
+    expect(screen.getByRole('heading', { name: /Add new field/i })).toBeInTheDocument()
+    const dialog = screen.getByRole('dialog', { name: /Add new field/i })
+    fireEvent.click(dialog)
+    expect(screen.queryByRole('heading', { name: /Add new field/i })).not.toBeInTheDocument()
+  })
+
+  test('Unsaved changes modal closes when backdrop is clicked', () => {
+    renderCreateFormPage()
+    fireEvent.change(screen.getByLabelText(/form title/i), { target: { value: 'My form' } })
+    fireEvent.click(screen.getByRole('button', { name: /back/i }))
+    expect(screen.getByRole('heading', { name: /unsaved changes/i })).toBeInTheDocument()
+    const dialog = screen.getByRole('dialog', { name: /unsaved changes/i })
+    fireEvent.click(dialog)
+    expect(screen.queryByRole('heading', { name: /unsaved changes/i })).not.toBeInTheDocument()
+    expect(mockNavigate).not.toHaveBeenCalled()
+  })
 })
