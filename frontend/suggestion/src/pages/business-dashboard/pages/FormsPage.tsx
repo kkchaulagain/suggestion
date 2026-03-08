@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
-import { Eye, Plus, QrCode } from 'lucide-react'
+import { Copy, Eye, Pencil, Plus, QrCode } from 'lucide-react'
 import { useAuth } from '../../../context/AuthContext'
 import { feedbackFormsApi } from '../../../utils/apipath'
-import { Button, ErrorMessage } from '../../../components/ui'
+import { Button, ErrorMessage, Modal } from '../../../components/ui'
 import { PageHeader, EmptyState, FormCard, QRDisplay } from '../../../components/layout'
 
 interface FeedbackField {
@@ -39,6 +39,8 @@ export default function FormsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [qrByFormId, setQrByFormId] = useState<Record<string, QrPayload>>({})
+  const [shareModalFormId, setShareModalFormId] = useState<string | null>(null)
+  const [generatingFormId, setGeneratingFormId] = useState<string | null>(null)
   const { getAuthHeaders } = useAuth()
 
   const authHeaders = useMemo(
@@ -69,16 +71,42 @@ export default function FormsPage() {
     void loadForms()
   }, [loadForms])
 
-  const handleGenerateQr = async (formId: string) => {
-    try {
-      setError('')
-      const response = await axios.post<QrPayload>(`${feedbackFormsApi}/${formId}/qr`, {}, authHeaders)
-      setQrByFormId((previous) => ({ ...previous, [formId]: response.data }))
-    } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error
-      setError(msg || 'Failed to generate QR.')
-    }
+  const handleGenerateQr = useCallback(
+    async (formId: string) => {
+      try {
+        setError('')
+        setGeneratingFormId(formId)
+        const response = await axios.post<QrPayload>(`${feedbackFormsApi}/${formId}/qr`, {}, authHeaders)
+        if (response?.data) {
+          setQrByFormId((previous) => ({ ...previous, [formId]: response.data }))
+        }
+      } catch (err: unknown) {
+        const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error
+        setError(msg || 'Failed to generate QR.')
+      } finally {
+        setGeneratingFormId(null)
+      }
+    },
+    [authHeaders],
+  )
+
+  const handleOpenShareModal = (formId: string) => {
+    setShareModalFormId(formId)
+    setError('')
   }
+
+  const handleCopyLink = useCallback((url: string) => {
+    void navigator.clipboard.writeText(url)
+  }, [])
+
+  const shareForm = shareModalFormId ? savedForms.find((f) => f._id === shareModalFormId) : null
+  const shareQrPayload = shareModalFormId ? qrByFormId[shareModalFormId] : null
+  const isGeneratingShare = shareModalFormId !== null && generatingFormId === shareModalFormId
+
+  useEffect(() => {
+    if (!shareModalFormId || qrByFormId[shareModalFormId]) return
+    void handleGenerateQr(shareModalFormId)
+  }, [shareModalFormId, qrByFormId, handleGenerateQr])
 
   return (
     <section className="space-y-6" aria-label="Saved forms">
@@ -129,18 +157,19 @@ export default function FormsPage() {
                 <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">No questions added yet.</p>
               )}
               <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                Generate a QR to share, then use View Responses to track submissions.
+                Share the form via QR or link, then use Responses to track submissions.
               </p>
-              {qrByFormId[form._id] ? (
-                <div className="mt-3">
-                  <QRDisplay
-                    imageDataUrl={qrByFormId[form._id].qrCodeDataUrl}
-                    formUrl={qrByFormId[form._id].formUrl}
-                    title={form.title}
-                  />
-                </div>
-              ) : null}
               <div className="mt-3 flex flex-wrap items-center gap-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="min-h-0 rounded bg-slate-100 px-2 py-1 text-xs font-medium dark:bg-slate-700"
+                  onClick={() => navigate(`/dashboard/forms/${form._id}/edit`)}
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                  Edit
+                </Button>
                 <Button
                   type="button"
                   variant="ghost"
@@ -156,10 +185,10 @@ export default function FormsPage() {
                   variant="secondary"
                   size="sm"
                   className="min-h-0 rounded border-slate-200 px-2 py-1 text-xs font-medium dark:border-slate-600"
-                  onClick={() => void handleGenerateQr(form._id)}
+                  onClick={() => handleOpenShareModal(form._id)}
                 >
                   <QrCode className="h-3.5 w-3.5" />
-                  QR
+                  Share
                 </Button>
               </div>
             </FormCard>
@@ -168,6 +197,40 @@ export default function FormsPage() {
       </div>
 
       {error ? <ErrorMessage message={error} className="mt-4" /> : null}
+
+      <Modal
+        isOpen={shareModalFormId !== null}
+        onClose={() => {
+          setShareModalFormId(null)
+          setError('')
+        }}
+        title={shareForm ? `Share: ${shareForm.title}` : 'Share form'}
+        size="md"
+      >
+        {isGeneratingShare ? (
+          <p className="text-sm text-slate-600 dark:text-slate-400">Generating QR code…</p>
+        ) : shareQrPayload ? (
+          <div className="space-y-4">
+            <QRDisplay
+              imageDataUrl={shareQrPayload.qrCodeDataUrl}
+              formUrl={shareQrPayload.formUrl}
+              title={shareForm?.title}
+            />
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="w-full"
+              onClick={() => handleCopyLink(shareQrPayload.formUrl)}
+            >
+              <Copy className="h-4 w-4" />
+              Copy link
+            </Button>
+          </div>
+        ) : shareModalFormId && error ? (
+          <p className="text-sm text-rose-600 dark:text-rose-400">{error}</p>
+        ) : null}
+      </Modal>
     </section>
   )
 }

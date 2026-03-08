@@ -1,8 +1,8 @@
 import axios from 'axios'
 import { useEffect, useState } from 'react'
-import { Check, KeyRound, LogOut, Pencil, X, UserCircle } from 'lucide-react'
+import { Check, KeyRound, LogOut, Pencil, X } from 'lucide-react'
 import { useAuth } from '../../../context/AuthContext'
-import { Button, Card, Input, Modal } from '../../../components/ui'
+import { Avatar, Button, Input, Modal } from '../../../components/ui'
 import { changePasswordApi, meapi } from '../../../utils/apipath'
 import { useNavigate } from 'react-router-dom'
 
@@ -26,10 +26,14 @@ export default function ProfilePage() {
   const [isChangingPassword, setIsChangingPassword] = useState(false)
   const [passwordError, setPasswordError] = useState<string | null>(null)
   const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null)
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
   const { user, getAuthHeaders, logout } = useAuth()
   const navigate = useNavigate()
 
-  const handleLogout = () => {
+  const handleLogoutClick = () => setShowLogoutConfirm(true)
+
+  const handleLogoutConfirm = () => {
+    setShowLogoutConfirm(false)
     logout()
     navigate('/login')
   }
@@ -174,69 +178,90 @@ export default function ProfilePage() {
   const displayEmail = profile?.email ?? user?.email ?? 'N/A'
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
-      <div className="grid gap-6 md:grid-cols-3">
-        <div className="md:col-span-2 space-y-6">
-
-          <Card>
-            
-            <div className="flex items-center gap-4 mb-6 pb-5 border-b border-slate-100 dark:border-slate-700">
-             
-              <div className="relative flex-shrink-0">
-                <div className="h-20 w-20 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-md">
-                  <UserCircle className="h-12 w-12 text-white" />
-                </div>
-              </div>
-
-              
-              <div className="flex-1 min-w-0">
-                <p className="text-xl font-bold text-slate-800 dark:text-slate-100 truncate">
-                  {isLoadingProfile ? 'Loading...' : displayName}
-                </p>
-                <p className="text-sm text-slate-500 dark:text-slate-400 truncate mt-0.5">
-                  {isLoadingProfile ? '' : displayEmail}
-                </p>
-              </div>
-
-              
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                aria-label="Edit Profile"
-                onClick={handleOpenEdit}
-                className="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 flex-shrink-0"
-              >
-                <Pencil className="h-4 w-4" />
-              </Button>
-            </div>
-
-         
-            <div className="space-y-5">
-              {profileError ? (
-                <p className="text-xs font-medium text-rose-600 dark:text-rose-400">{profileError}</p>
-              ) : null}
-            </div>
-          </Card>
-
-          <Card>
-            <div className="flex flex-col gap-3">
-              <Button type="button" variant="secondary" size="lg" className="w-full" onClick={handleOpenPasswordModal}>
-                <KeyRound className="h-4 w-4" />
-                Change Password
-              </Button>
-              <Button type="button" variant="danger" size="lg" className="w-full" onClick={handleLogout}>
-                <LogOut className="h-4 w-4" />
-                Logout
-              </Button>
-            </div>
-            {passwordSuccess ? (
-              <p className="mt-3 text-xs font-medium text-emerald-600 dark:text-emerald-400">{passwordSuccess}</p>
-            ) : null}
-          </Card>
-
+    <section className="mx-auto max-w-4xl space-y-6" aria-label="Profile">
+      <div className="border-b border-slate-200 py-5 dark:border-slate-700">
+        <div className="flex items-center gap-4">
+          <Avatar name={displayName} size="lg" alt="Profile" />
+          <div className="min-w-0 flex-1">
+            <p className="text-lg font-semibold text-slate-800 dark:text-slate-100 truncate">
+              {isLoadingProfile ? 'Loading...' : displayName}
+            </p>
+            <p className="mt-0.5 truncate text-sm text-slate-500 dark:text-slate-400">
+              {isLoadingProfile ? '' : displayEmail}
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            aria-label="Edit Profile"
+            onClick={handleOpenEdit}
+            className="flex-shrink-0 text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300"
+          >
+            <Pencil className="h-4 w-4" />
+          </Button>
         </div>
+        {profileError ? (
+          <p className="mt-3 text-xs font-medium text-rose-600 dark:text-rose-400">{profileError}</p>
+        ) : null}
       </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="min-h-0 rounded bg-slate-100 px-2.5 py-1.5 text-xs font-medium dark:bg-slate-700"
+          onClick={handleOpenPasswordModal}
+        >
+          <KeyRound className="h-3.5 w-3.5" />
+          Change Password
+        </Button>
+        <Button
+          type="button"
+          variant="danger"
+          size="sm"
+          className="min-h-0 rounded px-2.5 py-1.5 text-xs font-medium"
+          onClick={handleLogoutClick}
+        >
+          <LogOut className="h-3.5 w-3.5" />
+          Logout
+        </Button>
+      </div>
+      {passwordSuccess ? (
+        <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400">{passwordSuccess}</p>
+      ) : null}
+
+      <Modal
+        isOpen={showLogoutConfirm}
+        onClose={() => setShowLogoutConfirm(false)}
+        title="Log out?"
+      >
+        <p className="text-sm text-slate-600 dark:text-slate-400">
+          Are you sure you want to log out? You will need to sign in again to access your account.
+        </p>
+        <div className="mt-6 flex gap-3">
+          <Button
+            type="button"
+            variant="secondary"
+            size="lg"
+            onClick={() => setShowLogoutConfirm(false)}
+            className="flex-1"
+          >
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            variant="danger"
+            size="lg"
+            onClick={handleLogoutConfirm}
+            className="flex-1"
+          >
+            <LogOut className="h-4 w-4" />
+            Log out
+          </Button>
+        </div>
+      </Modal>
 
       <Modal
         isOpen={isDialogOpen}
@@ -341,6 +366,6 @@ export default function ProfilePage() {
           </Button>
         </div>
       </Modal>
-    </div>
+    </section>
   )
 }

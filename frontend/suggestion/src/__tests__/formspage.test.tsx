@@ -35,6 +35,7 @@ describe('FormsPage', () => {
     mockedAxios.post.mockReset()
     mockNavigate.mockReset()
     localStorage.clear()
+    Object.assign(navigator, { clipboard: { writeText: jest.fn().mockResolvedValue(undefined) } })
   })
 
   test('shows load error when fetching forms fails', async () => {
@@ -81,12 +82,42 @@ describe('FormsPage', () => {
     expect(screen.getByText(/Questions included:/i)).toBeInTheDocument()
     expect(screen.getByText(/Comment/)).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: /^QR$/i }))
+    fireEvent.click(screen.getByRole('button', { name: /share/i }))
 
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /Share: Customer Feedback/i })).toBeInTheDocument()
+    })
     await waitFor(() => {
       expect(screen.getByAltText(/QR for Customer Feedback/i)).toBeInTheDocument()
       expect(screen.getByText(/https:\/\/frontend\.example\.com\/feedback-forms\/f1/i)).toBeInTheDocument()
     })
+    fireEvent.click(screen.getByRole('button', { name: /copy link/i }))
+  })
+
+  test('Share modal closes when backdrop is clicked', async () => {
+    mockedAxios.get.mockResolvedValueOnce({
+      data: {
+        feedbackForms: [
+          {
+            _id: 'f1',
+            title: 'Test Form',
+            businessId: 'b1',
+            fields: [{ name: 'q', label: 'Q', type: 'short_text', required: false }],
+          },
+        ],
+      },
+    } as FormsListApiResponse)
+    mockedAxios.post.mockResolvedValueOnce({
+      data: { qrCodeDataUrl: 'data:image/png,xyz', formUrl: 'https://example.com/f1' },
+    })
+
+    renderFormsPage()
+    await waitFor(() => expect(screen.getByText(/Test Form/i)).toBeInTheDocument())
+    fireEvent.click(screen.getByRole('button', { name: /share/i }))
+    await waitFor(() => expect(screen.getByRole('heading', { name: /Share: Test Form/i })).toBeInTheDocument())
+    const dialog = screen.getByRole('dialog', { name: /Share: Test Form/i })
+    fireEvent.click(dialog)
+    await waitFor(() => expect(screen.queryByRole('heading', { name: /Share: Test Form/i })).not.toBeInTheDocument())
   })
 
   test('shows fallback QR error when backend does not provide error message', async () => {
@@ -111,11 +142,44 @@ describe('FormsPage', () => {
       expect(screen.getByText(/Issue Form/i)).toBeInTheDocument()
     })
 
-    fireEvent.click(screen.getByRole('button', { name: /^QR$/i }))
+    fireEvent.click(screen.getByRole('button', { name: /share/i }))
 
     await waitFor(() => {
-      expect(screen.getByText(/Failed to generate QR\./i)).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: /Share: Issue Form/i })).toBeInTheDocument()
     })
+
+    await waitFor(
+      () => {
+        const alerts = screen.getAllByText(/Failed to generate QR/i)
+        expect(alerts.length).toBeGreaterThanOrEqual(1)
+      },
+      { timeout: 3000 },
+    )
+  })
+
+  test('Edit button navigates to edit form page', async () => {
+    mockedAxios.get.mockResolvedValueOnce({
+      data: {
+        feedbackForms: [
+          {
+            _id: 'form-xyz-456',
+            title: 'Survey',
+            businessId: 'b1',
+            fields: [{ name: 'q', label: 'Question', type: 'short_text', required: false }],
+          },
+        ],
+      },
+    } as FormsListApiResponse)
+
+    renderFormsPage()
+
+    await waitFor(() => {
+      expect(screen.getByText(/Survey/i)).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /^edit$/i }))
+
+    expect(mockNavigate).toHaveBeenCalledWith('/dashboard/forms/form-xyz-456/edit')
   })
 
   test('Responses button navigates to submissions with formId param', async () => {

@@ -1,12 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import axios from 'axios'
-import { ArrowLeft, ListChecks, Pencil, Plus, Send, Text, Trash2 } from 'lucide-react'
+import { ArrowLeft, ChevronDown, ChevronUp, Image, ListChecks, Pencil, Plus, Send, Text, Trash2 } from 'lucide-react'
 import { useAuth } from '../../../context/AuthContext'
 import { feedbackFormsApi } from '../../../utils/apipath'
-import { FormFieldRenderer } from '../../../components/forms'
-import type { FormFieldConfig } from '../../../components/forms'
-import { Button, Card, ErrorMessage, Input, Select, Textarea } from '../../../components/ui'
+import { Button, Card, ErrorMessage, Input, Modal, Select, Textarea } from '../../../components/ui'
 import { EmptyState } from '../../../components/layout'
 
 type FeedbackFieldType = 'checkbox' | 'radio' | 'short_text' | 'long_text' | 'big_text' | 'image_upload'
@@ -87,9 +85,8 @@ function createField(type: FeedbackFieldType, count: number): FeedbackField {
   }
 }
 
-function getPreviewValue(field: FeedbackField): string | string[] | File | undefined {
-  if (field.type === 'checkbox') return []
-  return ''
+function getTypeLabel(type: FeedbackFieldType): string {
+  return fieldTypeOptions.find((o) => o.value === type)?.label ?? type
 }
 
 function normalizeLoadedFields(fields: FeedbackField[] | undefined): FeedbackField[] {
@@ -101,6 +98,20 @@ function normalizeLoadedFields(fields: FeedbackField[] | undefined): FeedbackFie
     : defaultFields
 }
 
+/** Serialize fields for dirty check (ignore clientId). */
+function serializeFieldsForDirty(fields: FeedbackField[]): string {
+  return JSON.stringify(
+    fields.map((f) => ({
+      name: f.name,
+      label: f.label,
+      type: f.type,
+      required: f.required,
+      placeholder: f.placeholder ?? '',
+      options: f.options ?? [],
+    })),
+  )
+}
+
 export default function CreateFormPage() {
   const navigate = useNavigate()
   const { formId } = useParams<{ formId: string }>()
@@ -110,11 +121,23 @@ export default function CreateFormPage() {
   const [description, setDescription] = useState('test')
   const [fields, setFields] = useState<FeedbackField[]>(defaultFields)
   const [editingFieldIndex, setEditingFieldIndex] = useState<number | null>(null)
+  const [showAdvancedOptions, setShowAdvancedOptions] = useState(false)
+  const [showAddFieldModal, setShowAddFieldModal] = useState(false)
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false)
   const [loading, setLoading] = useState(isEditMode)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
 
+  const initialSnapshotRef = useRef<{ title: string; description: string; fieldsKey: string } | null>(null)
   const { getAuthHeaders } = useAuth()
+  const getAuthHeadersRef = useRef(getAuthHeaders)
+  getAuthHeadersRef.current = getAuthHeaders
+
+  const isDirty =
+    initialSnapshotRef.current !== null &&
+    (title !== initialSnapshotRef.current.title ||
+      description !== initialSnapshotRef.current.description ||
+      serializeFieldsForDirty(fields) !== initialSnapshotRef.current.fieldsKey)
 
   useEffect(() => {
     if (!isEditMode || !formId) return
@@ -127,13 +150,21 @@ export default function CreateFormPage() {
         setError('')
         const { data } = await axios.get<FeedbackFormResponse>(`${feedbackFormsApi}/${formId}`, {
           withCredentials: true,
-          headers: getAuthHeaders(),
+          headers: getAuthHeadersRef.current(),
         })
         if (!active) return
-        setTitle(data.feedbackForm.title || 'Feedback form')
-        setDescription(data.feedbackForm.description || '')
-        setFields(normalizeLoadedFields(data.feedbackForm.fields))
+        const loadedTitle = data.feedbackForm.title || 'Feedback form'
+        const loadedDescription = data.feedbackForm.description ?? ''
+        const loadedFields = normalizeLoadedFields(data.feedbackForm.fields)
+        setTitle(loadedTitle)
+        setDescription(loadedDescription)
+        setFields(loadedFields)
         setEditingFieldIndex(null)
+        initialSnapshotRef.current = {
+          title: loadedTitle,
+          description: loadedDescription,
+          fieldsKey: serializeFieldsForDirty(loadedFields),
+        }
       } catch (err: unknown) {
         if (!active) return
         const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error
@@ -150,7 +181,28 @@ export default function CreateFormPage() {
     return () => {
       active = false
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- getAuthHeaders read via ref to avoid effect re-running on context identity change
   }, [formId, isEditMode])
+
+  useEffect(() => {
+    if (isEditMode) return
+    if (initialSnapshotRef.current === null) {
+      initialSnapshotRef.current = {
+        title: 'Feedback form',
+        description: 'test',
+        fieldsKey: serializeFieldsForDirty(defaultFields),
+      }
+    }
+  }, [isEditMode])
+
+  useEffect(() => {
+    if (!isDirty) return
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+    }
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
+  }, [isDirty])
 
   const updateField = (index: number, updater: (field: FeedbackField) => FeedbackField) => {
     setFields((current) => current.map((field, fieldIndex) => (fieldIndex === index ? updater(field) : field)))
@@ -307,10 +359,23 @@ export default function CreateFormPage() {
     )
   }
 
+  const handleBackClick = () => {
+    if (isDirty) {
+      setShowLeaveConfirm(true)
+    } else {
+      navigate('/dashboard/forms')
+    }
+  }
+
+  const handleLeaveConfirm = () => {
+    setShowLeaveConfirm(false)
+    navigate('/dashboard/forms')
+  }
+
   return (
     <section className="mx-auto max-w-4xl">
       <div className="mb-4 flex justify-start">
-        <Button type="button" variant="secondary" size="sm" onClick={() => navigate('/dashboard/forms')}>
+        <Button type="button" variant="secondary" size="sm" onClick={handleBackClick}>
           <ArrowLeft className="h-4 w-4" />
           Back
         </Button>
@@ -342,77 +407,73 @@ export default function CreateFormPage() {
             const isEditing = editingFieldIndex === index
 
             return (
-              <div key={field.clientId} className="rounded-2xl border border-slate-200 p-4 dark:border-slate-700">
-                <div className="min-w-0">
-                  <FormFieldRenderer
-                    field={field as FormFieldConfig}
-                    value={getPreviewValue(field)}
-                    onChange={() => {}}
-                    labelActions={
-                      <div className="flex items-center gap-2 whitespace-nowrap">
-                        <Button
-                          type="button"
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => setEditingFieldIndex((current) => (current === index ? null : index))}
-                          className="border-transparent"
-                        >
-                          <Pencil className="h-4 w-4" />
-                          {isEditing ? 'Close' : 'Edit'}
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleRemoveField(index)}
-                          className="!text-rose-600 hover:!bg-rose-50 dark:!text-rose-400 dark:hover:!bg-rose-950/40"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                          Remove
-                        </Button>
-                      </div>
-                    }
-                  />
+              <div
+                key={field.clientId}
+                className="border-b border-slate-200 py-4 first:pt-0 last:border-b-0 dark:border-slate-700"
+                data-field-row
+              >
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <span className="text-sm font-medium text-slate-900 dark:text-slate-100">{field.label}</span>
+                    {field.required ? (
+                      <span className="ml-1 text-rose-600 dark:text-rose-400" aria-hidden>*</span>
+                    ) : null}
+                    <span className="ml-2 text-xs text-slate-500 dark:text-slate-400">
+                      {getTypeLabel(field.type)}
+                    </span>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="min-h-0 rounded bg-slate-100 px-2 py-1 text-xs font-medium dark:bg-slate-700"
+                      onClick={() => {
+                        setEditingFieldIndex((current) => (current === index ? null : index))
+                        setShowAdvancedOptions(false)
+                      }}
+                      aria-expanded={isEditing}
+                      aria-controls={isEditing ? `field-edit-${index}` : undefined}
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                      {isEditing ? 'Close' : 'Edit'}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="min-h-0 rounded px-2 py-1 text-xs font-medium !text-rose-600 hover:!bg-rose-50 dark:!text-rose-400 dark:hover:!bg-rose-950/40"
+                      onClick={() => handleRemoveField(index)}
+                      aria-label={`Remove field: ${field.label || 'Untitled'}`}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      Remove
+                    </Button>
+                  </div>
                 </div>
 
                 {isEditing ? (
-                  <div className="mt-4 space-y-4 rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/50">
-                    <div className="grid gap-3 md:grid-cols-2">
-                      <Input
-                        id={`field-label-${index}`}
-                        label="Label"
-                        value={field.label}
-                        onChange={(value) => handleFieldLabelChange(index, value)}
-                        placeholder="Field label"
-                      />
-                      <Input
-                        id={`field-name-${index}`}
-                        label="Field name"
-                        value={field.name}
-                        onChange={(value) => handleFieldNameChange(index, value)}
-                        placeholder="field_name"
-                      />
-                      <Select
-                        id={`field-type-${index}`}
-                        label="Type"
-                        value={field.type}
-                        onChange={(value) => handleFieldTypeChange(index, value as FeedbackFieldType)}
-                        options={fieldTypeOptions}
-                      />
-                      <Input
-                        id={`field-placeholder-${index}`}
-                        label="Placeholder"
-                        value={field.placeholder ?? ''}
-                        onChange={(value) => handleFieldPlaceholderChange(index, value)}
-                        placeholder="Optional helper text"
-                      />
-                    </div>
-
-                    <label className="inline-flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-300">
+                  <div id={`field-edit-${index}`} className="mt-3 space-y-4 pl-0" role="region" aria-label="Edit field">
+                    <Input
+                      id={`field-label-${index}`}
+                      label="Label"
+                      value={field.label}
+                      onChange={(value) => handleFieldLabelChange(index, value)}
+                      placeholder="Field label"
+                    />
+                    <Select
+                      id={`field-type-${index}`}
+                      label="Type"
+                      value={field.type}
+                      onChange={(value) => handleFieldTypeChange(index, value as FeedbackFieldType)}
+                      options={fieldTypeOptions}
+                    />
+                    <label className="inline-flex cursor-pointer items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300">
                       <input
                         type="checkbox"
                         checked={field.required}
                         onChange={(event) => handleFieldRequiredChange(index, event.target.checked)}
+                        className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 dark:border-slate-600"
                       />
                       Required field
                     </label>
@@ -450,33 +511,99 @@ export default function CreateFormPage() {
                         </div>
                       </div>
                     ) : null}
+
+                    <div className="border-t border-slate-200 pt-3 dark:border-slate-700">
+                      <button
+                        type="button"
+                        onClick={() => setShowAdvancedOptions((v) => !v)}
+                        className="flex w-full items-center justify-between gap-2 text-left text-sm font-medium text-slate-600 dark:text-slate-400"
+                        aria-expanded={showAdvancedOptions}
+                      >
+                        More options
+                        {showAdvancedOptions ? (
+                          <ChevronUp className="h-4 w-4 shrink-0" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4 shrink-0" />
+                        )}
+                      </button>
+                      {showAdvancedOptions ? (
+                        <div className="mt-3 space-y-3">
+                          <div>
+                            <Input
+                              id={`field-name-${index}`}
+                              label="Field name"
+                              value={field.name}
+                              onChange={(value) => handleFieldNameChange(index, value)}
+                              placeholder="field_name"
+                            />
+                            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                              Used in data export. Usually auto-filled from the label.
+                            </p>
+                          </div>
+                          <div>
+                            <Input
+                              id={`field-placeholder-${index}`}
+                              label="Placeholder"
+                              value={field.placeholder ?? ''}
+                              onChange={(value) => handleFieldPlaceholderChange(index, value)}
+                              placeholder="Optional helper text"
+                            />
+                            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                              Shown when the field is empty. Leave blank if not needed.
+                            </p>
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
                   </div>
                 ) : null}
               </div>
             )
           })}
 
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-900/40">
-            <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">Add field after fixed fields</p>
-            <div className="mt-4 grid grid-cols-2 gap-2 md:grid-cols-4">
-              <Button type="button" variant="secondary" size="sm" onClick={() => handleAddField('short_text')}>
-                <Text className="h-4 w-4" />
-                Short text
-              </Button>
-              <Button type="button" variant="secondary" size="sm" onClick={() => handleAddField('big_text')}>
-                <Text className="h-4 w-4" />
-                Paragraph
-              </Button>
-              <Button type="button" variant="secondary" size="sm" onClick={() => handleAddField('checkbox')}>
-                <ListChecks className="h-4 w-4" />
-                Checkbox
-              </Button>
-              <Button type="button" variant="secondary" size="sm" onClick={() => handleAddField('radio')}>
-                <ListChecks className="h-4 w-4" />
-                Radio
-              </Button>
-            </div>
+          <div className="pt-2">
+            <button
+              type="button"
+              onClick={() => setShowAddFieldModal(true)}
+              className="text-sm font-medium text-emerald-600 hover:text-emerald-700 hover:underline dark:text-emerald-400 dark:hover:text-emerald-300"
+            >
+              + Add new field
+            </button>
           </div>
+
+          {showAddFieldModal ? (
+            <Modal
+              isOpen
+              onClose={() => setShowAddFieldModal(false)}
+              title="Add new field"
+              size="md"
+            >
+              <div className="grid gap-2 sm:grid-cols-2">
+                {fieldTypeOptions.map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => {
+                      handleAddField(opt.value)
+                      setShowAddFieldModal(false)
+                    }}
+                    className="flex items-center gap-3 rounded-lg border border-slate-200 p-3 text-left transition hover:border-emerald-300 hover:bg-emerald-50/50 dark:border-slate-600 dark:hover:border-emerald-600 dark:hover:bg-emerald-900/20"
+                  >
+                    {opt.value === 'short_text' || opt.value === 'long_text' ? (
+                      <Text className="h-5 w-5 shrink-0 text-slate-500 dark:text-slate-400" />
+                    ) : opt.value === 'big_text' ? (
+                      <Text className="h-5 w-5 shrink-0 text-slate-500 dark:text-slate-400" />
+                    ) : opt.value === 'checkbox' || opt.value === 'radio' ? (
+                      <ListChecks className="h-5 w-5 shrink-0 text-slate-500 dark:text-slate-400" />
+                    ) : (
+                      <Image className="h-5 w-5 shrink-0 text-slate-500 dark:text-slate-400" />
+                    )}
+                    <span className="text-sm font-medium text-slate-900 dark:text-slate-100">{opt.label}</span>
+                  </button>
+                ))}
+              </div>
+            </Modal>
+          ) : null}
 
           {error ? <ErrorMessage message={error} /> : null}
 
@@ -486,6 +613,36 @@ export default function CreateFormPage() {
           </Button>
         </form>
       </Card>
+
+      <Modal
+        isOpen={showLeaveConfirm}
+        onClose={() => setShowLeaveConfirm(false)}
+        title="Unsaved changes"
+      >
+        <p className="text-sm text-slate-600 dark:text-slate-400">
+          You have unsaved changes. Leave anyway? Your changes will be lost.
+        </p>
+        <div className="mt-6 flex gap-3">
+          <Button
+            type="button"
+            variant="secondary"
+            size="lg"
+            onClick={() => setShowLeaveConfirm(false)}
+            className="flex-1"
+          >
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            variant="danger"
+            size="lg"
+            onClick={handleLeaveConfirm}
+            className="flex-1"
+          >
+            Leave
+          </Button>
+        </div>
+      </Modal>
     </section>
   )
 }
