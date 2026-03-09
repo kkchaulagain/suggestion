@@ -23,6 +23,7 @@
     "cors": "^2.8.6",
     "express": "^4.21.0",
     "jsonwebtoken": "^9.0.3",
+    "libphonenumber-js": "^1.12.38",
     "mongoose": "^8.8.0",
     "multer": "^2.1.0",
     "qrcode": "^1.5.4",

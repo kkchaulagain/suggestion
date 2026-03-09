@@ -14,6 +14,7 @@ async function createBusinessAuth() {
     name: 'Business Owner',
     email,
     password,
+    phone: '+9779812345678',
     role: 'business',
     location: 'City Center',
     pancardNumber: 1234567,

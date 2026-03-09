@@ -10,6 +10,18 @@ import { ThemeProvider } from '../context/ThemeContext'
 jest.mock('axios')
 const mockedAxios = axios as jest.Mocked<typeof axios>
 
+function mockAxiosInterceptors() {
+  ;(mockedAxios as unknown as {
+    interceptors: {
+      request: { use: jest.Mock; eject: jest.Mock }
+      response: { use: jest.Mock; eject: jest.Mock }
+    }
+  }).interceptors = {
+    request: { use: jest.fn(() => 1), eject: jest.fn() },
+    response: { use: jest.fn(() => 1), eject: jest.fn() },
+  }
+}
+
 const mockNavigate = jest.fn()
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
@@ -34,6 +46,7 @@ describe('Login Component', () => {
         mockNavigate.mockClear()
         window.alert = jest.fn()
         localStorage.clear()
+        mockAxiosInterceptors()
         ;(axios as unknown as { isAxiosError: jest.Mock }).isAxiosError = jest.fn(
           (e: unknown) => !!(e && typeof e === 'object' && 'response' in e && (e as { response?: { data?: unknown } }).response?.data !== undefined)
         )

@@ -6,6 +6,18 @@ import { AuthProvider, useAuth } from '../context/AuthContext'
 jest.mock('axios')
 const mockedAxios = axios as jest.Mocked<typeof axios>
 
+function mockAxiosInterceptors() {
+  ;(mockedAxios as unknown as {
+    interceptors: {
+      request: { use: jest.Mock; eject: jest.Mock }
+      response: { use: jest.Mock; eject: jest.Mock }
+    }
+  }).interceptors = {
+    request: { use: jest.fn(() => 1), eject: jest.fn() },
+    response: { use: jest.fn(() => 1), eject: jest.fn() },
+  }
+}
+
 function HasRoleConsumer() {
   const { user, hasRole } = useAuth()
   return (
@@ -21,6 +33,7 @@ describe('AuthContext hasRole', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     localStorage.clear()
+    mockAxiosInterceptors()
   })
 
   it('hasRole returns true for current user role and false for others', async () => {

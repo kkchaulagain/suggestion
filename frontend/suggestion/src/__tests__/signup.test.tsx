@@ -223,6 +223,26 @@ describe('Signup Component', () => {
     })
   })
 
+  test('shows phone field error from backend validation errors', async () => {
+    mockedAxios.post.mockRejectedValueOnce({
+      response: {
+        data: {
+          message: 'Validation failed',
+          errors: {
+            phone: 'Invalid phone number',
+          },
+        },
+      },
+    })
+
+    renderSignup()
+    fireEvent.click(screen.getByRole('button', { name: /Sign Up/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText(/Invalid phone number/i)).toBeInTheDocument()
+    })
+  })
+
   test('shows general error and fallback unknown error message', async () => {
     mockedAxios.post.mockRejectedValueOnce({
       response: {

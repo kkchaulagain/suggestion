@@ -1,6 +1,8 @@
 import {
   userapi,
   loginapi,
+  refreshTokenApi,
+  logoutApi,
   meapi,
   changePasswordApi,
   businessmeapi,
@@ -24,6 +26,14 @@ describe('apipath', () => {
 
   it('exports meapi with correct base and path', () => {
     expect(meapi).toBe(`${base}/api/auth/me`)
+  })
+
+  it('exports refreshTokenApi with correct base and path', () => {
+    expect(refreshTokenApi).toBe(`${base}/api/auth/refresh-token`)
+  })
+
+  it('exports logoutApi with correct base and path', () => {
+    expect(logoutApi).toBe(`${base}/api/auth/logout`)
   })
 
   it('exports changePasswordApi with correct base and path', () => {

@@ -12,6 +12,18 @@ jest.mock('../App.css', () => ({}))
 jest.mock('axios')
 const mockedAxios = axios as jest.Mocked<typeof axios>
 
+function mockAxiosInterceptors() {
+  ;(mockedAxios as unknown as {
+    interceptors: {
+      request: { use: jest.Mock; eject: jest.Mock }
+      response: { use: jest.Mock; eject: jest.Mock }
+    }
+  }).interceptors = {
+    request: { use: jest.fn(() => 1), eject: jest.fn() },
+    response: { use: jest.fn(() => 1), eject: jest.fn() },
+  }
+}
+
 jest.mock('../auth/Signup', () => ({
   __esModule: true,
   default: () => <div>Signup Page</div>,
@@ -71,6 +83,7 @@ describe('ProtectedRoute component', () => {
   beforeEach(() => {
     localStorage.clear()
     mockedAxios.get.mockReset()
+    mockAxiosInterceptors()
   })
 
   test('renders children when user is logged in', async () => {
@@ -124,6 +137,7 @@ describe('App routing', () => {
   beforeEach(() => {
     localStorage.clear()
     mockedAxios.get.mockReset()
+    mockAxiosInterceptors()
   })
 
   test('renders signup on root route', () => {

@@ -4,6 +4,7 @@ const { connect, disconnect } = require('../db');
 const app = require('../app');
 const User = require('../models/User');
 const Business = require('../models/Business');
+const VALID_PHONE = '+9779812345678';
 
 describe('POST /api/auth/register', () => {
   beforeAll(async () => {
@@ -24,7 +25,7 @@ describe('POST /api/auth/register', () => {
   it('returns 201 and user (no password) when email and password are valid', async () => {
     const res = await request(app)
       .post('/api/auth/register')
-      .send({ email: 'test@example.com', password: 'secret123' })
+      .send({ email: 'test@example.com', password: 'secret123', phone: VALID_PHONE })
       .expect(201);
 
     expect(res.body).toMatchObject({
@@ -40,7 +41,7 @@ describe('POST /api/auth/register', () => {
   it('returns 400 when email is missing', async () => {
     const res = await request(app)
       .post('/api/auth/register')
-      .send({ password: 'secret123' })
+      .send({ password: 'secret123', phone: VALID_PHONE })
       .expect(400);
 
     expect(res.body.error).toBeDefined();
@@ -49,7 +50,7 @@ describe('POST /api/auth/register', () => {
   it('returns 400 when password is missing', async () => {
     const res = await request(app)
       .post('/api/auth/register')
-      .send({ email: 'test@example.com' })
+      .send({ email: 'test@example.com', phone: VALID_PHONE })
       .expect(400);
 
     expect(res.body.error).toBeDefined();
@@ -58,33 +59,51 @@ describe('POST /api/auth/register', () => {
   it('returns 400 when password is shorter than 6 characters', async () => {
     await request(app)
       .post('/api/auth/register')
-      .send({ email: 'test@example.com', password: '12345' })
+      .send({ email: 'test@example.com', password: '12345', phone: VALID_PHONE })
       .expect(400);
   });
 
   it('returns 400 when email is invalid', async () => {
     await request(app)
       .post('/api/auth/register')
-      .send({ email: 'not-an-email', password: 'secret123' })
+      .send({ email: 'not-an-email', password: 'secret123', phone: VALID_PHONE })
       .expect(400);
+  });
+
+  it('returns 400 when phone number is empty', async () => {
+    const res = await request(app)
+      .post('/api/auth/register')
+      .send({ email: 'empty-phone@example.com', password: 'secret123', phone: '' })
+      .expect(400);
+
+    expect(res.body.errors.phone).toBe('Phone number is required');
+  });
+
+  it('returns 400 when phone number has fewer than 10 digits', async () => {
+    const res = await request(app)
+      .post('/api/auth/register')
+      .send({ email: 'short-phone@example.com', password: 'secret123', phone: '98123' })
+      .expect(400);
+
+    expect(res.body.errors.phone).toBe('Phone number must be at least 10 digits');
   });
 
   it('returns 409 when email already exists', async () => {
     await request(app)
       .post('/api/auth/register')
-      .send({ email: 'dup@example.com', password: 'secret123' })
+      .send({ email: 'dup@example.com', password: 'secret123', phone: VALID_PHONE })
       .expect(201);
 
     await request(app)
       .post('/api/auth/register')
-      .send({ email: 'dup@example.com', password: 'other456' })
+      .send({ email: 'dup@example.com', password: 'other456', phone: '+9779800000000' })
       .expect(409);
   });
 
   it('persists user with hashed password in database', async () => {
     await request(app)
       .post('/api/auth/register')
-      .send({ email: 'hash@example.com', password: 'secret123' })
+      .send({ email: 'hash@example.com', password: 'secret123', phone: VALID_PHONE })
       .expect(201);
 
     const user = await User.findOne({ email: 'hash@example.com' }).select('+password');
@@ -99,6 +118,7 @@ describe('POST /api/auth/register', () => {
       .send({
         email: 'biz@example.com',
         password: 'secret123',
+        phone: VALID_PHONE,
         role: 'business',
         businessname: 'Acme Traders',
         location: 'jorpati',
@@ -123,6 +143,7 @@ describe('POST /api/auth/register', () => {
       .send({
         email: 'biz-missing-name@example.com',
         password: 'secret123',
+        phone: VALID_PHONE,
         role: 'business',
         location: 'jorpati',
         pancardNumber: 12345678,
@@ -139,6 +160,7 @@ describe('POST /api/auth/register', () => {
       .send({
         email: 'biz-missing-loc@example.com',
         password: 'secret123',
+        phone: VALID_PHONE,
         role: 'business',
         businessname: 'Acme',
         pancardNumber: 12345678,
@@ -155,6 +177,7 @@ describe('POST /api/auth/register', () => {
       .send({
         email: 'biz-missing-desc@example.com',
         password: 'secret123',
+        phone: VALID_PHONE,
         role: 'business',
         businessname: 'Acme',
         location: 'jorpati',
@@ -171,6 +194,7 @@ describe('POST /api/auth/register', () => {
       .send({
         email: 'biz-missing-pan@example.com',
         password: 'secret123',
+        phone: VALID_PHONE,
         role: 'business',
         businessname: 'Acme',
         location: 'jorpati',
