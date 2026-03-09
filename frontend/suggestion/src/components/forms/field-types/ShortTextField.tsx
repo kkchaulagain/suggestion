@@ -24,7 +24,7 @@ export default function ShortTextField({
   error,
 }: ShortTextFieldProps) {
   return (
-    <FieldWrapper id={id} label={label} error={error}>
+    <FieldWrapper id={id} label={label}>
       <Input
         id={id}
         type="text"
@@ -33,6 +33,7 @@ export default function ShortTextField({
         placeholder={placeholder}
         required={required}
         disabled={disabled}
+        error={error}
       />
     </FieldWrapper>
   )

@@ -26,7 +26,7 @@ export default function BigTextField({
   error,
 }: BigTextFieldProps) {
   return (
-    <FieldWrapper id={id} label={label} error={error}>
+    <FieldWrapper id={id} label={label}>
       <Textarea
         id={id}
         value={value}
@@ -35,6 +35,7 @@ export default function BigTextField({
         rows={rows}
         required={required}
         disabled={disabled}
+        error={error}
       />
     </FieldWrapper>
   )
