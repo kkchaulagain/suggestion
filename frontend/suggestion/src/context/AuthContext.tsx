@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from 'react'
 import axios from 'axios'
+import type { AxiosHeaderValue, AxiosRequestHeaders } from 'axios'
 import { loginapi, logoutApi, meapi, refreshTokenApi } from '../utils/apipath'
 
 const AUTH_STORAGE_KEY = 'auth_token'
@@ -69,26 +70,27 @@ function persistToken(token: string | null): void {
 }
 
 type HeaderLike = {
-  Authorization?: string
-  authorization?: string
+  Authorization?: AxiosHeaderValue
+  authorization?: AxiosHeaderValue
   get?: (name: string) => string | undefined
   has?: (name: string) => boolean
   set?: (name: string, value: string) => void
-  [key: string]: unknown
 }
 
-function upsertAuthorizationHeader(headers: unknown, token: string, overwrite = false): HeaderLike {
+function upsertAuthorizationHeader(headers: unknown, token: string, overwrite = false): AxiosRequestHeaders {
   const headerValue = `Bearer ${token}`
   const normalize = (name: string) => name.toLowerCase()
 
   const ensureHeaderMethods = (target: HeaderLike): HeaderLike => {
+    const targetRecord = target as Record<string, AxiosHeaderValue | undefined>
+
     if (typeof target.get !== 'function') {
       target.get = (name: string) => {
         const lower = normalize(name)
         if (lower === 'authorization') {
           return (target.Authorization as string | undefined) ?? (target.authorization as string | undefined)
         }
-        return target[name] as string | undefined
+        return targetRecord[name] as string | undefined
       }
     }
     if (typeof target.has !== 'function') {
@@ -101,7 +103,7 @@ function upsertAuthorizationHeader(headers: unknown, token: string, overwrite = 
           target.Authorization = value
           return
         }
-        target[name] = value
+        targetRecord[name] = value
       }
     }
     return target
@@ -122,12 +124,12 @@ function upsertAuthorizationHeader(headers: unknown, token: string, overwrite = 
       }
     }
 
-    return existing
+    return existing as AxiosRequestHeaders
   }
 
   const created = ensureHeaderMethods({})
   created.set?.('Authorization', headerValue)
-  return created
+  return created as AxiosRequestHeaders
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
