@@ -75,6 +75,25 @@ describe('FormFieldRenderer', () => {
     expect(onChange).toHaveBeenCalledWith('email', 'a@b.com')
   })
 
+  test('passing error to short_text highlights the input and shows message', () => {
+    render(
+      <FormFieldRenderer
+        field={{
+          name: 'comment',
+          label: 'Comment',
+          type: 'short_text',
+          required: true,
+        }}
+        value=""
+        onChange={() => {}}
+        error="Comment is required."
+      />,
+    )
+    const input = screen.getByRole('textbox', { name: /Comment/i })
+    expect(input).toHaveAttribute('aria-invalid', 'true')
+    expect(screen.getByText('Comment is required.')).toBeInTheDocument()
+  })
+
   test('renders big_text as Textarea', () => {
     render(
       <FormFieldRenderer

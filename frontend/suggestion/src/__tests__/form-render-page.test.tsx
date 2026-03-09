@@ -128,7 +128,7 @@ describe('FormRenderPage', () => {
     })
   })
 
-  test('submit without required field shows validation error', async () => {
+  test('submit without required field shows validation error and highlights invalid field', async () => {
     mockedAxios.get.mockResolvedValueOnce({ data: mockFormConfig })
 
     renderFormRenderPage('form-1')
@@ -140,9 +140,11 @@ describe('FormRenderPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /Submit/i }))
 
     await waitFor(() => {
-      expect(screen.getByText(/required/i)).toBeInTheDocument()
+      expect(screen.getAllByText(/required/i).length).toBeGreaterThan(0)
     })
     expect(screen.getByRole('heading', { name: /Customer Feedback/i })).toBeInTheDocument()
+    const commentInput = screen.getByRole('textbox', { name: /Comment/i })
+    expect(commentInput).toHaveAttribute('aria-invalid', 'true')
   })
 
   test('shows error when formId is missing', async () => {
@@ -203,7 +205,7 @@ describe('FormRenderPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /Submit/i }))
     await waitFor(() => {
-      expect(screen.getByText(/required/i)).toBeInTheDocument()
+      expect(screen.getAllByText(/required/i).length).toBeGreaterThan(0)
     })
 
     fireEvent.click(screen.getByRole('checkbox', { name: /Yes/i }))

@@ -35,20 +35,21 @@ function getInitialValues(fields: FeedbackFormField[]): FormValues {
 function validateRequired(
   fields: FeedbackFormField[],
   values: FormValues
-): string | null {
+): Record<string, string> {
+  const errors: Record<string, string> = {}
   for (const field of fields) {
     if (!field.required) continue
     const v = values[field.name]
     if (field.type === 'checkbox') {
       const arr = Array.isArray(v) ? v : []
-      if (arr.length === 0) return `${field.label} is required.`
+      if (arr.length === 0) errors[field.name] = `${field.label} is required.`
     } else {
       if (v === undefined || v === '' || (typeof v === 'string' && !v.trim())) {
-        return `${field.label} is required.`
+        errors[field.name] = `${field.label} is required.`
       }
     }
   }
-  return null
+  return errors
 }
 
 function buildSubmitPayload(
@@ -85,6 +86,7 @@ export default function FormRenderPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [values, setValues] = useState<FormValues>({})
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [submitted, setSubmitted] = useState(false)
   const [submitting, setSubmitting] = useState(false)
@@ -125,6 +127,11 @@ export default function FormRenderPage() {
 
   const updateValue = useCallback((name: string, value: string | string[] | File | undefined) => {
     setValues((prev) => ({ ...prev, [name]: value }))
+    setFieldErrors((prev) => {
+      const next = { ...prev }
+      delete next[name]
+      return next
+    })
     setSubmitError(null)
   }, [])
 
@@ -132,11 +139,14 @@ export default function FormRenderPage() {
     async (e: React.FormEvent) => {
       e.preventDefault()
       if (!config || !formId) return
-      const requiredError = validateRequired(config.fields, values)
-      if (requiredError) {
-        setSubmitError(requiredError)
+      const errors = validateRequired(config.fields, values)
+      const hasErrors = Object.keys(errors).length > 0
+      if (hasErrors) {
+        setFieldErrors(errors)
+        setSubmitError(null)
         return
       }
+      setFieldErrors({})
       setSubmitError(null)
       setSubmitting(true)
       try {
@@ -231,10 +241,11 @@ export default function FormRenderPage() {
             field={field as FormFieldConfig}
             value={values[field.name]}
             onChange={updateValue}
+            error={fieldErrors[field.name]}
           />
         ))}
 
-        {submitError ? (
+        {submitError && Object.keys(fieldErrors).length === 0 ? (
           <ErrorMessage message={submitError} />
         ) : null}
 
