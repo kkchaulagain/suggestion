@@ -9,7 +9,6 @@ import {
   type ReactNode,
 } from 'react'
 import axios from 'axios'
-import { AxiosHeaders } from 'axios'
 import { loginapi, logoutApi, meapi, refreshTokenApi } from '../utils/apipath'
 
 const AUTH_STORAGE_KEY = 'auth_token'
@@ -67,6 +66,68 @@ function persistToken(token: string | null): void {
   } catch {
     // ignore storage errors
   }
+}
+
+type HeaderLike = {
+  Authorization?: string
+  authorization?: string
+  get?: (name: string) => string | undefined
+  has?: (name: string) => boolean
+  set?: (name: string, value: string) => void
+  [key: string]: unknown
+}
+
+function upsertAuthorizationHeader(headers: unknown, token: string, overwrite = false): HeaderLike {
+  const headerValue = `Bearer ${token}`
+  const normalize = (name: string) => name.toLowerCase()
+
+  const ensureHeaderMethods = (target: HeaderLike): HeaderLike => {
+    if (typeof target.get !== 'function') {
+      target.get = (name: string) => {
+        const lower = normalize(name)
+        if (lower === 'authorization') {
+          return (target.Authorization as string | undefined) ?? (target.authorization as string | undefined)
+        }
+        return target[name] as string | undefined
+      }
+    }
+    if (typeof target.has !== 'function') {
+      target.has = (name: string) => target.get?.(name) != null
+    }
+    if (typeof target.set !== 'function') {
+      target.set = (name: string, value: string) => {
+        const lower = normalize(name)
+        if (lower === 'authorization') {
+          target.Authorization = value
+          return
+        }
+        target[name] = value
+      }
+    }
+    return target
+  }
+
+  if (headers && typeof headers === 'object') {
+    const existing = ensureHeaderMethods(headers as HeaderLike)
+    const hasAuthorization =
+      typeof existing.has === 'function'
+        ? existing.has('Authorization')
+        : Boolean(existing.Authorization ?? existing.authorization ?? existing.get?.('Authorization'))
+
+    if (overwrite || !hasAuthorization) {
+      if (typeof existing.set === 'function') {
+        existing.set('Authorization', headerValue)
+      } else {
+        existing.Authorization = headerValue
+      }
+    }
+
+    return existing
+  }
+
+  const created = ensureHeaderMethods({})
+  created.set?.('Authorization', headerValue)
+  return created
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -161,11 +222,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const requestInterceptor = axios.interceptors.request.use((config) => {
       const authToken = tokenRef.current
       if (authToken) {
-        const headers = AxiosHeaders.from(config.headers)
-        if (!headers.has('Authorization')) {
-          headers.set('Authorization', `Bearer ${authToken}`)
-        }
-        config.headers = headers
+        config.headers = upsertAuthorizationHeader(config.headers, authToken)
       }
       return config
     })
@@ -194,9 +251,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return Promise.reject(err)
         }
 
-        const headers = AxiosHeaders.from(originalRequest.headers)
-        headers.set('Authorization', `Bearer ${nextToken}`)
-        originalRequest.headers = headers
+        originalRequest.headers = upsertAuthorizationHeader(originalRequest.headers, nextToken, true)
         originalRequest.withCredentials = true
         return axios(originalRequest)
       },
