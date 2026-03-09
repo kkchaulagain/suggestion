@@ -168,4 +168,60 @@ describe('POST /api/auth/login', () => {
       .set('Cookie', [refreshCookie])
       .expect(401);
   });
+
+  it('returns 401 when refresh token cookie is missing', async () => {
+    const res = await request(app)
+      .post('/api/auth/refresh-token')
+      .expect(401);
+
+    expect(res.body.message).toBe('Refresh token required');
+    expect(res.headers['set-cookie']).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('refreshToken=;'),
+        expect.stringContaining('token=;'),
+      ]),
+    );
+  });
+
+  it('returns 500 when refresh token lookup throws', async () => {
+    const originalFindOne = User.findOne;
+    User.findOne = jest.fn().mockImplementation(() => {
+      throw new Error('DB error');
+    });
+
+    const res = await request(app)
+      .post('/api/auth/refresh-token')
+      .set('Cookie', ['refreshToken=fake-token'])
+      .expect(500);
+
+    expect(res.body.message).toBe('Something went wrong');
+    expect(res.headers['set-cookie']).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('refreshToken=;'),
+        expect.stringContaining('token=;'),
+      ]),
+    );
+
+    User.findOne = originalFindOne;
+  });
+
+  it('returns 500 when logout token cleanup throws', async () => {
+    const originalUpdateOne = User.updateOne;
+    User.updateOne = jest.fn().mockRejectedValueOnce(new Error('DB error'));
+
+    const res = await request(app)
+      .post('/api/auth/logout')
+      .set('Cookie', ['refreshToken=fake-token'])
+      .expect(500);
+
+    expect(res.body.message).toBe('Something went wrong');
+    expect(res.headers['set-cookie']).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('refreshToken=;'),
+        expect.stringContaining('token=;'),
+      ]),
+    );
+
+    User.updateOne = originalUpdateOne;
+  });
 });

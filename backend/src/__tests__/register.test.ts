@@ -88,6 +88,24 @@ describe('POST /api/auth/register', () => {
     expect(res.body.errors.phone).toBe('Phone number must be at least 10 digits');
   });
 
+  it('accepts a valid Nepali mobile number in national format', async () => {
+    const res = await request(app)
+      .post('/api/auth/register')
+      .send({ email: 'nepali-phone@example.com', password: 'secret123', phone: '9812345678' })
+      .expect(201);
+
+    expect(res.body.user.phone).toBe('+9779812345678');
+  });
+
+  it('returns 400 when phone number format is invalid after length check', async () => {
+    const res = await request(app)
+      .post('/api/auth/register')
+      .send({ email: 'bad-phone@example.com', password: 'secret123', phone: '1234567890' })
+      .expect(400);
+
+    expect(res.body.errors.phone).toBe('Invalid phone number');
+  });
+
   it('returns 409 when email already exists', async () => {
     await request(app)
       .post('/api/auth/register')

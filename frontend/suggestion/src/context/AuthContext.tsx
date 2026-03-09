@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from 'react'
 import axios from 'axios'
+import { AxiosHeaders } from 'axios'
 import { loginapi, logoutApi, meapi, refreshTokenApi } from '../utils/apipath'
 
 const AUTH_STORAGE_KEY = 'auth_token'
@@ -160,9 +161,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const requestInterceptor = axios.interceptors.request.use((config) => {
       const authToken = tokenRef.current
       if (authToken) {
-        const headers = (config.headers ?? {}) as Record<string, string>
-        if (!headers.Authorization) {
-          headers.Authorization = `Bearer ${authToken}`
+        const headers = AxiosHeaders.from(config.headers)
+        if (!headers.has('Authorization')) {
+          headers.set('Authorization', `Bearer ${authToken}`)
         }
         config.headers = headers
       }
@@ -193,8 +194,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return Promise.reject(err)
         }
 
-        const headers = (originalRequest.headers ?? {}) as Record<string, string>
-        headers.Authorization = `Bearer ${nextToken}`
+        const headers = AxiosHeaders.from(originalRequest.headers)
+        headers.set('Authorization', `Bearer ${nextToken}`)
         originalRequest.headers = headers
         originalRequest.withCredentials = true
         return axios(originalRequest)
