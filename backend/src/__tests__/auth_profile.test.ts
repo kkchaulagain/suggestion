@@ -30,6 +30,7 @@ describe('Auth Profile Endpoints', () => {
       name: 'Regular User',
       email: 'user@example.com',
       password: 'password123',
+      phone: '+9779812345601',
       role: 'user',
     });
     userId = user._id;
@@ -40,6 +41,7 @@ describe('Auth Profile Endpoints', () => {
       name: 'Business User',
       email: 'business@example.com',
       password: 'password123',
+      phone: '+9779812345602',
       role: 'business',
     });
     businessUserId = businessUser._id;

@@ -22,6 +22,7 @@ describe('POST /api/auth/login - inactive user', () => {
       name: 'Deactivated User',
       email: 'inactive@example.com',
       password: 'secret123',
+      phone: '+9779812345650',
       role: 'user',
       isActive: false,
     });

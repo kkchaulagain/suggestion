@@ -16,6 +16,7 @@ beforeAll(async () => {
     name: 'Admin',
     email: 'admin-business-test@example.com',
     password: 'adminpass123',
+    phone: '+9779812345630',
     role: 'admin',
     isActive: true,
   });
