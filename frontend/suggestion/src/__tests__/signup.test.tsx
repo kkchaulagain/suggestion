@@ -223,6 +223,55 @@ describe('Signup Component', () => {
     })
   })
 
+  test('shows phone field error from backend validation errors', async () => {
+    mockedAxios.post.mockRejectedValueOnce({
+      response: {
+        data: {
+          message: 'Validation failed',
+          errors: {
+            phone: 'Invalid phone number',
+          },
+        },
+      },
+    })
+
+    renderSignup()
+    fireEvent.click(screen.getByRole('button', { name: /Sign Up/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText(/Invalid phone number/i)).toBeInTheDocument()
+    })
+  })
+
+  test('shows phone field error from field-plus-errors response and clears it on change', async () => {
+    mockedAxios.post.mockRejectedValueOnce({
+      response: {
+        data: {
+          field: 'phone',
+          message: 'Validation failed',
+          errors: {
+            phone: 'Phone number is required',
+          },
+        },
+      },
+    })
+
+    renderSignup()
+    fireEvent.click(screen.getByRole('button', { name: /Sign Up/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText(/Phone number is required/i)).toBeInTheDocument()
+    })
+
+    fireEvent.change(screen.getByLabelText(/Phone Number/i), {
+      target: { value: '9812345678' },
+    })
+
+    await waitFor(() => {
+      expect(screen.queryByText(/Phone number is required/i)).not.toBeInTheDocument()
+    })
+  })
+
   test('shows general error and fallback unknown error message', async () => {
     mockedAxios.post.mockRejectedValueOnce({
       response: {

@@ -12,6 +12,18 @@ import { ThemeProvider } from '../context/ThemeContext'
 jest.mock('axios')
 const mockedAxios = axios as jest.Mocked<typeof axios>
 
+function mockAxiosInterceptors() {
+  ;(mockedAxios as unknown as {
+    interceptors: {
+      request: { use: jest.Mock; eject: jest.Mock }
+      response: { use: jest.Mock; eject: jest.Mock }
+    }
+  }).interceptors = {
+    request: { use: jest.fn(() => 1), eject: jest.fn() },
+    response: { use: jest.fn(() => 1), eject: jest.fn() },
+  }
+}
+
 interface MeApiResponse { data: { success: boolean; data: { _id: string; name: string; email: string; role: string } } }
 
 describe('TopHeader', () => {
@@ -29,6 +41,7 @@ describe('TopHeader', () => {
 describe('BusinessDashboardLayout and page', () => {
   beforeEach(() => {
     mockedAxios.get.mockReset()
+    mockAxiosInterceptors()
   })
 
   test('renders fallback title when at unknown dashboard route', async () => {

@@ -4,12 +4,14 @@ import axios from 'axios'
 import { userapi } from '../utils/apipath'
 import { useNavigate } from 'react-router-dom'
 import { Building2, CheckCircle, CreditCard, Lock, Mail, MapPin, User } from 'lucide-react'
-import { Button, Input, Select, Textarea, ErrorMessage, ThemeToggle } from '../components/ui'
+import { Button, Input, Select, Textarea, ErrorMessage, ThemeToggle, Label } from '../components/ui'
+import PhoneInput from 'react-phone-input-2'
 
 type FieldErrors = {
   name?: string
   email?: string
   password?: string
+  phone?: string
   role?: string
   location?: string
   description?: string
@@ -25,6 +27,7 @@ export default function Signup(): JSX.Element {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [phone, setPhone] = useState('')
   const [role, setRole] = useState<UserRole>('user')
   const [location, setLocation] = useState('')
   const [description, setDescription] = useState('')
@@ -38,7 +41,7 @@ export default function Signup(): JSX.Element {
     setErrors({})
 
     // Prepare data based on role
-    const data: Record<string, unknown> = { name, email, password, role }
+    const data: Record<string, unknown> = { name, email, password, phone, role }
     if (role === 'business') {
       data.location = location
       data.description = description
@@ -59,15 +62,28 @@ export default function Signup(): JSX.Element {
       const responseData = (error as { response?: { data?: Record<string, unknown> } })?.response?.data
       const field = responseData?.field
       const errMsg = responseData?.error
+      const message = responseData?.message
 
-      if (field != null && errMsg != null && typeof field === 'string' && typeof errMsg === 'string') {
-        setErrors({ [field]: errMsg })
+      if (field === 'phone' && typeof responseData?.errors === 'object' && responseData.errors != null) {
+        const mapped = responseData.errors as Record<string, string | undefined>
+        if (mapped.phone) {
+          setErrors({ phone: mapped.phone })
+          return
+        }
+      }
+
+      if (
+        typeof field === 'string' &&
+        (typeof errMsg === 'string' || typeof message === 'string')
+      ) {
+        setErrors({ [field]: (typeof errMsg === 'string' ? errMsg : message) as string } as FieldErrors)
       } else if (responseData?.errors && typeof responseData.errors === 'object') {
         const mapped = responseData.errors as Record<string, string | undefined>
         setErrors({
           name: mapped.name,
           email: mapped.email,
           password: mapped.password,
+          phone: mapped.phone,
           role: mapped.role,
           location: mapped.location,
           description: mapped.description,
@@ -75,8 +91,8 @@ export default function Signup(): JSX.Element {
           businessname: mapped.businessname,
           general: mapped.general,
         } as FieldErrors)
-      } else if (typeof errMsg === 'string') {
-        setErrors({ general: errMsg })
+      } else if (typeof errMsg === 'string' || typeof message === 'string') {
+        setErrors({ general: (typeof errMsg === 'string' ? errMsg : message) as string })
       } else {
         setErrors({ general: 'Something went wrong. Please try again.' })
       }
@@ -167,6 +183,32 @@ export default function Signup(): JSX.Element {
                 error={errors.password}
                 leftIcon={<Lock className="h-4 w-4" />}
               />
+              <div className="flex flex-col gap-1">
+                <Label htmlFor="phone">Phone Number</Label>
+                <PhoneInput
+                  country="np"
+                  specialLabel=""
+                  enableSearch
+                  value={phone}
+                  onChange={(nextPhone) => {
+                    setPhone(nextPhone)
+                    setErrors((prev) => ({ ...prev, phone: undefined }))
+                  }}
+                  inputProps={{ id: 'phone', name: 'phone' }}
+                  containerClass="w-full"
+                  buttonClass={`!border !rounded-l-lg !border-r-0 !bg-white hover:!bg-white dark:!bg-slate-800 dark:hover:!bg-slate-800 ${
+                    errors.phone ? '!border-red-400 dark:!border-red-500' : '!border-slate-300 dark:!border-slate-600'
+                  }`}
+                  inputClass={`!w-full !min-h-[44px] !rounded-lg !border !bg-white !py-2.5 !pl-14 !pr-3 !text-base !text-slate-900 !outline-none !transition focus:!border-emerald-600 focus:!ring-2 focus:!ring-emerald-600/20 dark:!border-slate-600 dark:!bg-slate-800 dark:!text-slate-100 dark:focus:!border-emerald-500 dark:focus:!ring-emerald-500/30 ${
+                    errors.phone
+                      ? '!border-red-400 focus:!border-red-500 focus:!ring-red-200 dark:!border-red-500 dark:focus:!ring-red-500/30'
+                      : '!border-slate-300'
+                  }`}
+                  dropdownClass="!bg-white dark:!bg-slate-800 !text-slate-900 dark:!text-slate-100"
+                  searchClass="!bg-white dark:!bg-slate-800 !text-slate-900 dark:!text-slate-100"
+                />
+                {errors.phone ? <ErrorMessage message={errors.phone} size="sm" className="mt-0.5" /> : null}
+              </div>
 
               <Select
                 id="role"

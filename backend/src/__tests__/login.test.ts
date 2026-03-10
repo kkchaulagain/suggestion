@@ -34,6 +34,12 @@ describe('POST /api/auth/login', () => {
 
     expect(res.body).toHaveProperty('token');
     expect(res.body).toHaveProperty('message', 'User logged in');
+    expect(res.headers['set-cookie']).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('refreshToken='),
+        expect.stringContaining('token='),
+      ]),
+    );
   });
 
   it('returns 400 when email is wrong', async () => {
@@ -84,6 +90,7 @@ describe('POST /api/auth/login', () => {
       .send({
         email: 'business-login@example.com',
         password: 'secret123',
+        phone: '+9779812345678',
         role: 'business',
         businessname: 'Acme Traders',
         location: 'jorpati',
@@ -99,5 +106,122 @@ describe('POST /api/auth/login', () => {
 
     expect(res.body).toHaveProperty('token');
     expect(res.body).toHaveProperty('message', 'User logged in');
+  });
+
+  it('refreshes the access token and rotates the refresh token', async () => {
+    await User.create({
+      name: 'Refresh User',
+      email: 'refresh@example.com',
+      password: 'secret123',
+    });
+
+    const loginRes = await request(app)
+      .post('/api/auth/login')
+      .send({ email: 'refresh@example.com', password: 'secret123' })
+      .expect(200);
+
+    const refreshCookie = loginRes.headers['set-cookie'].find((cookie) =>
+      cookie.startsWith('refreshToken='),
+    );
+
+    expect(refreshCookie).toBeDefined();
+
+    const refreshRes = await request(app)
+      .post('/api/auth/refresh-token')
+      .set('Cookie', [refreshCookie])
+      .expect(200);
+
+    expect(refreshRes.body.success).toBe(true);
+    expect(refreshRes.body.token).toBeDefined();
+    expect(refreshRes.body.token).not.toBe(loginRes.body.token);
+    expect(refreshRes.headers['set-cookie']).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('refreshToken='),
+        expect.stringContaining('token='),
+      ]),
+    );
+  });
+
+  it('logs out and invalidates the stored refresh token', async () => {
+    await User.create({
+      name: 'Logout User',
+      email: 'logout@example.com',
+      password: 'secret123',
+    });
+
+    const loginRes = await request(app)
+      .post('/api/auth/login')
+      .send({ email: 'logout@example.com', password: 'secret123' })
+      .expect(200);
+
+    const refreshCookie = loginRes.headers['set-cookie'].find((cookie) =>
+      cookie.startsWith('refreshToken='),
+    );
+
+    await request(app)
+      .post('/api/auth/logout')
+      .set('Cookie', [refreshCookie])
+      .expect(200);
+
+    await request(app)
+      .post('/api/auth/refresh-token')
+      .set('Cookie', [refreshCookie])
+      .expect(401);
+  });
+
+  it('returns 401 when refresh token cookie is missing', async () => {
+    const res = await request(app)
+      .post('/api/auth/refresh-token')
+      .expect(401);
+
+    expect(res.body.message).toBe('Refresh token required');
+    expect(res.headers['set-cookie']).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('refreshToken=;'),
+        expect.stringContaining('token=;'),
+      ]),
+    );
+  });
+
+  it('returns 500 when refresh token lookup throws', async () => {
+    const originalFindOne = User.findOne;
+    User.findOne = jest.fn().mockImplementation(() => {
+      throw new Error('DB error');
+    });
+
+    const res = await request(app)
+      .post('/api/auth/refresh-token')
+      .set('Cookie', ['refreshToken=fake-token'])
+      .expect(500);
+
+    expect(res.body.message).toBe('Something went wrong');
+    expect(res.headers['set-cookie']).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('refreshToken=;'),
+        expect.stringContaining('token=;'),
+      ]),
+    );
+
+    User.findOne = originalFindOne;
+  });
+
+  it('returns 500 when logout token cleanup throws', async () => {
+    const originalUpdateOne = User.updateOne;
+    User.updateOne = jest.fn().mockRejectedValueOnce(new Error('DB error'));
+
+    const res = await request(app)
+      .post('/api/auth/logout')
+      .set('Cookie', ['refreshToken=fake-token'])
+      .expect(500);
+
+    expect(res.body.message).toBe('Something went wrong');
+    expect(res.headers['set-cookie']).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('refreshToken=;'),
+        expect.stringContaining('token=;'),
+      ]),
+    );
+
+    User.updateOne = originalUpdateOne;
   });
 });

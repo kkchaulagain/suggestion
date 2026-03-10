@@ -1,16 +1,20 @@
 import express, { Request, Response } from 'express';
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
+const crypto = require('crypto');
 const User = require('../models/User');
 const Business = require('../models/Business');
 const router = express.Router();
 const { isAuthenticated } = require('../middleware/isauthenticated');
 const { isBusinessRole } = require('../middleware/isbusiness');
+import { parsePhoneNumberFromString } from 'libphonenumber-js';
+
 
 interface RegisterBody {
   name: string;
   email: string;
   password: string;
+  phone?: string;
   role?: 'business' | 'user' | 'governmentservices';
   location?: string;
   pancardNumber?: number | string;
@@ -28,6 +32,71 @@ interface AuthenticatedRequest extends Request {
 }
 
 const EMAIL_REGEX = /^\S+@\S+\.\S+$/;
+const ACCESS_TOKEN_TTL_MS = 15 * 60 * 1000;
+const REFRESH_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const REFRESH_COOKIE_NAME = 'refreshToken';
+const TOKEN_COOKIE_NAME = 'token';
+
+function normalizePhoneInput(phone: string) {
+  const trimmed = phone.trim();
+  if (!trimmed) return '';
+  return trimmed.startsWith('+') ? trimmed : `+${trimmed}`;
+}
+
+function parseSupportedPhoneNumber(phone: string) {
+  const trimmed = phone.trim();
+  if (!trimmed) return undefined;
+
+  const internationalPhone = parsePhoneNumberFromString(normalizePhoneInput(trimmed));
+  if (internationalPhone?.isValid()) {
+    return internationalPhone;
+  }
+
+  const digitsOnly = trimmed.replace(/\D/g, '');
+  if (digitsOnly.length === 10) {
+    const nepaliPhone = parsePhoneNumberFromString(digitsOnly, 'NP');
+    if (nepaliPhone?.isValid()) {
+      return nepaliPhone;
+    }
+  }
+
+  return internationalPhone;
+}
+
+function createAccessToken(userId: string) {
+  return jwt.sign({ userId }, process.env.JWT_SECRET || 'default_secret_key', {
+    expiresIn: '15m',
+    jwtid: crypto.randomUUID(),
+  });
+}
+
+function createRefreshToken() {
+  return crypto.randomBytes(48).toString('hex');
+}
+
+function getCookieOptions(maxAge: number) {
+  return {
+    httpOnly: true,
+    sameSite: 'lax' as const,
+    secure: process.env.NODE_ENV === 'production',
+    maxAge,
+  };
+}
+
+function applyAuthCookies(res: Response, accessToken: string, refreshToken: string) {
+  res.cookie(TOKEN_COOKIE_NAME, accessToken, getCookieOptions(ACCESS_TOKEN_TTL_MS));
+  res.cookie(REFRESH_COOKIE_NAME, refreshToken, getCookieOptions(REFRESH_TOKEN_TTL_MS));
+}
+
+function clearAuthCookies(res: Response) {
+  const clearOptions = {
+    httpOnly: true,
+    sameSite: 'lax' as const,
+    secure: process.env.NODE_ENV === 'production',
+  };
+  res.clearCookie(TOKEN_COOKIE_NAME, clearOptions);
+  res.clearCookie(REFRESH_COOKIE_NAME, clearOptions);
+}
 
 router.post('/register', async (req: Request, res: Response) => {
   try {
@@ -35,6 +104,7 @@ router.post('/register', async (req: Request, res: Response) => {
     const name = typeof data.name === 'string' ? data.name.trim() : '';
     const email = typeof data.email === 'string' ? data.email.trim() : '';
     const password = typeof data.password === 'string' ? data.password : '';
+    const phone = typeof data.phone === 'string' ? data.phone.trim() : '';
     // Only business and governmentservices allowed; admin cannot be set via register
     const role =
       data.role === 'business' || data.role === 'governmentservices' ? data.role : 'user';
@@ -47,6 +117,9 @@ router.post('/register', async (req: Request, res: Response) => {
           ? Number(data.pancardNumber)
           : undefined;
     const businessname = typeof data.businessname === 'string' ? data.businessname.trim() : '';
+    const phoneDigits = phone.replace(/\D/g, '');
+    const phonenumber = parseSupportedPhoneNumber(phone);
+
     const errors: Record<string, string> = {};
 
     if (!email) {
@@ -60,7 +133,14 @@ router.post('/register', async (req: Request, res: Response) => {
     } else if (password.length < 6) {
       errors.password = 'Password must be at least 6 characters';
     }
-
+    if (!phone) {
+      errors.phone = 'Phone number is required';
+    } else if (phoneDigits.length < 10) {
+      errors.phone = 'Phone number must be at least 10 digits';
+    } else if (!phonenumber || !phonenumber.isValid()) {
+      errors.phone = 'Invalid phone number';
+    }
+    
     if (role !== 'user') {
       if (!location) {
         errors.location = 'Location is required';
@@ -100,10 +180,26 @@ router.post('/register', async (req: Request, res: Response) => {
       });
     }
 
+    const existingPhone = await User.findOne({
+      phone: phonenumber?.number ?? normalizePhoneInput(phone),
+    });
+
+    if (existingPhone) {
+      return res.status(409).json({
+        success: false,
+        message: 'Validation failed',
+        errors: {
+          phone: 'Phone number already registered',
+        },
+        error: 'Phone number already registered',
+      });
+    }
+
     const user = await User.create({
       name: name || 'User',
       email: email.toLowerCase().trim(),
       password,
+      phone: phonenumber?.number ?? normalizePhoneInput(phone),
       role,
     });
 
@@ -125,15 +221,19 @@ router.post('/register', async (req: Request, res: Response) => {
       message: 'User registered successfully',
       data: {
         _id: userObj._id,
+        name:userObj.name,
         email: userObj.email,
         role: userObj.role,
         businessname: userObj.businessname || null,
+        phone:userObj.phone || null,
       },
       user: {
         _id: userObj._id,
-        email: userObj.email,
-        role: userObj.role,
-        businessname: businessname || null,
+        name:userObj.name,
+        email:userObj.email,
+        role:userObj.role,
+        businessname:businessname || null,
+        phone:userObj.phone || null,
       },
     });
   } catch (_err) {
@@ -204,9 +304,14 @@ router.post('/login', async (req: Request, res: Response) => {
         error: 'Invalid email or password',
       });
     }
-    const tokendata = { userId: user._id };
-    const token = jwt.sign(tokendata, process.env.JWT_SECRET || 'default_secret_key', { expiresIn: '1h' });
-    return res.status(200).cookie('token', token, { httpOnly: true }).json({
+    const token = createAccessToken(String(user._id));
+    const refreshToken = createRefreshToken();
+    user.refreshToken = refreshToken;
+    user.refreshTokenExpiresAt = new Date(Date.now() + REFRESH_TOKEN_TTL_MS);
+    await user.save();
+
+    applyAuthCookies(res, token, refreshToken);
+    return res.status(200).json({
       success: true,
       message: 'User logged in',
       data: { token },
@@ -218,6 +323,74 @@ router.post('/login', async (req: Request, res: Response) => {
       message: 'Something went wrong',
       errors: {},
       error: 'Something went wrong',
+    });
+  }
+});
+
+router.post('/refresh-token', async (req: Request, res: Response) => {
+  try {
+    const refreshToken =
+      (req as Request & { cookies?: Record<string, string | undefined> }).cookies?.[REFRESH_COOKIE_NAME];
+
+    if (!refreshToken) {
+      clearAuthCookies(res);
+      return res.status(401).json({ success: false, message: 'Refresh token required' });
+    }
+
+    const user = await User.findOne({
+      refreshToken,
+      refreshTokenExpiresAt: { $gt: new Date() },
+    }).select('+refreshToken +refreshTokenExpiresAt');
+
+    if (!user || user.isActive === false) {
+      clearAuthCookies(res);
+      return res.status(401).json({ success: false, message: 'Invalid refresh token' });
+    }
+
+    const nextAccessToken = createAccessToken(String(user._id));
+    const nextRefreshToken = createRefreshToken();
+    user.refreshToken = nextRefreshToken;
+    user.refreshTokenExpiresAt = new Date(Date.now() + REFRESH_TOKEN_TTL_MS);
+    await user.save();
+
+    applyAuthCookies(res, nextAccessToken, nextRefreshToken);
+    return res.status(200).json({
+      success: true,
+      message: 'Token refreshed successfully',
+      data: { token: nextAccessToken },
+      token: nextAccessToken,
+    });
+  } catch (_error) {
+    clearAuthCookies(res);
+    return res.status(500).json({
+      success: false,
+      message: 'Something went wrong',
+    });
+  }
+});
+
+router.post('/logout', async (req: Request, res: Response) => {
+  try {
+    const refreshToken =
+      (req as Request & { cookies?: Record<string, string | undefined> }).cookies?.[REFRESH_COOKIE_NAME];
+
+    if (refreshToken) {
+      await User.updateOne(
+        { refreshToken },
+        { $set: { refreshToken: null, refreshTokenExpiresAt: null } },
+      );
+    }
+
+    clearAuthCookies(res);
+    return res.status(200).json({
+      success: true,
+      message: 'Logged out successfully',
+    });
+  } catch (_error) {
+    clearAuthCookies(res);
+    return res.status(500).json({
+      success: false,
+      message: 'Something went wrong',
     });
   }
 });
@@ -352,7 +525,10 @@ router.put('/me/change-password',isAuthenticated,async(req:AuthenticatedRequest,
         return res.status(400).json({success:false,message:'Current password is incorrect'})
       }
       user.password=newPassword
+      user.refreshToken = null
+      user.refreshTokenExpiresAt = null
       await user.save() //already hashed in User model pre-save hook,so its not plain text anymore
+      clearAuthCookies(res)
       return res.status(200).json({success:true,message:'Password Changed Successfully'})
  } catch (_error) {
   return res.status(500).json({message:'Something went Wrong',success:false})

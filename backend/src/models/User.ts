@@ -20,6 +20,11 @@ const userSchema = new mongoose.Schema({
     minlength: 6,
     select: false,
   },
+  phone:{
+    type: String,
+    required: true,
+    
+  },
   role: {
     type: String,
     enum: ['admin', 'business', 'user', 'governmentservices'],
@@ -29,11 +34,23 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: true,
   },
+  refreshToken: {
+    type: String,
+    select: false,
+    default: null,
+  },
+  refreshTokenExpiresAt: {
+    type: Date,
+    select: false,
+    default: null,
+  },
 }, { timestamps: true });
 
 interface UserDoc {
   isModified(field: string): boolean;
   password: string;
+  refreshToken?: string | null;
+  refreshTokenExpiresAt?: Date | null;
 }
 userSchema.pre('save', async function (this: UserDoc) {
   if (!this.isModified('password')) return;
