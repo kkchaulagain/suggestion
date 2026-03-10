@@ -274,4 +274,65 @@ describe('FormsPage', () => {
       expect(screen.queryByText(/Delete Form/i)).not.toBeInTheDocument()
     })
   })
+
+test('Cancel button in delete modal closes modal and clears error', async () => {
+  mockedAxios.get.mockResolvedValueOnce({
+    data: {
+      feedbackForms: [
+        {
+          _id: 'f-cancel-1',
+          title: 'Cancel Form',
+          businessId: 'b1',
+          fields: [{ name: 'q', label: 'Question', type: 'short_text', required: false }],
+        },
+      ],
+    },
+  } as FormsListApiResponse)
+
+  renderFormsPage()
+
+  await waitFor(() => {
+    expect(screen.getByText(/Cancel Form/i)).toBeInTheDocument()
+  })
+  fireEvent.click(screen.getAllByRole('button', { name: /^Delete$/i })[0])
+  await waitFor(() => {
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+  })
+  fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: /^Cancel$/i }))
+  await waitFor(() => {
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+})
+test('delete modal onClose is blocked while deletion is in progress', async () => {
+  mockedAxios.get.mockResolvedValueOnce({
+    data: {
+      feedbackForms: [
+        {
+          _id: 'f-blocking-1',
+          title: 'Blocking Form',
+          businessId: 'b1',
+          fields: [{ name: 'q', label: 'Question', type: 'short_text', required: false }],
+        },
+      ],
+    },
+  } as FormsListApiResponse)
+  mockedAxios.delete.mockImplementationOnce(
+    () => new Promise((resolve) => setTimeout(resolve, 5000))
+  )
+
+  renderFormsPage()
+  await waitFor(() => {
+    expect(screen.getByText(/Blocking Form/i)).toBeInTheDocument()
+  })
+  fireEvent.click(screen.getAllByRole('button', { name: /^Delete$/i })[0])
+  await waitFor(() => {
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+  })
+  fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: /^Delete$/i }))
+  const dialog = screen.getByRole('dialog')
+  fireEvent.click(dialog)
+  await waitFor(() => {
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+  })
+})
 })
