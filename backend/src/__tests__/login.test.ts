@@ -25,6 +25,7 @@ describe('POST /api/auth/login', () => {
       name: 'Test User',
       email: '123456@gmail.com',
       password: 'secret123',
+      phone: '+9779812345640',
     });
 
     const res = await request(app)
@@ -56,6 +57,7 @@ describe('POST /api/auth/login', () => {
       name: 'Test User',
       email: '123456@gmail.com',
       password: 'secret123',
+      phone: '+9779812345641',
     });
 
     const res = await request(app)
@@ -113,6 +115,7 @@ describe('POST /api/auth/login', () => {
       name: 'Refresh User',
       email: 'refresh@example.com',
       password: 'secret123',
+      phone: '+9779812345642',
     });
 
     const loginRes = await request(app)
@@ -147,6 +150,7 @@ describe('POST /api/auth/login', () => {
       name: 'Logout User',
       email: 'logout@example.com',
       password: 'secret123',
+      phone: '+9779812345643',
     });
 
     const loginRes = await request(app)

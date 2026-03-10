@@ -27,6 +27,7 @@ describe('Users CRUD API', () => {
       name: 'Admin User',
       email: 'admin@example.com',
       password: 'adminpass123',
+      phone: '+9779812345610',
       role: 'admin',
       isActive: true,
     });
@@ -37,6 +38,7 @@ describe('Users CRUD API', () => {
       name: 'Regular User',
       email: 'regular@example.com',
       password: 'userpass123',
+      phone: '+9779812345611',
       role: 'user',
       isActive: true,
     });
@@ -158,6 +160,7 @@ describe('Users CRUD API', () => {
         name: 'Other',
         email: 'taken@example.com',
         password: 'pass123',
+        phone: '+9779812345612',
         role: 'user',
         isActive: true,
       });
