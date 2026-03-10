@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { MemoryRouter } from 'react-router-dom'
 import axios from 'axios'
@@ -33,6 +33,7 @@ describe('FormsPage', () => {
     jest.clearAllMocks()
     mockedAxios.get.mockReset()
     mockedAxios.post.mockReset()
+    mockedAxios.delete.mockReset()
     mockNavigate.mockReset()
     localStorage.clear()
     Object.assign(navigator, { clipboard: { writeText: jest.fn().mockResolvedValue(undefined) } })
@@ -233,5 +234,44 @@ describe('FormsPage', () => {
 
     expect(screen.getByText('2 questions - 1 required')).toBeInTheDocument()
     expect(screen.queryByText(/Business ID:/i)).not.toBeInTheDocument()
+  })
+  
+  test('Delete button opens modal and deletes form on confirm', async () => {
+    mockedAxios.get.mockResolvedValueOnce({
+      data: {
+        feedbackForms: [
+          {
+            _id: 'f-delete-1',
+            title: 'Delete Form',
+            businessId: 'b1',
+            fields: [{ name: 'q', label: 'Question', type: 'short_text', required: false }],
+          },
+        ],
+      },
+    } as FormsListApiResponse)
+    mockedAxios.delete.mockResolvedValueOnce({ data: { message: 'Feedback form deleted' } })
+
+    renderFormsPage()
+
+    await waitFor(() => {
+      expect(screen.getByText(/Delete Form/i)).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getAllByRole('button', { name: /^Delete$/i })[0])
+
+    await waitFor(() => {
+      const dialog = screen.getByRole('dialog')
+      expect(dialog).toHaveTextContent('Delete form')
+      expect(dialog).toHaveTextContent('Delete Form')
+    })
+
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: /^Delete$/i }))
+
+    await waitFor(() => {
+      expect(mockedAxios.delete).toHaveBeenCalledWith(expect.stringContaining('/f-delete-1'), expect.any(Object))
+    })
+    await waitFor(() => {
+      expect(screen.queryByText(/Delete Form/i)).not.toBeInTheDocument()
+    })
   })
 })
