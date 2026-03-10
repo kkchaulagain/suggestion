@@ -180,6 +180,21 @@ router.post('/register', async (req: Request, res: Response) => {
       });
     }
 
+    const existingPhone = await User.findOne({
+      phone: phonenumber?.number ?? normalizePhoneInput(phone),
+    });
+
+    if (existingPhone) {
+      return res.status(409).json({
+        success: false,
+        message: 'Validation failed',
+        errors: {
+          phone: 'Phone number already registered',
+        },
+        error: 'Phone number already registered',
+      });
+    }
+
     const user = await User.create({
       name: name || 'User',
       email: email.toLowerCase().trim(),
