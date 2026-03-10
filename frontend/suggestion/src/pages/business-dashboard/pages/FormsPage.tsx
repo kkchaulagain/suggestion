@@ -218,9 +218,9 @@ export default function FormsPage() {
                 </Button>
                 <Button
                   type="button"
-                  variant="danger"
+                  variant="secondary"
                   size="sm"
-                  className="min-h-0 rounded px-2 py-1 text-xs font-medium"
+                  className="!text-red-600 hover:!text-red-600 dark:!text-red-400 dark:hover:!text-red-400"
                   onClick={() => setDeleteModalFormId(form._id)}
                 >
                   <Trash2 className="h-3.5 w-3.5" />
@@ -298,8 +298,9 @@ export default function FormsPage() {
           </Button>
           <Button
             type="button"
-            variant="danger"
+            variant="secondary"
             size="sm"
+            className="!text-red-600 hover:!text-red-600 dark:!text-red-400 dark:hover:!text-red-400"
             disabled={deletingFormId !== null}
             onClick={() => void handleDeleteForm()}
           >
