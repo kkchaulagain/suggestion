@@ -38,6 +38,7 @@ async function createAdminAuth() {
     name: 'Admin User',
     email,
     password,
+    phone: '+9779812345620',
     role: 'admin',
     isActive: true,
   });
