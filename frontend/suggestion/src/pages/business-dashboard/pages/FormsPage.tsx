@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
-import { Copy, Eye, Pencil, Plus, QrCode } from 'lucide-react'
+import { Copy, Eye, Pencil, Plus, QrCode, Trash2, X } from 'lucide-react'
 import { useAuth } from '../../../context/AuthContext'
 import { feedbackFormsApi } from '../../../utils/apipath'
 import { Button, ErrorMessage, Modal } from '../../../components/ui'
@@ -40,7 +40,9 @@ export default function FormsPage() {
   const [error, setError] = useState('')
   const [qrByFormId, setQrByFormId] = useState<Record<string, QrPayload>>({})
   const [shareModalFormId, setShareModalFormId] = useState<string | null>(null)
+  const [deleteModalFormId, setDeleteModalFormId] = useState<string | null>(null)
   const [generatingFormId, setGeneratingFormId] = useState<string | null>(null)
+  const [deletingFormId, setDeletingFormId] = useState<string | null>(null)
   const { getAuthHeaders } = useAuth()
 
   const authHeaders = useMemo(
@@ -99,8 +101,32 @@ export default function FormsPage() {
     void navigator.clipboard.writeText(url)
   }, [])
 
+  const handleDeleteForm = useCallback(async () => {
+    if (!deleteModalFormId) return
+
+    try {
+      setError('')
+      setDeletingFormId(deleteModalFormId)
+      await axios.delete(`${feedbackFormsApi}/${deleteModalFormId}`, authHeadersRef.current)
+      setSavedForms((previous) => previous.filter((item) => item._id !== deleteModalFormId))
+      setQrByFormId((previous) => {
+        const next = { ...previous }
+        delete next[deleteModalFormId]
+        return next
+      })
+      setShareModalFormId((current) => (current === deleteModalFormId ? null : current))
+      setDeleteModalFormId(null)
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error
+      setError(msg || 'Failed to delete feedback form.')
+    } finally {
+      setDeletingFormId(null)
+    }
+  }, [deleteModalFormId])
+
   const shareForm = shareModalFormId ? savedForms.find((f) => f._id === shareModalFormId) : null
   const shareQrPayload = shareModalFormId ? qrByFormId[shareModalFormId] : null
+  const deleteForm = deleteModalFormId ? savedForms.find((f) => f._id === deleteModalFormId) : null
   const isGeneratingShare = shareModalFormId !== null && generatingFormId === shareModalFormId
 
   useEffect(() => {
@@ -190,6 +216,16 @@ export default function FormsPage() {
                   <QrCode className="h-3.5 w-3.5" />
                   Share
                 </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  className="!text-red-600 hover:!text-red-600 dark:!text-red-400 dark:hover:!text-red-400"
+                  onClick={() => setDeleteModalFormId(form._id)}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Delete
+                </Button>
               </div>
             </FormCard>
           )
@@ -230,6 +266,48 @@ export default function FormsPage() {
         ) : shareModalFormId && error ? (
           <p className="text-sm text-rose-600 dark:text-rose-400">{error}</p>
         ) : null}
+      </Modal>
+
+      <Modal
+        isOpen={deleteModalFormId !== null}
+        onClose={() => {
+          if (!deletingFormId) {
+            setDeleteModalFormId(null)
+            setError('')
+          }
+        }}
+        title="Delete form"
+        size="sm"
+      >
+        <p className="text-sm text-slate-600 dark:text-slate-300">
+          Delete <span className="font-semibold">{deleteForm?.title}</span>? This cannot be undone.
+        </p>
+        <div className="mt-4 flex justify-end gap-2">
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            disabled={deletingFormId !== null}
+            onClick={() => {
+              setDeleteModalFormId(null)
+              setError('')
+            }}
+          >
+            <X className="h-4 w-4" />
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            className="!text-red-600 hover:!text-red-600 dark:!text-red-400 dark:hover:!text-red-400"
+            disabled={deletingFormId !== null}
+            onClick={() => void handleDeleteForm()}
+          >
+            <Trash2 className="h-4 w-4" />
+            {deletingFormId !== null ? 'Deleting...' : 'Delete'}
+          </Button>
+        </div>
       </Modal>
     </section>
   )

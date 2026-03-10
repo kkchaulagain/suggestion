@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { MemoryRouter } from 'react-router-dom'
 import axios from 'axios'
@@ -33,6 +33,7 @@ describe('FormsPage', () => {
     jest.clearAllMocks()
     mockedAxios.get.mockReset()
     mockedAxios.post.mockReset()
+    mockedAxios.delete.mockReset()
     mockNavigate.mockReset()
     localStorage.clear()
     Object.assign(navigator, { clipboard: { writeText: jest.fn().mockResolvedValue(undefined) } })
@@ -46,6 +47,19 @@ describe('FormsPage', () => {
     await waitFor(() => {
       expect(screen.getByText(/Unable to load forms\. Please check business login\./i)).toBeInTheDocument()
     })
+  })
+
+  test('Add Form button navigates to create form page', async () => {
+    mockedAxios.get.mockResolvedValueOnce({ data: { feedbackForms: [] } } as FormsListApiResponse)
+
+    renderFormsPage()
+
+    await waitFor(() => {
+      expect(screen.getByText(/you don't have any forms yet/i)).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /add form/i }))
+    expect(mockNavigate).toHaveBeenCalledWith('/dashboard/forms/create')
   })
 
   interface FormsListApiResponse { data: { feedbackForms: Array<{ _id: string; title?: string; description?: string; businessId?: string; fields?: Array<{ name: string; label: string; type: string; required?: boolean }> }> } }
@@ -234,4 +248,203 @@ describe('FormsPage', () => {
     expect(screen.getByText('2 questions - 1 required')).toBeInTheDocument()
     expect(screen.queryByText(/Business ID:/i)).not.toBeInTheDocument()
   })
+  
+  test('Delete button opens modal and deletes form on confirm', async () => {
+    mockedAxios.get.mockResolvedValueOnce({
+      data: {
+        feedbackForms: [
+          {
+            _id: 'f-delete-1',
+            title: 'Delete Form',
+            businessId: 'b1',
+            fields: [{ name: 'q', label: 'Question', type: 'short_text', required: false }],
+          },
+        ],
+      },
+    } as FormsListApiResponse)
+    mockedAxios.delete.mockResolvedValueOnce({ data: { message: 'Feedback form deleted' } })
+
+    renderFormsPage()
+
+    await waitFor(() => {
+      expect(screen.getByText(/Delete Form/i)).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getAllByRole('button', { name: /^Delete$/i })[0])
+
+    await waitFor(() => {
+      const dialog = screen.getByRole('dialog')
+      expect(dialog).toHaveTextContent('Delete form')
+      expect(dialog).toHaveTextContent('Delete Form')
+    })
+
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: /^Delete$/i }))
+
+    await waitFor(() => {
+      expect(mockedAxios.delete).toHaveBeenCalledWith(expect.stringContaining('/f-delete-1'), expect.any(Object))
+    })
+    await waitFor(() => {
+      expect(screen.queryByText(/Delete Form/i)).not.toBeInTheDocument()
+    })
+  })
+
+  test('shows backend delete error message when delete request fails', async () => {
+    mockedAxios.get.mockResolvedValueOnce({
+      data: {
+        feedbackForms: [
+          {
+            _id: 'f-delete-error-1',
+            title: 'Delete Error Form',
+            businessId: 'b1',
+            fields: [{ name: 'q', label: 'Question', type: 'short_text', required: false }],
+          },
+        ],
+      },
+    } as FormsListApiResponse)
+    mockedAxios.delete.mockRejectedValueOnce({
+      response: { data: { error: 'Failed on server' } },
+    })
+
+    renderFormsPage()
+
+    await waitFor(() => {
+      expect(screen.getByText(/Delete Error Form/i)).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getAllByRole('button', { name: /^Delete$/i })[0])
+    await waitFor(() => {
+      expect(screen.getByRole('dialog')).toBeInTheDocument()
+    })
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: /^Delete$/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText(/Failed on server/i)).toBeInTheDocument()
+    })
+  })
+
+  test('delete modal closes when backdrop is clicked while not deleting', async () => {
+    mockedAxios.get.mockResolvedValueOnce({
+      data: {
+        feedbackForms: [
+          {
+            _id: 'f-close-1',
+            title: 'Backdrop Close Form',
+            businessId: 'b1',
+            fields: [{ name: 'q', label: 'Question', type: 'short_text', required: false }],
+          },
+        ],
+      },
+    } as FormsListApiResponse)
+
+    renderFormsPage()
+
+    await waitFor(() => {
+      expect(screen.getByText(/Backdrop Close Form/i)).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getAllByRole('button', { name: /^Delete$/i })[0])
+    await waitFor(() => {
+      expect(screen.getByRole('dialog')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('dialog'))
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
+  })
+
+test('Cancel button in delete modal closes modal and clears error', async () => {
+  mockedAxios.get.mockResolvedValueOnce({
+    data: {
+      feedbackForms: [
+        {
+          _id: 'f-cancel-1',
+          title: 'Cancel Form',
+          businessId: 'b1',
+          fields: [{ name: 'q', label: 'Question', type: 'short_text', required: false }],
+        },
+      ],
+    },
+  } as FormsListApiResponse)
+
+  renderFormsPage()
+
+  await waitFor(() => {
+    expect(screen.getByText(/Cancel Form/i)).toBeInTheDocument()
+  })
+  fireEvent.click(screen.getAllByRole('button', { name: /^Delete$/i })[0])
+  await waitFor(() => {
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+  })
+  fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: /^Cancel$/i }))
+  await waitFor(() => {
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+})
+test('delete modal onClose is blocked while deletion is in progress', async () => {
+  mockedAxios.get.mockResolvedValueOnce({
+    data: {
+      feedbackForms: [
+        {
+          _id: 'f-blocking-1',
+          title: 'Blocking Form',
+          businessId: 'b1',
+          fields: [{ name: 'q', label: 'Question', type: 'short_text', required: false }],
+        },
+      ],
+    },
+  } as FormsListApiResponse)
+  mockedAxios.delete.mockImplementationOnce(
+    () => new Promise((resolve) => setTimeout(resolve, 5000))
+  )
+
+  renderFormsPage()
+  await waitFor(() => {
+    expect(screen.getByText(/Blocking Form/i)).toBeInTheDocument()
+  })
+  fireEvent.click(screen.getAllByRole('button', { name: /^Delete$/i })[0])
+  await waitFor(() => {
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+  })
+  fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: /^Delete$/i }))
+  const dialog = screen.getByRole('dialog')
+  fireEvent.click(dialog)
+  await waitFor(() => {
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+  })
+})
+test('delete modal onClose is blocked while deletion is in progress', async () => {
+  mockedAxios.get.mockResolvedValueOnce({
+    data: {
+      feedbackForms: [
+        {
+          _id: 'f-blocking-1',
+          title: 'Blocking Form',
+          businessId: 'b1',
+          fields: [{ name: 'q', label: 'Question', type: 'short_text', required: false }],
+        },
+      ],
+    },
+  } as FormsListApiResponse)
+  mockedAxios.delete.mockImplementationOnce(
+    () => new Promise(() => {}) 
+  )
+
+  renderFormsPage()
+
+  await waitFor(() => {
+    expect(screen.getByText(/Blocking Form/i)).toBeInTheDocument()
+  })
+  fireEvent.click(screen.getAllByRole('button', { name: /^Delete$/i })[0])
+
+  await waitFor(() => {
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+  })
+  fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: /^Delete$/i }))
+  await waitFor(() => {
+    expect(screen.getByText(/Deleting\.\.\./i)).toBeInTheDocument()
+  })
+  fireEvent.click(screen.getByRole('dialog'))
+  expect(screen.getByRole('dialog')).toBeInTheDocument()
+})
 })
