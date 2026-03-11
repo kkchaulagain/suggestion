@@ -16,6 +16,7 @@ export type FormFieldType =
   | 'checkbox'
   | 'radio'
   | 'image_upload'
+  | 'name'
 
 export interface FormFieldConfig {
   name: string
@@ -33,6 +34,8 @@ export interface FormFieldRendererProps {
   disabled?: boolean
   error?: string
   labelActions?: ReactNode
+  isAnonymous?: boolean
+  onAnonymousChange?: (v: boolean) => void
 }
 
 export default function FormFieldRenderer({
@@ -42,8 +45,11 @@ export default function FormFieldRenderer({
   disabled = false,
   error,
   labelActions,
+  isAnonymous = false,
+  onAnonymousChange,
 }: FormFieldRendererProps) {
   const id = `field-${field.name}`
+  const isNameIdentityField = field.type === 'name' || field.name.trim().toLowerCase() === 'name'
   const labelNode = (
     <span className="inline-flex flex-wrap items-center gap-3">
       <span className="inline-flex min-w-0 items-center gap-1">
@@ -55,6 +61,37 @@ export default function FormFieldRenderer({
   )
 
   const handleChange = (v: string | string[] | File | undefined) => onChange(field.name, v)
+
+  if (isNameIdentityField) {
+    return (
+      <div>
+        <ShortTextField
+          id={id}
+          label={labelNode}
+          value={isAnonymous ? '' : (value as string) ?? ''}
+          onChange={(v) => handleChange(v)}
+          placeholder={isAnonymous ? 'Anonymous submission (name hidden)' : field.placeholder}
+          disabled={disabled || isAnonymous}
+          required={field.required}
+          error={error}
+        />
+        <label className="mt-2 flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+          <input
+            type="checkbox"
+            checked={isAnonymous}
+            onChange={(e) => {
+              const checked = e.target.checked
+              if (checked) {
+                handleChange('')
+              }
+              onAnonymousChange?.(checked)
+            }}
+          />
+          Submit anonymously
+        </label>
+      </div>
+    )
+  }
 
   if (field.type === 'short_text' || field.type === 'long_text') {
     return (
@@ -145,6 +182,5 @@ export default function FormFieldRenderer({
       />
     )
   }
-
   return null
 }

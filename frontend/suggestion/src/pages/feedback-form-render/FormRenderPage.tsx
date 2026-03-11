@@ -20,6 +20,10 @@ async function uploadImage(file: File): Promise<string> {
 
 type FormValues = Record<string, string | string[] | File | undefined>
 
+function isNameIdentityField(field: FeedbackFormField): boolean {
+  return field.type === 'name' || field.name.trim().toLowerCase() === 'name'
+}
+
 function getInitialValues(fields: FeedbackFormField[]): FormValues {
   const initial: FormValues = {}
   for (const field of fields) {
@@ -34,11 +38,13 @@ function getInitialValues(fields: FeedbackFormField[]): FormValues {
 
 function validateRequired(
   fields: FeedbackFormField[],
-  values: FormValues
+  values: FormValues,
+  isAnonymous: boolean
 ): Record<string, string> {
   const errors: Record<string, string> = {}
   for (const field of fields) {
     if (!field.required) continue
+    if (isNameIdentityField(field) && isAnonymous) continue
     const v = values[field.name]
     if (field.type === 'checkbox') {
       const arr = Array.isArray(v) ? v : []
@@ -54,10 +60,15 @@ function validateRequired(
 
 function buildSubmitPayload(
   fields: FeedbackFormField[],
-  values: FormValues
+  values: FormValues,
+  isAnonymous: boolean
 ): Record<string, string | string[]> {
   const payload: Record<string, string | string[]> = {}
   for (const field of fields) {
+    if (isNameIdentityField(field) && isAnonymous) {
+      payload[field.name] = ''
+      continue
+    }
     const v = values[field.name]
     if (field.type === 'checkbox') {
       payload[field.name] = Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : []
@@ -90,6 +101,7 @@ export default function FormRenderPage() {
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [submitted, setSubmitted] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [isAnonymous, setIsAnonymous] = useState(false)
 
   const loadForm = useCallback(async () => {
     if (!formId) {
@@ -139,7 +151,7 @@ export default function FormRenderPage() {
     async (e: React.FormEvent) => {
       e.preventDefault()
       if (!config || !formId) return
-      const errors = validateRequired(config.fields, values)
+      const errors = validateRequired(config.fields, values, isAnonymous)
       const hasErrors = Object.keys(errors).length > 0
       if (hasErrors) {
         setFieldErrors(errors)
@@ -159,7 +171,7 @@ export default function FormRenderPage() {
             }
           }
         }
-        const payload = buildSubmitPayload(config.fields, resolvedValues)
+        const payload = buildSubmitPayload(config.fields, resolvedValues,isAnonymous)
         await axios.post(`${feedbackFormsApi}/${formId}/submit`, payload)
         setSubmitted(true)
       } catch (err) {
@@ -171,7 +183,7 @@ export default function FormRenderPage() {
         setSubmitting(false)
       }
     },
-    [config, formId, values]
+    [config, formId, values, isAnonymous]
   )
 
   if (loading) {
@@ -242,17 +254,21 @@ export default function FormRenderPage() {
             value={values[field.name]}
             onChange={updateValue}
             error={fieldErrors[field.name]}
+            isAnonymous={isAnonymous}
+            onAnonymousChange={setIsAnonymous}
           />
         ))}
 
         {submitError && Object.keys(fieldErrors).length === 0 ? (
           <ErrorMessage message={submitError} />
         ) : null}
-
+      
         <Button type="submit" variant="primary" size="md" disabled={submitting} className="w-full">
           <Send className="h-4 w-4" />
           {submitting ? 'Submitting...' : 'Submit'}
         </Button>
+        
+      
       </form>
       </Card>
       <FormRenderFooter />

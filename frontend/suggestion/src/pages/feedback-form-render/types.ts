@@ -5,6 +5,7 @@ export type FeedbackFieldType =
   | 'checkbox'
   | 'radio'
   | 'image_upload'
+  | 'name'
 
 export interface FeedbackFormField {
   name: string
