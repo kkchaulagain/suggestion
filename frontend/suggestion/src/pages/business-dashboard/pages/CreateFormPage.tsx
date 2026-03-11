@@ -764,13 +764,17 @@ export default function CreateFormPage() {
     const edgeThreshold = 96
     const scrollStep = 18
     const activatorEvent = event.activatorEvent
+    const maybeTouchEvent = activatorEvent as Event & {
+      touches?: ArrayLike<{ clientY?: number }>
+    }
 
     let clientY: number | null = null
 
     if ('clientY' in activatorEvent && typeof activatorEvent.clientY === 'number') {
       clientY = activatorEvent.clientY
-    } else if ('touches' in activatorEvent && activatorEvent.touches.length > 0) {
-      clientY = activatorEvent.touches[0]?.clientY ?? null
+    } else if (maybeTouchEvent.touches && maybeTouchEvent.touches.length > 0) {
+      const firstTouch = maybeTouchEvent.touches[0]
+      clientY = typeof firstTouch?.clientY === 'number' ? firstTouch.clientY : null
     }
 
     if (clientY === null) return
