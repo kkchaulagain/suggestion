@@ -145,4 +145,73 @@ describe('FormFieldRenderer', () => {
     fireEvent.click(screen.getByRole('radio', { name: 'Y' }))
     expect(onChange).toHaveBeenCalledWith('choice', 'Y')
   })
+  test('name field shows anonymous checkbox and disables input when checked', () => {
+    const onChange = jest.fn()
+    const onAnonymousChange = jest.fn()
+    render(
+      <FormFieldRenderer
+        field={{ name: 'name', label: 'Name', type: 'name', required: true }}
+        value="John"
+        onChange={onChange}
+        isAnonymous={false}
+        onAnonymousChange={onAnonymousChange}
+      />,
+    )
+    const input = screen.getByRole('textbox', { name: /Name/i })
+    expect(input).not.toBeDisabled()
+    expect(input).toHaveValue('John')
+    const anonCheckbox = screen.getByRole('checkbox', { name: /Submit anonymously/i })
+    expect(anonCheckbox).not.toBeChecked()
+    fireEvent.click(anonCheckbox)
+    expect(onAnonymousChange).toHaveBeenCalledWith(true)
+    expect(onChange).toHaveBeenCalledWith('name', '')
+  })
+
+  test('name field is disabled and shows placeholder when isAnonymous is true', () => {
+    render(
+      <FormFieldRenderer
+        field={{ name: 'name', label: 'Name', type: 'name', required: true }}
+        value=""
+        onChange={jest.fn()}
+        isAnonymous={true}
+        onAnonymousChange={jest.fn()}
+      />,
+    )
+    const input = screen.getByRole('textbox', { name: /Name/i })
+    expect(input).toBeDisabled()
+    expect(input).toHaveValue('')
+    expect(input).toHaveAttribute('placeholder', 'Anonymous submission (name hidden)')
+    expect(screen.getByRole('checkbox', { name: /Submit anonymously/i })).toBeChecked()
+  })
+
+  test('field with name="name" also shows anonymous checkbox', () => {
+    render(
+      <FormFieldRenderer
+        field={{ name: 'name', label: 'Your Name', type: 'short_text', required: false }}
+        value=""
+        onChange={jest.fn()}
+        isAnonymous={false}
+        onAnonymousChange={jest.fn()}
+      />,
+    )
+    expect(screen.getByRole('checkbox', { name: /Submit anonymously/i })).toBeInTheDocument()
+  })
+
+  test('unchecking anonymous re-enables name field', () => {
+    const onAnonymousChange = jest.fn()
+    render(
+      <FormFieldRenderer
+        field={{ name: 'name', label: 'Name', type: 'name', required: true }}
+        value=""
+        onChange={jest.fn()}
+        isAnonymous={true}
+        onAnonymousChange={onAnonymousChange}
+      />,
+    )
+    const anonCheckbox = screen.getByRole('checkbox', { name: /Submit anonymously/i })
+    fireEvent.click(anonCheckbox)
+    expect(onAnonymousChange).toHaveBeenCalledWith(false)
+  })
 })
+
+
