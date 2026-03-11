@@ -345,4 +345,115 @@ describe('FormRenderPage', () => {
       )
     })
   })
+
+  test('anonymous checkbox appears for name field and submits "Anonymous" when checked', async () => {
+    const formWithName = {
+      feedbackForm: {
+        _id: 'form-anon',
+        title: 'Anon Form',
+        description: '',
+        fields: [
+          { name: 'name', label: 'Name', type: 'name', required: true },
+          { name: 'comment', label: 'Comment', type: 'short_text', required: true, placeholder: 'Your comment' },
+        ],
+      },
+    }
+    mockedAxios.get.mockResolvedValueOnce({ data: formWithName })
+    mockedAxios.post.mockResolvedValueOnce({ data: { message: 'Submission received' } })
+
+    renderFormRenderPage('form-anon')
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /Anon Form/i })).toBeInTheDocument()
+    })
+
+    const anonCheckbox = screen.getByRole('checkbox', { name: /Submit anonymously/i })
+    expect(anonCheckbox).toBeInTheDocument()
+    expect(anonCheckbox).not.toBeChecked()
+
+    fireEvent.click(anonCheckbox)
+    expect(anonCheckbox).toBeChecked()
+
+    const nameInput = screen.getByRole('textbox', { name: /Name/i })
+    expect(nameInput).toBeDisabled()
+
+    fireEvent.change(screen.getByPlaceholderText(/Your comment/i), { target: { value: 'Great!' } })
+    fireEvent.click(screen.getByRole('button', { name: /Submit/i }))
+
+    await waitFor(() => {
+      expect(mockedAxios.post).toHaveBeenCalledWith(
+        expect.stringMatching(/\/submit$/),
+        expect.objectContaining({ name: 'Anonymous', comment: 'Great!' }),
+      )
+    })
+    await waitFor(() => {
+      expect(screen.getByText(/Thank you/i)).toBeInTheDocument()
+    })
+  })
+
+  test('anonymous skips required validation for name field', async () => {
+    const formWithName = {
+      feedbackForm: {
+        _id: 'form-anon2',
+        title: 'Anon Validation',
+        description: '',
+        fields: [
+          { name: 'name', label: 'Name', type: 'name', required: true },
+          { name: 'feedback', label: 'Feedback', type: 'short_text', required: true, placeholder: 'Feedback' },
+        ],
+      },
+    }
+    mockedAxios.get.mockResolvedValueOnce({ data: formWithName })
+    mockedAxios.post.mockResolvedValueOnce({ data: { message: 'Submission received' } })
+
+    renderFormRenderPage('form-anon2')
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /Anon Validation/i })).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('checkbox', { name: /Submit anonymously/i }))
+    fireEvent.change(screen.getByPlaceholderText(/Feedback/i), { target: { value: 'Nice' } })
+    fireEvent.click(screen.getByRole('button', { name: /Submit/i }))
+
+    await waitFor(() => {
+      expect(mockedAxios.post).toHaveBeenCalledWith(
+        expect.stringMatching(/\/submit$/),
+        expect.objectContaining({ name: 'Anonymous', feedback: 'Nice' }),
+      )
+    })
+  })
+
+  test('unchecking anonymous re-enables name field and requires name again', async () => {
+    const formWithName = {
+      feedbackForm: {
+        _id: 'form-anon3',
+        title: 'Toggle Anon',
+        description: '',
+        fields: [
+          { name: 'name', label: 'Name', type: 'name', required: true },
+          { name: 'note', label: 'Note', type: 'short_text', required: false },
+        ],
+      },
+    }
+    mockedAxios.get.mockResolvedValueOnce({ data: formWithName })
+
+    renderFormRenderPage('form-anon3')
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /Toggle Anon/i })).toBeInTheDocument()
+    })
+
+    const anonCheckbox = screen.getByRole('checkbox', { name: /Submit anonymously/i })
+    fireEvent.click(anonCheckbox)
+    expect(screen.getByRole('textbox', { name: /Name/i })).toBeDisabled()
+
+    fireEvent.click(anonCheckbox)
+    expect(screen.getByRole('textbox', { name: /Name/i })).not.toBeDisabled()
+
+    fireEvent.click(screen.getByRole('button', { name: /Submit/i }))
+    await waitFor(() => {
+      expect(screen.getByText(/Name is required/i)).toBeInTheDocument()
+    })
+  })
 })
