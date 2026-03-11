@@ -88,10 +88,8 @@ jest.mock('@dnd-kit/core', () => {
 })
 
 jest.mock('@dnd-kit/sortable', () => {
-  const React = require('react')
-
   return {
-    SortableContext: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+    SortableContext: ({ children }: { children: unknown }) => <>{children}</>,
     useSortable: () => ({
       attributes: {},
       listeners: {},
