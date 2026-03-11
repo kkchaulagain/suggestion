@@ -271,6 +271,7 @@ describe('CreateFormPage', () => {
               required: true,
               placeholder: 'Pick all that apply',
               options: ['Phone', 'Email'],
+              allowAnonymous: undefined,
             }),
           ]),
         }),
@@ -336,6 +337,7 @@ describe('CreateFormPage', () => {
               required: true,
               placeholder: undefined,
               options: undefined,
+              allowAnonymous: undefined,
             },
             {
               name: 'description',
@@ -344,6 +346,7 @@ describe('CreateFormPage', () => {
               required: false,
               placeholder: undefined,
               options: undefined,
+              allowAnonymous: undefined,
             },
             {
               name: 'attachment',
@@ -352,6 +355,7 @@ describe('CreateFormPage', () => {
               required: false,
               placeholder: undefined,
               options: undefined,
+              allowAnonymous: undefined,
             },
             {
               name: 'comment',
@@ -360,6 +364,7 @@ describe('CreateFormPage', () => {
               required: false,
               placeholder: undefined,
               options: undefined,
+              allowAnonymous: undefined,
             },
           ],
         },
@@ -494,6 +499,107 @@ describe('CreateFormPage', () => {
       renderCreateFormPage()
       const backLink = screen.getByRole('link', { name: /back/i })
       expect(backLink).toHaveAttribute('href', '/dashboard/forms')
+    })
+  })
+
+  describe('Name field type', () => {
+    test('can add a Name field from the add field modal', async () => {
+      renderCreateFormPage()
+      goToFormBuilder()
+
+      fireEvent.click(screen.getByRole('button', { name: /\+ Add new field/i }))
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: /Add new field/i })).toBeInTheDocument()
+      })
+      fireEvent.click(screen.getByRole('button', { name: /^Name$/i }))
+
+      await waitFor(() => {
+        expect(screen.getByText('Name 4')).toBeInTheDocument()
+      })
+    })
+
+    test('shows Allow anonymous checkbox only for Name field type', async () => {
+      renderCreateFormPage()
+      goToFormBuilder()
+
+      fireEvent.click(screen.getByRole('button', { name: /\+ Add new field/i }))
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: /Add new field/i })).toBeInTheDocument()
+      })
+      fireEvent.click(screen.getByRole('button', { name: /^Name$/i }))
+
+      const nameRow = getFieldRow('Name 4')
+      expect(within(nameRow).getByLabelText(/allow anonymous/i)).toBeInTheDocument()
+
+      // Subject row (short_text) should NOT have allow anonymous
+      const subjectRow = getFieldRow('subject')
+      fireEvent.click(within(subjectRow).getByRole('button', { name: /edit/i }))
+      expect(within(subjectRow).queryByLabelText(/allow anonymous/i)).not.toBeInTheDocument()
+    })
+
+    test('Allow anonymous and Required are mutually exclusive', async () => {
+      renderCreateFormPage()
+      goToFormBuilder()
+
+      fireEvent.click(screen.getByRole('button', { name: /\+ Add new field/i }))
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: /Add new field/i })).toBeInTheDocument()
+      })
+      fireEvent.click(screen.getByRole('button', { name: /^Name$/i }))
+
+      const nameRow = getFieldRow('Name 4')
+      const requiredCheckbox = within(nameRow).getByLabelText(/required field/i)
+      const anonymousCheckbox = within(nameRow).getByLabelText(/allow anonymous/i)
+
+      // Check allow anonymous → required should be unchecked and disabled
+      fireEvent.click(anonymousCheckbox)
+      expect(anonymousCheckbox).toBeChecked()
+      expect(requiredCheckbox).not.toBeChecked()
+      expect(requiredCheckbox).toBeDisabled()
+
+      // Uncheck allow anonymous → required should be enabled again
+      fireEvent.click(anonymousCheckbox)
+      expect(anonymousCheckbox).not.toBeChecked()
+      expect(requiredCheckbox).not.toBeDisabled()
+
+      // Check required → allow anonymous should be disabled
+      fireEvent.click(requiredCheckbox)
+      expect(requiredCheckbox).toBeChecked()
+      expect(anonymousCheckbox).toBeDisabled()
+    })
+
+    test('saves Name field with allowAnonymous in payload', async () => {
+      mockedAxios.post.mockResolvedValueOnce({ data: {} })
+      renderCreateFormPage()
+      goToFormBuilder()
+
+      fireEvent.click(screen.getByRole('button', { name: /\+ Add new field/i }))
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: /Add new field/i })).toBeInTheDocument()
+      })
+      fireEvent.click(screen.getByRole('button', { name: /^Name$/i }))
+
+      const nameRow = getFieldRow('Name 4')
+      fireEvent.click(within(nameRow).getByLabelText(/allow anonymous/i))
+
+      fireEvent.click(screen.getByRole('button', { name: /save form/i }))
+
+      await waitFor(() => {
+        expect(mockedAxios.post).toHaveBeenCalledWith(
+          feedbackFormsApi,
+          expect.objectContaining({
+            fields: expect.arrayContaining([
+              expect.objectContaining({
+                name: 'name_4',
+                type: 'name',
+                allowAnonymous: true,
+                required: false,
+              }),
+            ]),
+          }),
+          expect.any(Object),
+        )
+      })
     })
   })
 })

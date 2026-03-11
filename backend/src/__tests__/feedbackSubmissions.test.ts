@@ -186,6 +186,64 @@ describe('Feedback Submissions API', () => {
       expect(res.body.error).toMatch(/required/);
     });
 
+    it('accepts empty name when allowAnonymous is true on name field', async () => {
+      const { businessId } = await createBusinessAuth();
+      const form = await FeedbackForm.create({
+        businessId,
+        title: 'Anonymous form',
+        fields: [
+          { name: 'fullName', label: 'Your Name', type: 'name', required: true, allowAnonymous: true },
+          { name: 'comment', label: 'Comment', type: 'short_text', required: false },
+        ],
+      });
+
+      const res = await request(app)
+        .post(`/api/feedback-forms/${form._id}/submit`)
+        .send({ fullName: '', comment: 'Great' })
+        .expect(201);
+
+      expect(res.body).toHaveProperty('submissionId');
+      const submission = await FeedbackSubmission.findById(res.body.submissionId).lean();
+      expect(submission.responses.fullName).toBe('');
+    });
+
+    it('accepts "Anonymous" as name value when allowAnonymous is true', async () => {
+      const { businessId } = await createBusinessAuth();
+      const form = await FeedbackForm.create({
+        businessId,
+        title: 'Anonymous form',
+        fields: [
+          { name: 'fullName', label: 'Your Name', type: 'name', required: true, allowAnonymous: true },
+        ],
+      });
+
+      const res = await request(app)
+        .post(`/api/feedback-forms/${form._id}/submit`)
+        .send({ fullName: 'Anonymous' })
+        .expect(201);
+
+      const submission = await FeedbackSubmission.findById(res.body.submissionId).lean();
+      expect(submission.responses.fullName).toBe('Anonymous');
+    });
+
+    it('still requires name when allowAnonymous is false', async () => {
+      const { businessId } = await createBusinessAuth();
+      const form = await FeedbackForm.create({
+        businessId,
+        title: 'Required name form',
+        fields: [
+          { name: 'fullName', label: 'Your Name', type: 'name', required: true, allowAnonymous: false },
+        ],
+      });
+
+      const res = await request(app)
+        .post(`/api/feedback-forms/${form._id}/submit`)
+        .send({ fullName: '' })
+        .expect(400);
+
+      expect(res.body.error).toMatch(/required/);
+    });
+
     it('accepts optional checkbox with single value (normalized to array)', async () => {
       const { businessId } = await createBusinessAuth();
       const form = await FeedbackForm.create({

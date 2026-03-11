@@ -81,13 +81,14 @@ describe('Feedback Forms API', () => {
           { name: 'details', label: 'Details', type: 'long-text' },
           { name: 'story', label: 'Story', type: 'big text' },
           { name: 'screenshot', label: 'Upload screenshot', type: 'image upload' },
+          { name: 'fullName', label: 'Full Name', type: 'name' },
         ],
       })
       .expect(201);
 
     expect(res.body).toHaveProperty('message', 'Feedback form created');
     expect(res.body.feedbackForm.title).toBe('Customer feedback');
-    expect(res.body.feedbackForm.fields).toHaveLength(6);
+    expect(res.body.feedbackForm.fields).toHaveLength(7);
     interface FeedbackFormField { type: string }
     expect(res.body.feedbackForm.fields.map((field: FeedbackFormField) => field.type)).toEqual([
       'checkbox',
@@ -96,6 +97,7 @@ describe('Feedback Forms API', () => {
       'long_text',
       'big_text',
       'image_upload',
+      'name',
     ]);
     expect(res.body.feedbackForm.businessId).toBe(businessId);
   });
@@ -274,5 +276,42 @@ describe('Feedback Forms API', () => {
 
     await request(app).delete(`/api/feedback-forms/${created._id}`).set(authHeader).expect(200);
     await request(app).get(`/api/feedback-forms/${created._id}`).expect(404);
+  });
+
+  it('creates a feedback form with name field type and allowAnonymous', async () => {
+    const { authHeader } = await createBusinessAuth();
+
+    const res = await request(app)
+      .post('/api/feedback-forms')
+      .set(authHeader)
+      .send({
+        title: 'Anonymous survey',
+        fields: [
+          { name: 'fullName', label: 'Your Name', type: 'name', allowAnonymous: true },
+          { name: 'comment', label: 'Comment', type: 'short_text' },
+        ],
+      })
+      .expect(201);
+
+    expect(res.body.feedbackForm.fields[0].type).toBe('name');
+    expect(res.body.feedbackForm.fields[0].allowAnonymous).toBe(true);
+  });
+
+  it('defaults allowAnonymous to false for name field when not provided', async () => {
+    const { authHeader } = await createBusinessAuth();
+
+    const res = await request(app)
+      .post('/api/feedback-forms')
+      .set(authHeader)
+      .send({
+        title: 'Name form',
+        fields: [
+          { name: 'fullName', label: 'Your Name', type: 'name' },
+        ],
+      })
+      .expect(201);
+
+    expect(res.body.feedbackForm.fields[0].type).toBe('name');
+    expect(res.body.feedbackForm.fields[0].allowAnonymous).toBe(false);
   });
 });
