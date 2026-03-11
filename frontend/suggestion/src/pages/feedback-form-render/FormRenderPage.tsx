@@ -66,7 +66,7 @@ function buildSubmitPayload(
   const payload: Record<string, string | string[]> = {}
   for (const field of fields) {
     if (isNameIdentityField(field) && isAnonymous) {
-      payload[field.name] = ''
+      payload[field.name] = 'Anonymous'
       continue
     }
     const v = values[field.name]
