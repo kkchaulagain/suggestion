@@ -6,6 +6,7 @@ import {
   RadioField,
   StarRatingField,
   ImageUploadField,
+  NameField,
 } from './field-types'
 import { isStarRatingOptions } from './formFieldUtils'
 
@@ -16,6 +17,7 @@ export type FormFieldType =
   | 'checkbox'
   | 'radio'
   | 'image_upload'
+  | 'name'
 
 export interface FormFieldConfig {
   name: string
@@ -24,6 +26,7 @@ export interface FormFieldConfig {
   required: boolean
   placeholder?: string
   options?: string[]
+  allowAnonymous?: boolean
 }
 
 export interface FormFieldRendererProps {
@@ -141,6 +144,22 @@ export default function FormFieldRenderer({
         label={labelNode}
         onChange={(v) => handleChange(v)}
         disabled={disabled}
+        error={error}
+      />
+    )
+  }
+
+  if (field.type === 'name') {
+    return (
+      <NameField
+        id={id}
+        label={labelNode}
+        value={typeof value === 'string' ? value : ''}
+        onChange={(v) => handleChange(v)}
+        placeholder={field.placeholder}
+        disabled={disabled}
+        required={field.required}
+        isAnonymous={field.allowAnonymous}
         error={error}
       />
     )

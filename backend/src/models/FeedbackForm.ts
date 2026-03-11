@@ -7,6 +7,7 @@ const FEEDBACK_FIELD_TYPES = [
   'big_text',
   'image_upload',
   'radio',
+  'name',
 ];
 
 const feedbackFieldSchema = new mongoose.Schema(
@@ -45,6 +46,10 @@ const feedbackFieldSchema = new mongoose.Schema(
     options: {
       type: [String],
       default: undefined,
+    },
+    allowAnonymous: {
+      type: Boolean,
+      default: false,
     },
   },
   { _id: false },

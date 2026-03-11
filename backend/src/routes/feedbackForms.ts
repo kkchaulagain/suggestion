@@ -146,7 +146,9 @@ function validateSubmissionPayload(
     const name = field.name;
     const value = raw[name];
 
-    if (field.required) {
+    const isAnonymousAllowed = field.type === 'name' && (field as { allowAnonymous?: boolean }).allowAnonymous;
+
+    if (field.required && !isAnonymousAllowed) {
       if (value === undefined || value === null) {
         return { valid: false, error: `${field.label} is required` };
       }
