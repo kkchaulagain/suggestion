@@ -20,6 +20,7 @@ import {
   Star,
   Text,
   Trash2,
+  User,
   Users,
 } from 'lucide-react'
 import { useAuth } from '../../../context/AuthContext'
@@ -27,7 +28,7 @@ import { feedbackFormsApi } from '../../../utils/apipath'
 import { Button, Card, ErrorMessage, Input, Modal, Select, Textarea } from '../../../components/ui'
 import { EmptyState } from '../../../components/layout'
 
-type FeedbackFieldType = 'checkbox' | 'radio' | 'short_text' | 'long_text' | 'big_text' | 'image_upload'
+type FeedbackFieldType = 'checkbox' | 'radio' | 'short_text' | 'long_text' | 'big_text' | 'image_upload' | 'name'
 
 interface FeedbackField {
   clientId?: string
@@ -37,6 +38,7 @@ interface FeedbackField {
   required: boolean
   placeholder?: string
   options?: string[]
+  allowAnonymous?: boolean
 }
 
 interface FeedbackFormResponse {
@@ -66,6 +68,7 @@ const fieldTypeOptions: Array<{ value: FeedbackFieldType; label: string }> = [
   { value: 'checkbox', label: 'Checkbox' },
   { value: 'radio', label: 'Radio' },
   { value: 'image_upload', label: 'Image Upload' },
+  { value: 'name', label: 'Name' },
 ]
 
 const defaultFields: FeedbackField[] = [
@@ -254,6 +257,7 @@ function makeDefaultLabel(type: FeedbackFieldType, count: number): string {
     checkbox: 'Checkbox group',
     radio: 'Single choice',
     image_upload: 'Attachment',
+    name: 'Name',
   }
 
   return `${labels[type]} ${count}`
@@ -269,6 +273,7 @@ function createField(type: FeedbackFieldType, count: number): FeedbackField {
     required: false,
     placeholder: '',
     options: OPTION_TYPES.includes(type) ? ['Option 1'] : undefined,
+    allowAnonymous: type === 'name' ? false : undefined,
   }
 }
 
@@ -295,6 +300,7 @@ function serializeFieldsForDirty(fields: FeedbackField[]): string {
       required: f.required,
       placeholder: f.placeholder ?? '',
       options: f.options ?? [],
+      allowAnonymous: f.allowAnonymous ?? false,
     })),
   )
 }
@@ -445,6 +451,7 @@ export default function CreateFormPage() {
       ...field,
       type,
       options: OPTION_TYPES.includes(type) ? (field.options?.length ? field.options : ['Option 1']) : undefined,
+      allowAnonymous: type === 'name' ? (field.allowAnonymous ?? false) : undefined,
     }))
     setError('')
   }
@@ -454,7 +461,19 @@ export default function CreateFormPage() {
   }
 
   const handleFieldRequiredChange = (index: number, required: boolean) => {
-    updateField(index, (field) => ({ ...field, required }))
+    updateField(index, (field) => ({
+      ...field,
+      required,
+      allowAnonymous: required && field.type === 'name' ? false : field.allowAnonymous,
+    }))
+  }
+
+  const handleFieldAllowAnonymousChange = (index: number, allowAnonymous: boolean) => {
+    updateField(index, (field) => ({
+      ...field,
+      allowAnonymous,
+      required: allowAnonymous ? false : field.required,
+    }))
   }
 
   const handleAddField = (type: FeedbackFieldType) => {
@@ -543,6 +562,7 @@ export default function CreateFormPage() {
         options: OPTION_TYPES.includes(field.type)
           ? (field.options ?? []).map((option) => option.trim()).filter(Boolean)
           : undefined,
+        allowAnonymous: field.type === 'name' ? (field.allowAnonymous ?? false) : undefined,
       })),
     }
 
@@ -741,15 +761,35 @@ export default function CreateFormPage() {
                       onChange={(value) => handleFieldTypeChange(index, value as FeedbackFieldType)}
                       options={fieldTypeOptions}
                     />
-                    <label className="inline-flex cursor-pointer items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300">
-                      <input
-                        type="checkbox"
-                        checked={field.required}
-                        onChange={(event) => handleFieldRequiredChange(index, event.target.checked)}
-                        className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 dark:border-slate-600"
-                      />
-                      Required field
-                    </label>
+                    <div className="flex flex-wrap items-center gap-4">
+                      <label className={`inline-flex cursor-pointer items-center gap-2 text-sm font-medium ${
+                        field.allowAnonymous ? 'text-slate-400 dark:text-slate-500' : 'text-slate-700 dark:text-slate-300'
+                      }`}>
+                        <input
+                          type="checkbox"
+                          checked={field.required}
+                          onChange={(event) => handleFieldRequiredChange(index, event.target.checked)}
+                          disabled={field.allowAnonymous}
+                          className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 disabled:opacity-50 dark:border-slate-600"
+                        />
+                        Required field
+                      </label>
+
+                      {field.type === 'name' ? (
+                        <label className={`inline-flex cursor-pointer items-center gap-2 text-sm font-medium ${
+                          field.required ? 'text-slate-400 dark:text-slate-500' : 'text-slate-700 dark:text-slate-300'
+                        }`}>
+                          <input
+                            type="checkbox"
+                            checked={field.allowAnonymous ?? false}
+                            onChange={(event) => handleFieldAllowAnonymousChange(index, event.target.checked)}
+                            disabled={field.required}
+                            className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 disabled:opacity-50 dark:border-slate-600"
+                          />
+                          Allow anonymous
+                        </label>
+                      ) : null}
+                    </div>
 
                     {isOptionType ? (
                       <div className="rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900/40">
@@ -868,6 +908,8 @@ export default function CreateFormPage() {
                       <Text className="h-5 w-5 shrink-0 text-slate-500 dark:text-slate-400" />
                     ) : opt.value === 'checkbox' || opt.value === 'radio' ? (
                       <ListChecks className="h-5 w-5 shrink-0 text-slate-500 dark:text-slate-400" />
+                    ) : opt.value === 'name' ? (
+                      <User className="h-5 w-5 shrink-0 text-slate-500 dark:text-slate-400" />
                     ) : (
                       <Image className="h-5 w-5 shrink-0 text-slate-500 dark:text-slate-400" />
                     )}

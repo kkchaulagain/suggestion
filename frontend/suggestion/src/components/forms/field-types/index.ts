@@ -18,3 +18,7 @@ export type { StarRatingFieldProps } from './StarRatingField'
 
 export { default as ImageUploadField } from './ImageUploadField'
 export type { ImageUploadFieldProps } from './ImageUploadField'
+
+export { default as NameField } from './NameField'
+export type { NameFieldProps } from './NameField'
+

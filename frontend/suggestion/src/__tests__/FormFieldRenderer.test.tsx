@@ -10,6 +10,7 @@ import {
   CheckboxField,
   RadioField,
   ImageUploadField,
+  NameField,
 } from '../components/forms'
 
 describe('isStarRatingOptions', () => {
@@ -52,6 +53,7 @@ test('field-type components are exported from index', () => {
   expect(CheckboxField).toBeDefined()
   expect(RadioField).toBeDefined()
   expect(ImageUploadField).toBeDefined()
+  expect(NameField).toBeDefined()
 })
 
 describe('FormFieldRenderer', () => {
@@ -144,5 +146,62 @@ describe('FormFieldRenderer', () => {
     )
     fireEvent.click(screen.getByRole('radio', { name: 'Y' }))
     expect(onChange).toHaveBeenCalledWith('choice', 'Y')
+  })
+
+  test('renders name field with text input', () => {
+    const onChange = jest.fn()
+    render(
+      <FormFieldRenderer
+        field={{
+          name: 'fullName',
+          label: 'Your Name',
+          type: 'name',
+          required: false,
+          placeholder: 'Enter your name',
+        }}
+        value=""
+        onChange={onChange}
+      />,
+    )
+    expect(screen.getByText('Your Name')).toBeInTheDocument()
+    const input = screen.getByPlaceholderText('Enter your name')
+    fireEvent.change(input, { target: { value: 'John' } })
+    expect(onChange).toHaveBeenCalledWith('fullName', 'John')
+  })
+
+  test('renders name field with anonymous checkbox when allowAnonymous is true', () => {
+    const onChange = jest.fn()
+    render(
+      <FormFieldRenderer
+        field={{
+          name: 'fullName',
+          label: 'Your Name',
+          type: 'name',
+          required: false,
+          allowAnonymous: true,
+        }}
+        value=""
+        onChange={onChange}
+      />,
+    )
+    expect(screen.getByText('Your Name')).toBeInTheDocument()
+    expect(screen.getByLabelText(/submit anonymously/i)).toBeInTheDocument()
+  })
+
+  test('does not show anonymous checkbox when allowAnonymous is false', () => {
+    const onChange = jest.fn()
+    render(
+      <FormFieldRenderer
+        field={{
+          name: 'fullName',
+          label: 'Your Name',
+          type: 'name',
+          required: true,
+        }}
+        value=""
+        onChange={onChange}
+      />,
+    )
+    expect(screen.queryByLabelText(/submit anonymously/i)).not.toBeInTheDocument()
   })
 })
