@@ -1,4 +1,5 @@
 const request = require('supertest');
+const bcrypt = require('bcrypt');
 const { connect, disconnect } = require('../db');
 const app = require('../app');
 const User = require('../models/User');
@@ -31,6 +32,34 @@ describe('POST /api/auth/login', () => {
     const res = await request(app)
       .post('/api/auth/login')
       .send({ email: '123456@gmail.com', password: 'secret123' })
+      .expect(200);
+
+    expect(res.body).toHaveProperty('token');
+    expect(res.body).toHaveProperty('message', 'User logged in');
+    expect(res.headers['set-cookie']).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('refreshToken='),
+        expect.stringContaining('token='),
+      ]),
+    );
+  });
+
+  it('allows legacy user login when phone is missing', async () => {
+    const hashedPassword = await bcrypt.hash('legacySecret123', 10);
+
+    await User.collection.insertOne({
+      name: 'Legacy User',
+      email: 'legacy@example.com',
+      password: hashedPassword,
+      role: 'user',
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    const res = await request(app)
+      .post('/api/auth/login')
+      .send({ email: 'legacy@example.com', password: 'legacySecret123' })
       .expect(200);
 
     expect(res.body).toHaveProperty('token');

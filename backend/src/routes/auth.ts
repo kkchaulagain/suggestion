@@ -306,9 +306,15 @@ router.post('/login', async (req: Request, res: Response) => {
     }
     const token = createAccessToken(String(user._id));
     const refreshToken = createRefreshToken();
-    user.refreshToken = refreshToken;
-    user.refreshTokenExpiresAt = new Date(Date.now() + REFRESH_TOKEN_TTL_MS);
-    await user.save();
+    await User.updateOne(
+      { _id: user._id },
+      {
+        $set: {
+          refreshToken,
+          refreshTokenExpiresAt: new Date(Date.now() + REFRESH_TOKEN_TTL_MS),
+        },
+      },
+    );
 
     applyAuthCookies(res, token, refreshToken);
     return res.status(200).json({
@@ -349,9 +355,15 @@ router.post('/refresh-token', async (req: Request, res: Response) => {
 
     const nextAccessToken = createAccessToken(String(user._id));
     const nextRefreshToken = createRefreshToken();
-    user.refreshToken = nextRefreshToken;
-    user.refreshTokenExpiresAt = new Date(Date.now() + REFRESH_TOKEN_TTL_MS);
-    await user.save();
+    await User.updateOne(
+      { _id: user._id },
+      {
+        $set: {
+          refreshToken: nextRefreshToken,
+          refreshTokenExpiresAt: new Date(Date.now() + REFRESH_TOKEN_TTL_MS),
+        },
+      },
+    );
 
     applyAuthCookies(res, nextAccessToken, nextRefreshToken);
     return res.status(200).json({
