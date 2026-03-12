@@ -308,5 +308,38 @@ describe('Auth Profile Endpoints', () => {
       expect(res.body.success).toBe(true);
       expect(res.body.message).toBe('Password Changed Successfully');
     });
+
+    it('should return 200 even when user document has missing optional fields ( already existing user)', async () => {
+      
+      const bcrypt = require('bcrypt');
+      const mongoose = require('mongoose');
+      const hashed = await bcrypt.hash('oldpass123', 10);
+      const legacyUser = await mongoose.connection.db.collection('users').insertOne({
+        email: 'legacy@example.com',
+        password: hashed,
+        role: 'user',
+        isActive: true,
+      });
+      const legacyToken = require('jsonwebtoken').sign(
+        { userId: legacyUser.insertedId },
+        process.env.JWT_SECRET || 'default_secret_key',
+      );
+
+      const res = await request(app)
+        .put('/api/auth/me/change-password')
+        .set('Cookie', [`token=${legacyToken}`])
+        .send({ currentPassword: 'oldpass123', newPassword: 'newpass123', confirmPassword: 'newpass123' })
+        .expect(200);
+
+      expect(res.body.success).toBe(true);
+      expect(res.body.message).toBe('Password Changed Successfully');
+
+     
+      const updated = await mongoose.connection.db
+        .collection('users')
+        .findOne({ _id: legacyUser.insertedId });
+      const matches = await bcrypt.compare('newpass123', updated.password);
+      expect(matches).toBe(true);
+    });
   });
 });
