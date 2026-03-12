@@ -30,7 +30,7 @@ services:
       - mongodb
     volumes:
       - ./frontend/suggestion:/app
-      - /app/node_modules
+      - frontend_node_modules:/app/node_modules
     restart: unless-stopped
 
   mongodb:
@@ -43,3 +43,5 @@ services:
 
 volumes:
   mongodb_data:
+  backend_node_modules:
+  frontend_node_modules:

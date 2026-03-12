@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom'
 import { Building2, CheckCircle, CreditCard, Lock, Mail, MapPin, User } from 'lucide-react'
 import { Button, Input, Select, Textarea, ErrorMessage, ThemeToggle, Label } from '../components/ui'
 import PhoneInput from 'react-phone-input-2'
+import '../styles/react-phone-input-2.css'
 
 type FieldErrors = {
   name?: string

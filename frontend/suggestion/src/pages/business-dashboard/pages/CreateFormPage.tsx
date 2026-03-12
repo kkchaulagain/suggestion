@@ -2,6 +2,26 @@ import React, { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import axios from 'axios'
 import {
+  closestCenter,
+  DndContext,
+  type DragEndEvent,
+  type DragMoveEvent,
+  type DragOverEvent,
+  type DragStartEvent,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core'
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import {
   ArrowLeft,
   Briefcase,
   Bug,
@@ -320,6 +340,238 @@ const TEMPLATE_ICONS: Record<FormTemplate['iconName'], React.ComponentType<{ cla
   Users,
 }
 
+function getFieldClientId(field: FeedbackField, index: number): string {
+  return field.clientId ?? `${field.name || 'field'}-${index}`
+}
+
+interface SortableFieldRowProps {
+  field: FeedbackField
+  index: number
+  isEditing: boolean
+  showDropIndicator: boolean
+  showAdvancedOptions: boolean
+  onToggleEdit: (clientId: string) => void
+  onRemoveField: (clientId: string) => void
+  onFieldLabelChange: (clientId: string, value: string) => void
+  onFieldTypeChange: (clientId: string, type: FeedbackFieldType) => void
+  onFieldRequiredChange: (clientId: string, required: boolean) => void
+  onFieldAllowAnonymousChange: (clientId: string, allowAnonymous: boolean) => void
+  onAddOption: (clientId: string) => void
+  onOptionChange: (clientId: string, optionIndex: number, value: string) => void
+  onRemoveOption: (clientId: string, optionIndex: number) => void
+  onToggleAdvancedOptions: () => void
+  onFieldNameChange: (clientId: string, value: string) => void
+  onFieldPlaceholderChange: (clientId: string, value: string) => void
+}
+
+function SortableFieldRow({
+  field,
+  index,
+  isEditing,
+  showDropIndicator,
+  showAdvancedOptions,
+  onToggleEdit,
+  onRemoveField,
+  onFieldLabelChange,
+  onFieldTypeChange,
+  onFieldRequiredChange,
+  onFieldAllowAnonymousChange,
+  onAddOption,
+  onOptionChange,
+  onRemoveOption,
+  onToggleAdvancedOptions,
+  onFieldNameChange,
+  onFieldPlaceholderChange,
+}: SortableFieldRowProps) {
+  const fieldId = getFieldClientId(field, index)
+  const isOptionType = OPTION_TYPES.includes(field.type)
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: fieldId })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  }
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`relative border-b border-slate-200 py-4 first:pt-0 last:border-b-0 dark:border-slate-700 ${isDragging ? 'opacity-70' : ''}`}
+      data-field-row
+    >
+      {showDropIndicator ? (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 h-0.5 rounded bg-emerald-500"
+        />
+      ) : null}
+      <div
+        className={`flex flex-wrap items-center justify-between gap-3 rounded-md px-1 py-1 ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+        aria-label={`Move field: ${field.label || 'Untitled'}`}
+        {...attributes}
+        {...listeners}
+      >
+        <div className="min-w-0 flex-1">
+          <span className="text-sm font-medium text-slate-900 dark:text-slate-100">{field.label}</span>
+          {field.required ? <span className="ml-1 text-rose-600 dark:text-rose-400" aria-hidden>*</span> : null}
+          <span className="ml-2 text-xs text-slate-500 dark:text-slate-400">{getTypeLabel(field.type)}</span>
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="min-h-0 rounded bg-slate-100 px-2 py-1 text-xs font-medium dark:bg-slate-700"
+            onClick={() => onToggleEdit(fieldId)}
+            aria-expanded={isEditing}
+            aria-controls={isEditing ? `field-edit-${index}` : undefined}
+          >
+            <Pencil className="h-3.5 w-3.5" />
+            {isEditing ? 'Close' : 'Edit'}
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="min-h-0 rounded px-2 py-1 text-xs font-medium !text-rose-600 hover:!bg-rose-50 dark:!text-rose-400 dark:hover:!bg-rose-950/40"
+            onClick={() => onRemoveField(fieldId)}
+            aria-label={`Remove field: ${field.label || 'Untitled'}`}
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            Remove
+          </Button>
+        </div>
+      </div>
+
+      {isEditing ? (
+        <div id={`field-edit-${index}`} className="mt-3 space-y-4 pl-0" role="region" aria-label="Edit field">
+          <Input
+            id={`field-label-${index}`}
+            label="Label"
+            value={field.label}
+            onChange={(value) => onFieldLabelChange(fieldId, value)}
+            placeholder="Field label"
+          />
+          <Select
+            id={`field-type-${index}`}
+            label="Type"
+            value={field.type}
+            onChange={(value) => onFieldTypeChange(fieldId, value as FeedbackFieldType)}
+            options={fieldTypeOptions}
+          />
+          <div className="flex flex-wrap items-center gap-4">
+            <label className={`inline-flex cursor-pointer items-center gap-2 text-sm font-medium ${
+              field.allowAnonymous ? 'text-slate-400 dark:text-slate-500' : 'text-slate-700 dark:text-slate-300'
+            }`}>
+              <input
+                type="checkbox"
+                checked={field.required}
+                onChange={(event) => onFieldRequiredChange(fieldId, event.target.checked)}
+                disabled={field.allowAnonymous}
+                className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 disabled:opacity-50 dark:border-slate-600"
+              />
+              Required field
+            </label>
+
+            {field.type === 'name' ? (
+              <label className={`inline-flex cursor-pointer items-center gap-2 text-sm font-medium ${
+                field.required ? 'text-slate-400 dark:text-slate-500' : 'text-slate-700 dark:text-slate-300'
+              }`}>
+                <input
+                  type="checkbox"
+                  checked={field.allowAnonymous ?? false}
+                  onChange={(event) => onFieldAllowAnonymousChange(fieldId, event.target.checked)}
+                  disabled={field.required}
+                  className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 disabled:opacity-50 dark:border-slate-600"
+                />
+                Allow anonymous
+              </label>
+            ) : null}
+          </div>
+
+          {isOptionType ? (
+            <div className="rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900/40">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs font-semibold text-slate-900 dark:text-slate-100">Options</p>
+                <Button type="button" variant="secondary" size="sm" onClick={() => onAddOption(fieldId)}>
+                  <Plus className="h-4 w-4" />
+                  Add option
+                </Button>
+              </div>
+              <div className="mt-3 space-y-2">
+                {(field.options ?? []).map((option, optionIndex) => (
+                  <div key={`${field.name}-${optionIndex}`} className="flex items-center gap-2">
+                    <Input
+                      id={`field-option-${index}-${optionIndex}`}
+                      value={option}
+                      onChange={(value) => onOptionChange(fieldId, optionIndex, value)}
+                      placeholder={`Option ${optionIndex + 1}`}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onRemoveOption(fieldId, optionIndex)}
+                      aria-label={`Remove option ${optionIndex + 1}`}
+                      className="!text-rose-600 hover:!bg-rose-50 dark:!text-rose-400 dark:hover:!bg-rose-950/40"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          <div className="border-t border-slate-200 pt-3 dark:border-slate-700">
+            <button
+              type="button"
+              onClick={onToggleAdvancedOptions}
+              className="flex w-full items-center justify-between gap-2 text-left text-sm font-medium text-slate-600 dark:text-slate-400"
+              aria-expanded={showAdvancedOptions}
+            >
+              More options
+              {showAdvancedOptions ? (
+                <ChevronUp className="h-4 w-4 shrink-0" />
+              ) : (
+                <ChevronDown className="h-4 w-4 shrink-0" />
+              )}
+            </button>
+            {showAdvancedOptions ? (
+              <div className="mt-3 space-y-3">
+                <div>
+                  <Input
+                    id={`field-name-${index}`}
+                    label="Field name"
+                    value={field.name}
+                    onChange={(value) => onFieldNameChange(fieldId, value)}
+                    placeholder="field_name"
+                  />
+                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                    Used in data export. Usually auto-filled from the label.
+                  </p>
+                </div>
+                <div>
+                  <Input
+                    id={`field-placeholder-${index}`}
+                    label="Placeholder"
+                    value={field.placeholder ?? ''}
+                    onChange={(value) => onFieldPlaceholderChange(fieldId, value)}
+                    placeholder="Optional helper text"
+                  />
+                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                    Shown when the field is empty. Leave blank if not needed.
+                  </p>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
 export default function CreateFormPage() {
   const navigate = useNavigate()
   const { formId } = useParams<{ formId: string }>()
@@ -329,15 +581,18 @@ export default function CreateFormPage() {
   const [title, setTitle] = useState('Feedback form')
   const [description, setDescription] = useState('test')
   const [fields, setFields] = useState<FeedbackField[]>(defaultFields)
-  const [editingFieldIndex, setEditingFieldIndex] = useState<number | null>(null)
+  const [editingFieldId, setEditingFieldId] = useState<string | null>(null)
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false)
   const [showAddFieldModal, setShowAddFieldModal] = useState(false)
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false)
   const [loading, setLoading] = useState(isEditMode)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const [draggingFieldId, setDraggingFieldId] = useState<string | null>(null)
+  const [overFieldId, setOverFieldId] = useState<string | null>(null)
 
   const initialSnapshotRef = useRef<{ title: string; description: string; fieldsKey: string } | null>(null)
+  const initialFieldOrderRef = useRef<string[]>(defaultFields.map((field, index) => getFieldClientId(field, index)))
   const { getAuthHeaders } = useAuth()
   const getAuthHeadersRef = useRef(getAuthHeaders)
   getAuthHeadersRef.current = getAuthHeaders
@@ -354,6 +609,7 @@ export default function CreateFormPage() {
       setTitle(template.title)
       setDescription(template.formDescription)
       setFields(nextFields)
+      initialFieldOrderRef.current = nextFields.map((field, index) => getFieldClientId(field, index))
       initialSnapshotRef.current = {
         title: template.title,
         description: template.formDescription,
@@ -363,13 +619,14 @@ export default function CreateFormPage() {
       setTitle('Feedback form')
       setDescription('test')
       setFields(defaultFields)
+      initialFieldOrderRef.current = defaultFields.map((field, index) => getFieldClientId(field, index))
       initialSnapshotRef.current = {
         title: 'Feedback form',
         description: 'test',
         fieldsKey: serializeFieldsForDirty(defaultFields),
       }
     }
-    setEditingFieldIndex(null)
+    setEditingFieldId(null)
     setShowAdvancedOptions(false)
     setError('')
     setStep('build')
@@ -395,7 +652,8 @@ export default function CreateFormPage() {
         setTitle(loadedTitle)
         setDescription(loadedDescription)
         setFields(loadedFields)
-        setEditingFieldIndex(null)
+        initialFieldOrderRef.current = loadedFields.map((field, index) => getFieldClientId(field, index))
+        setEditingFieldId(null)
         initialSnapshotRef.current = {
           title: loadedTitle,
           description: loadedDescription,
@@ -428,12 +686,14 @@ export default function CreateFormPage() {
     return () => window.removeEventListener('beforeunload', handler)
   }, [isDirty])
 
-  const updateField = (index: number, updater: (field: FeedbackField) => FeedbackField) => {
-    setFields((current) => current.map((field, fieldIndex) => (fieldIndex === index ? updater(field) : field)))
+  const updateField = (fieldId: string, updater: (field: FeedbackField) => FeedbackField) => {
+    setFields((current) =>
+      current.map((field, fieldIndex) => (getFieldClientId(field, fieldIndex) === fieldId ? updater(field) : field)),
+    )
   }
 
-  const handleFieldLabelChange = (index: number, value: string) => {
-    updateField(index, (field) => {
+  const handleFieldLabelChange = (fieldId: string, value: string) => {
+    updateField(fieldId, (field) => {
       const autoName = toFieldName(field.label)
       const nextName = field.name === autoName ? toFieldName(value) : field.name
       return { ...field, label: value, name: nextName }
@@ -441,13 +701,13 @@ export default function CreateFormPage() {
     setError('')
   }
 
-  const handleFieldNameChange = (index: number, value: string) => {
-    updateField(index, (field) => ({ ...field, name: toFieldName(value) }))
+  const handleFieldNameChange = (fieldId: string, value: string) => {
+    updateField(fieldId, (field) => ({ ...field, name: toFieldName(value) }))
     setError('')
   }
 
-  const handleFieldTypeChange = (index: number, type: FeedbackFieldType) => {
-    updateField(index, (field) => ({
+  const handleFieldTypeChange = (fieldId: string, type: FeedbackFieldType) => {
+    updateField(fieldId, (field) => ({
       ...field,
       type,
       options: OPTION_TYPES.includes(type) ? (field.options?.length ? field.options : ['Option 1']) : undefined,
@@ -456,20 +716,20 @@ export default function CreateFormPage() {
     setError('')
   }
 
-  const handleFieldPlaceholderChange = (index: number, value: string) => {
-    updateField(index, (field) => ({ ...field, placeholder: value }))
+  const handleFieldPlaceholderChange = (fieldId: string, value: string) => {
+    updateField(fieldId, (field) => ({ ...field, placeholder: value }))
   }
 
-  const handleFieldRequiredChange = (index: number, required: boolean) => {
-    updateField(index, (field) => ({
+  const handleFieldRequiredChange = (fieldId: string, required: boolean) => {
+    updateField(fieldId, (field) => ({
       ...field,
       required,
       allowAnonymous: required && field.type === 'name' ? false : field.allowAnonymous,
     }))
   }
 
-  const handleFieldAllowAnonymousChange = (index: number, allowAnonymous: boolean) => {
-    updateField(index, (field) => ({
+  const handleFieldAllowAnonymousChange = (fieldId: string, allowAnonymous: boolean) => {
+    updateField(fieldId, (field) => ({
       ...field,
       allowAnonymous,
       required: allowAnonymous ? false : field.required,
@@ -478,42 +738,132 @@ export default function CreateFormPage() {
 
   const handleAddField = (type: FeedbackFieldType) => {
     setFields((current) => {
-      const next = [...current, createField(type, current.length + 1)]
-      setEditingFieldIndex(next.length - 1)
+      const nextField = createField(type, current.length + 1)
+      const next = [...current, nextField]
+      setEditingFieldId(nextField.clientId ?? null)
       return next
     })
     setError('')
   }
 
-  const handleRemoveField = (index: number) => {
-    setFields((current) => current.filter((_, fieldIndex) => fieldIndex !== index))
-    setEditingFieldIndex((current) => {
-      if (current === null) return null
-      if (current === index) return null
-      return current > index ? current - 1 : current
-    })
+  const handleRemoveField = (fieldId: string) => {
+    setFields((current) =>
+      current.filter((field, fieldIndex) => getFieldClientId(field, fieldIndex) !== fieldId),
+    )
+    setEditingFieldId((current) => (current === fieldId ? null : current))
     setError('')
   }
 
-  const handleAddOption = (index: number) => {
-    updateField(index, (field) => ({
+  const handleAddOption = (fieldId: string) => {
+    updateField(fieldId, (field) => ({
       ...field,
       options: [...(field.options ?? []), `Option ${(field.options?.length ?? 0) + 1}`],
     }))
   }
 
-  const handleOptionChange = (fieldIndex: number, optionIndex: number, value: string) => {
-    updateField(fieldIndex, (field) => ({
+  const handleOptionChange = (fieldId: string, optionIndex: number, value: string) => {
+    updateField(fieldId, (field) => ({
       ...field,
       options: (field.options ?? []).map((option, currentIndex) => (currentIndex === optionIndex ? value : option)),
     }))
   }
 
-  const handleRemoveOption = (fieldIndex: number, optionIndex: number) => {
-    updateField(fieldIndex, (field) => ({
+  const handleRemoveOption = (fieldId: string, optionIndex: number) => {
+    updateField(fieldId, (field) => ({
       ...field,
       options: (field.options ?? []).filter((_, currentIndex) => currentIndex !== optionIndex),
     }))
+  }
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 6 },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  )
+
+  const handleDragStart = (event: DragStartEvent) => {
+    const activeId = String(event.active.id)
+    setDraggingFieldId(activeId)
+    setOverFieldId(activeId)
+  }
+
+  const handleDragOver = (event: DragOverEvent) => {
+    setOverFieldId(event.over ? String(event.over.id) : null)
+  }
+
+  const handleDragMove = (event: DragMoveEvent) => {
+    const edgeThreshold = 96
+    const scrollStep = 18
+    const activatorEvent = event.activatorEvent
+    const maybeTouchEvent = activatorEvent as Event & {
+      touches?: ArrayLike<{ clientY?: number }>
+    }
+
+    let clientY: number | null = null
+
+    if ('clientY' in activatorEvent && typeof activatorEvent.clientY === 'number') {
+      clientY = activatorEvent.clientY
+    } else if (maybeTouchEvent.touches && maybeTouchEvent.touches.length > 0) {
+      const firstTouch = maybeTouchEvent.touches[0]
+      clientY = typeof firstTouch?.clientY === 'number' ? firstTouch.clientY : null
+    }
+
+    if (clientY === null) return
+
+    if (clientY < edgeThreshold) {
+      window.scrollBy({ top: -scrollStep, behavior: 'auto' })
+    } else if (clientY > window.innerHeight - edgeThreshold) {
+      window.scrollBy({ top: scrollStep, behavior: 'auto' })
+    }
+  }
+
+  const handleDragCancel = () => {
+    setDraggingFieldId(null)
+    setOverFieldId(null)
+  }
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) {
+      setDraggingFieldId(null)
+      setOverFieldId(null)
+      return
+    }
+
+    setFields((current) => {
+      const oldIndex = current.findIndex((field, index) => getFieldClientId(field, index) === String(active.id))
+      const newIndex = current.findIndex((field, index) => getFieldClientId(field, index) === String(over.id))
+      if (oldIndex === -1 || newIndex === -1) return current
+      return arrayMove(current, oldIndex, newIndex)
+    })
+
+    setDraggingFieldId(null)
+    setOverFieldId(null)
+  }
+
+  const currentFieldOrder = fields.map((field, index) => getFieldClientId(field, index))
+  const baselineOrder = initialFieldOrderRef.current
+  const baselineOrderSet = new Set(baselineOrder)
+  const currentComparableOrder = currentFieldOrder.filter((id) => baselineOrderSet.has(id))
+  const canResetOrder =
+    baselineOrder.length > 0 && currentComparableOrder.join('|') !== baselineOrder.join('|')
+
+  const handleResetFieldOrder = () => {
+    const baseline = initialFieldOrderRef.current
+    const baselineSet = new Set(baseline)
+
+    setFields((current) => {
+      const byId = new Map(current.map((field, index) => [getFieldClientId(field, index), field] as const))
+      const resetOrdered = baseline.map((id) => byId.get(id)).filter((field): field is FeedbackField => Boolean(field))
+      const leftovers = current.filter((field, index) => !baselineSet.has(getFieldClientId(field, index)))
+      return [...resetOrdered, ...leftovers]
+    })
+
+    setDraggingFieldId(null)
+    setOverFieldId(null)
   }
 
   const validateFields = () => {
@@ -695,192 +1045,72 @@ export default function CreateFormPage() {
           className="mt-6 space-y-5"
           noValidate
         >
-          {fields.map((field, index) => {
-            const isOptionType = OPTION_TYPES.includes(field.type)
-            const isEditing = editingFieldIndex === index
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragStart={handleDragStart}
+            onDragOver={handleDragOver}
+            onDragMove={handleDragMove}
+            onDragCancel={handleDragCancel}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={fields.map((field, index) => getFieldClientId(field, index))}
+              strategy={verticalListSortingStrategy}
+            >
+              {fields.map((field, index) => {
+                const fieldId = getFieldClientId(field, index)
+                const isEditing = editingFieldId === fieldId
+                const showDropIndicator = Boolean(draggingFieldId && overFieldId === fieldId && draggingFieldId !== fieldId)
 
-            return (
-              <div
-                key={field.clientId}
-                className="border-b border-slate-200 py-4 first:pt-0 last:border-b-0 dark:border-slate-700"
-                data-field-row
-              >
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="min-w-0 flex-1">
-                    <span className="text-sm font-medium text-slate-900 dark:text-slate-100">{field.label}</span>
-                    {field.required ? (
-                      <span className="ml-1 text-rose-600 dark:text-rose-400" aria-hidden>*</span>
-                    ) : null}
-                    <span className="ml-2 text-xs text-slate-500 dark:text-slate-400">
-                      {getTypeLabel(field.type)}
-                    </span>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="min-h-0 rounded bg-slate-100 px-2 py-1 text-xs font-medium dark:bg-slate-700"
-                      onClick={() => {
-                        setEditingFieldIndex((current) => (current === index ? null : index))
-                        setShowAdvancedOptions(false)
-                      }}
-                      aria-expanded={isEditing}
-                      aria-controls={isEditing ? `field-edit-${index}` : undefined}
-                    >
-                      <Pencil className="h-3.5 w-3.5" />
-                      {isEditing ? 'Close' : 'Edit'}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="min-h-0 rounded px-2 py-1 text-xs font-medium !text-rose-600 hover:!bg-rose-50 dark:!text-rose-400 dark:hover:!bg-rose-950/40"
-                      onClick={() => handleRemoveField(index)}
-                      aria-label={`Remove field: ${field.label || 'Untitled'}`}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                      Remove
-                    </Button>
-                  </div>
-                </div>
+                return (
+                  <SortableFieldRow
+                    key={fieldId}
+                    field={field}
+                    index={index}
+                    isEditing={isEditing}
+                    showDropIndicator={showDropIndicator}
+                    showAdvancedOptions={showAdvancedOptions}
+                    onToggleEdit={(clientId) => {
+                      setEditingFieldId((current) => (current === clientId ? null : clientId))
+                      setShowAdvancedOptions(false)
+                    }}
+                    onRemoveField={handleRemoveField}
+                    onFieldLabelChange={handleFieldLabelChange}
+                    onFieldTypeChange={handleFieldTypeChange}
+                    onFieldRequiredChange={handleFieldRequiredChange}
+                    onFieldAllowAnonymousChange={handleFieldAllowAnonymousChange}
+                    onAddOption={handleAddOption}
+                    onOptionChange={handleOptionChange}
+                    onRemoveOption={handleRemoveOption}
+                    onToggleAdvancedOptions={() => setShowAdvancedOptions((v) => !v)}
+                    onFieldNameChange={handleFieldNameChange}
+                    onFieldPlaceholderChange={handleFieldPlaceholderChange}
+                  />
+                )
+              })}
+            </SortableContext>
+          </DndContext>
 
-                {isEditing ? (
-                  <div id={`field-edit-${index}`} className="mt-3 space-y-4 pl-0" role="region" aria-label="Edit field">
-                    <Input
-                      id={`field-label-${index}`}
-                      label="Label"
-                      value={field.label}
-                      onChange={(value) => handleFieldLabelChange(index, value)}
-                      placeholder="Field label"
-                    />
-                    <Select
-                      id={`field-type-${index}`}
-                      label="Type"
-                      value={field.type}
-                      onChange={(value) => handleFieldTypeChange(index, value as FeedbackFieldType)}
-                      options={fieldTypeOptions}
-                    />
-                    <div className="flex flex-wrap items-center gap-4">
-                      <label className={`inline-flex cursor-pointer items-center gap-2 text-sm font-medium ${
-                        field.allowAnonymous ? 'text-slate-400 dark:text-slate-500' : 'text-slate-700 dark:text-slate-300'
-                      }`}>
-                        <input
-                          type="checkbox"
-                          checked={field.required}
-                          onChange={(event) => handleFieldRequiredChange(index, event.target.checked)}
-                          disabled={field.allowAnonymous}
-                          className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 disabled:opacity-50 dark:border-slate-600"
-                        />
-                        Required field
-                      </label>
+          <div className="-mt-2 text-xs text-slate-500 dark:text-slate-400">
+            Drag fields with the grip handle to reorder.
+          </div>
 
-                      {field.type === 'name' ? (
-                        <label className={`inline-flex cursor-pointer items-center gap-2 text-sm font-medium ${
-                          field.required ? 'text-slate-400 dark:text-slate-500' : 'text-slate-700 dark:text-slate-300'
-                        }`}>
-                          <input
-                            type="checkbox"
-                            checked={field.allowAnonymous ?? false}
-                            onChange={(event) => handleFieldAllowAnonymousChange(index, event.target.checked)}
-                            disabled={field.required}
-                            className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 disabled:opacity-50 dark:border-slate-600"
-                          />
-                          Allow anonymous
-                        </label>
-                      ) : null}
-                    </div>
-
-                    {isOptionType ? (
-                      <div className="rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900/40">
-                        <div className="flex items-center justify-between gap-3">
-                          <p className="text-xs font-semibold text-slate-900 dark:text-slate-100">Options</p>
-                          <Button type="button" variant="secondary" size="sm" onClick={() => handleAddOption(index)}>
-                            <Plus className="h-4 w-4" />
-                            Add option
-                          </Button>
-                        </div>
-                        <div className="mt-3 space-y-2">
-                          {(field.options ?? []).map((option, optionIndex) => (
-                            <div key={`${field.name}-${optionIndex}`} className="flex items-center gap-2">
-                              <Input
-                                id={`field-option-${index}-${optionIndex}`}
-                                value={option}
-                                onChange={(value) => handleOptionChange(index, optionIndex, value)}
-                                placeholder={`Option ${optionIndex + 1}`}
-                              />
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleRemoveOption(index, optionIndex)}
-                                aria-label={`Remove option ${optionIndex + 1}`}
-                                className="!text-rose-600 hover:!bg-rose-50 dark:!text-rose-400 dark:hover:!bg-rose-950/40"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ) : null}
-
-                    <div className="border-t border-slate-200 pt-3 dark:border-slate-700">
-                      <button
-                        type="button"
-                        onClick={() => setShowAdvancedOptions((v) => !v)}
-                        className="flex w-full items-center justify-between gap-2 text-left text-sm font-medium text-slate-600 dark:text-slate-400"
-                        aria-expanded={showAdvancedOptions}
-                      >
-                        More options
-                        {showAdvancedOptions ? (
-                          <ChevronUp className="h-4 w-4 shrink-0" />
-                        ) : (
-                          <ChevronDown className="h-4 w-4 shrink-0" />
-                        )}
-                      </button>
-                      {showAdvancedOptions ? (
-                        <div className="mt-3 space-y-3">
-                          <div>
-                            <Input
-                              id={`field-name-${index}`}
-                              label="Field name"
-                              value={field.name}
-                              onChange={(value) => handleFieldNameChange(index, value)}
-                              placeholder="field_name"
-                            />
-                            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                              Used in data export. Usually auto-filled from the label.
-                            </p>
-                          </div>
-                          <div>
-                            <Input
-                              id={`field-placeholder-${index}`}
-                              label="Placeholder"
-                              value={field.placeholder ?? ''}
-                              onChange={(value) => handleFieldPlaceholderChange(index, value)}
-                              placeholder="Optional helper text"
-                            />
-                            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                              Shown when the field is empty. Leave blank if not needed.
-                            </p>
-                          </div>
-                        </div>
-                      ) : null}
-                    </div>
-                  </div>
-                ) : null}
-              </div>
-            )
-          })}
-
-          <div className="pt-2">
+          <div className="flex flex-wrap items-center gap-3 pt-2">
             <button
               type="button"
               onClick={() => setShowAddFieldModal(true)}
               className="text-sm font-medium text-emerald-600 hover:text-emerald-700 hover:underline dark:text-emerald-400 dark:hover:text-emerald-300"
             >
               + Add new field
+            </button>
+            <button
+              type="button"
+              onClick={handleResetFieldOrder}
+              disabled={!canResetOrder}
+              className="text-sm font-medium text-slate-600 hover:text-slate-800 hover:underline disabled:cursor-not-allowed disabled:opacity-50 dark:text-slate-400 dark:hover:text-slate-200"
+            >
+              Reset to original order
             </button>
           </div>
 

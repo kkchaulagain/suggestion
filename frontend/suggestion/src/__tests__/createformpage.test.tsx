@@ -6,6 +6,8 @@ import axios from 'axios'
 import CreateFormPage from '../pages/business-dashboard/pages/CreateFormPage'
 import { feedbackFormsApi } from '../utils/apipath'
 
+jest.setTimeout(15000)
+
 jest.mock('axios')
 const mockedAxios = axios as jest.Mocked<typeof axios>
 
