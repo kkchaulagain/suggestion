@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
@@ -17,8 +18,6 @@ jest.mock('react-router-dom', () => ({
 }))
 
 jest.mock('@dnd-kit/core', () => {
-  const React = require('react')
-
   return {
     closestCenter: jest.fn(),
     KeyboardSensor: jest.fn(),
@@ -33,7 +32,7 @@ jest.mock('@dnd-kit/core', () => {
       onDragCancel,
       onDragEnd,
     }: {
-      children: React.ReactNode
+      children: ReactNode
       onDragStart?: (event: unknown) => void
       onDragOver?: (event: unknown) => void
       onDragMove?: (event: unknown) => void
