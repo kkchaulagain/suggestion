@@ -355,6 +355,7 @@ interface SortableFieldRowProps {
   onFieldLabelChange: (clientId: string, value: string) => void
   onFieldTypeChange: (clientId: string, type: FeedbackFieldType) => void
   onFieldRequiredChange: (clientId: string, required: boolean) => void
+  onFieldAllowAnonymousChange: (clientId: string, allowAnonymous: boolean) => void
   onAddOption: (clientId: string) => void
   onOptionChange: (clientId: string, optionIndex: number, value: string) => void
   onRemoveOption: (clientId: string, optionIndex: number) => void
@@ -374,6 +375,7 @@ function SortableFieldRow({
   onFieldLabelChange,
   onFieldTypeChange,
   onFieldRequiredChange,
+  onFieldAllowAnonymousChange,
   onAddOption,
   onOptionChange,
   onRemoveOption,
@@ -457,15 +459,35 @@ function SortableFieldRow({
             onChange={(value) => onFieldTypeChange(fieldId, value as FeedbackFieldType)}
             options={fieldTypeOptions}
           />
-          <label className="inline-flex cursor-pointer items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300">
-            <input
-              type="checkbox"
-              checked={field.required}
-              onChange={(event) => onFieldRequiredChange(fieldId, event.target.checked)}
-              className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 dark:border-slate-600"
-            />
-            Required field
-          </label>
+          <div className="flex flex-wrap items-center gap-4">
+            <label className={`inline-flex cursor-pointer items-center gap-2 text-sm font-medium ${
+              field.allowAnonymous ? 'text-slate-400 dark:text-slate-500' : 'text-slate-700 dark:text-slate-300'
+            }`}>
+              <input
+                type="checkbox"
+                checked={field.required}
+                onChange={(event) => onFieldRequiredChange(fieldId, event.target.checked)}
+                disabled={field.allowAnonymous}
+                className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 disabled:opacity-50 dark:border-slate-600"
+              />
+              Required field
+            </label>
+
+            {field.type === 'name' ? (
+              <label className={`inline-flex cursor-pointer items-center gap-2 text-sm font-medium ${
+                field.required ? 'text-slate-400 dark:text-slate-500' : 'text-slate-700 dark:text-slate-300'
+              }`}>
+                <input
+                  type="checkbox"
+                  checked={field.allowAnonymous ?? false}
+                  onChange={(event) => onFieldAllowAnonymousChange(fieldId, event.target.checked)}
+                  disabled={field.required}
+                  className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 disabled:opacity-50 dark:border-slate-600"
+                />
+                Allow anonymous
+              </label>
+            ) : null}
+          </div>
 
           {isOptionType ? (
             <div className="rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900/40">
@@ -699,7 +721,19 @@ export default function CreateFormPage() {
   }
 
   const handleFieldRequiredChange = (fieldId: string, required: boolean) => {
-    updateField(fieldId, (field) => ({ ...field, required }))
+    updateField(fieldId, (field) => ({
+      ...field,
+      required,
+      allowAnonymous: required && field.type === 'name' ? false : field.allowAnonymous,
+    }))
+  }
+
+  const handleFieldAllowAnonymousChange = (fieldId: string, allowAnonymous: boolean) => {
+    updateField(fieldId, (field) => ({
+      ...field,
+      allowAnonymous,
+      required: allowAnonymous ? false : field.required,
+    }))
   }
 
   const handleAddField = (type: FeedbackFieldType) => {
@@ -1045,6 +1079,7 @@ export default function CreateFormPage() {
                     onFieldLabelChange={handleFieldLabelChange}
                     onFieldTypeChange={handleFieldTypeChange}
                     onFieldRequiredChange={handleFieldRequiredChange}
+                    onFieldAllowAnonymousChange={handleFieldAllowAnonymousChange}
                     onAddOption={handleAddOption}
                     onOptionChange={handleOptionChange}
                     onRemoveOption={handleRemoveOption}
