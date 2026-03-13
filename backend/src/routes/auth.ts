@@ -528,18 +528,19 @@ router.put('/me/change-password',isAuthenticated,async(req:AuthenticatedRequest,
         return res.status(404).json({success:false,message:'User not found'})
       }
       const passwordMatches=await bcrypt.compare(currentPassword,user.password)
-      if (newPassword === currentPassword)
-      {
-        return res.status(400).json({ success: false, message: 'New password must be different from current password' });
-      }
       if(!passwordMatches)
       {
         return res.status(400).json({success:false,message:'Current password is incorrect'})
       }
-      user.password=newPassword
-      user.refreshToken = null
-      user.refreshTokenExpiresAt = null
-      await user.save() //already hashed in User model pre-save hook,so its not plain text anymore
+      if (newPassword === currentPassword)
+      {
+        return res.status(400).json({ success: false, message: 'New password must be different from current password' });
+      }
+      const hashedPassword = await bcrypt.hash(newPassword, 10)
+      await User.updateOne(
+        { _id: id },
+        { $set: { password: hashedPassword, refreshToken: null, refreshTokenExpiresAt: null } },
+      )
       clearAuthCookies(res)
       return res.status(200).json({success:true,message:'Password Changed Successfully'})
  } catch (_error) {
