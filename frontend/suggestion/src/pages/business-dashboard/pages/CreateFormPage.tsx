@@ -82,14 +82,14 @@ export interface FormTemplate {
 const OPTION_TYPES: FeedbackFieldType[] = ['checkbox', 'radio']
 
 const fieldTypeOptions: Array<{ value: FeedbackFieldType; label: string }> = [
+  { value: 'name', label: 'Name' },
+  { value: 'email', label: 'Email' },
   { value: 'short_text', label: 'Short Text' },
   { value: 'long_text', label: 'Long Text' },
   { value: 'big_text', label: 'Paragraph' },
   { value: 'checkbox', label: 'Checkbox' },
   { value: 'radio', label: 'Radio' },
   { value: 'image_upload', label: 'Image Upload' },
-  { value: 'name', label: 'Name' },
-  { value: 'email', label: 'Email' },
 ]
 
 const defaultFields: FeedbackField[] = [
@@ -1142,6 +1142,8 @@ export default function CreateFormPage() {
                       <ListChecks className="h-5 w-5 shrink-0 text-slate-500 dark:text-slate-400" />
                     ) : opt.value === 'name' ? (
                       <User className="h-5 w-5 shrink-0 text-slate-500 dark:text-slate-400" />
+                    ) : opt.value === 'email' ? (
+                      <Mail className="h-5 w-5 shrink-0 text-slate-500 dark:text-slate-400" />
                     ) : (
                       <Image className="h-5 w-5 shrink-0 text-slate-500 dark:text-slate-400" />
                     )}
