@@ -82,13 +82,14 @@ describe('Feedback Forms API', () => {
           { name: 'story', label: 'Story', type: 'big text' },
           { name: 'screenshot', label: 'Upload screenshot', type: 'image upload' },
           { name: 'fullName', label: 'Full Name', type: 'name' },
+          { name: 'email', label: 'Email Address', type: 'email' },
         ],
       })
       .expect(201);
 
     expect(res.body).toHaveProperty('message', 'Feedback form created');
     expect(res.body.feedbackForm.title).toBe('Customer feedback');
-    expect(res.body.feedbackForm.fields).toHaveLength(7);
+    expect(res.body.feedbackForm.fields).toHaveLength(8);
     interface FeedbackFormField { type: string }
     expect(res.body.feedbackForm.fields.map((field: FeedbackFormField) => field.type)).toEqual([
       'checkbox',
@@ -98,6 +99,7 @@ describe('Feedback Forms API', () => {
       'big_text',
       'image_upload',
       'name',
+      'email',
     ]);
     expect(res.body.feedbackForm.businessId).toBe(businessId);
   });
@@ -276,6 +278,24 @@ describe('Feedback Forms API', () => {
 
     await request(app).delete(`/api/feedback-forms/${created._id}`).set(authHeader).expect(200);
     await request(app).get(`/api/feedback-forms/${created._id}`).expect(404);
+  });
+
+  it('creates a feedback form with email field type', async () => {
+    const { authHeader } = await createBusinessAuth();
+
+    const res = await request(app)
+      .post('/api/feedback-forms')
+      .set(authHeader)
+      .send({
+        title: 'Contact form',
+        fields: [
+          { name: 'email', label: 'Email Address', type: 'email', required: true },
+        ],
+      })
+      .expect(201);
+
+    expect(res.body.feedbackForm.fields[0].type).toBe('email');
+    expect(res.body.feedbackForm.fields[0].required).toBe(true);
   });
 
   it('creates a feedback form with name field type and allowAnonymous', async () => {

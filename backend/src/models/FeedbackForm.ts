@@ -8,6 +8,7 @@ const FEEDBACK_FIELD_TYPES = [
   'image_upload',
   'radio',
   'name',
+  'email',
 ];
 
 const feedbackFieldSchema = new mongoose.Schema(

@@ -14,7 +14,8 @@ export {
   RadioField,
   StarRatingField,
   ImageUploadField,
-  NameField
+  NameField,
+  EmailField
 } from './field-types'
 export type {
   FieldWrapperProps,
@@ -24,5 +25,6 @@ export type {
   RadioFieldProps,
   StarRatingFieldProps,
   ImageUploadFieldProps,
-  NameFieldProps
+  NameFieldProps,
+  EmailFieldProps
 } from './field-types'
