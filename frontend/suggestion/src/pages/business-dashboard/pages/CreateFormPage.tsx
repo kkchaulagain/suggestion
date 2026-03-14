@@ -48,7 +48,7 @@ import { feedbackFormsApi } from '../../../utils/apipath'
 import { Button, Card, ErrorMessage, Input, Modal, Select, Textarea } from '../../../components/ui'
 import { EmptyState } from '../../../components/layout'
 
-type FeedbackFieldType = 'checkbox' | 'radio' | 'short_text' | 'long_text' | 'big_text' | 'image_upload' | 'name'
+type FeedbackFieldType = 'checkbox' | 'radio' | 'short_text' | 'long_text' | 'big_text' | 'image_upload' | 'name' | 'email'
 
 interface FeedbackField {
   clientId?: string
@@ -89,6 +89,7 @@ const fieldTypeOptions: Array<{ value: FeedbackFieldType; label: string }> = [
   { value: 'radio', label: 'Radio' },
   { value: 'image_upload', label: 'Image Upload' },
   { value: 'name', label: 'Name' },
+  { value: 'email', label: 'Email' },
 ]
 
 const defaultFields: FeedbackField[] = [
@@ -278,6 +279,7 @@ function makeDefaultLabel(type: FeedbackFieldType, count: number): string {
     radio: 'Single choice',
     image_upload: 'Attachment',
     name: 'Name',
+    email: 'Email',
   }
 
   return `${labels[type]} ${count}`
