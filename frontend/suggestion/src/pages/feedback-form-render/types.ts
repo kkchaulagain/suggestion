@@ -28,6 +28,7 @@ export interface FeedbackFormConfig {
   description?: string
   fields: FeedbackFormField[]
   kind?: FormKind
+  showResultsPublic?: boolean
 }
 
 export interface FeedbackFormApiResponse {

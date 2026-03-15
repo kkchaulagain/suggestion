@@ -388,6 +388,7 @@ describe('CreateFormPage', () => {
           title: 'Feedback form',
           description: 'test',
           kind: 'form',
+          showResultsPublic: false,
           fields: [
             {
               name: 'subject',

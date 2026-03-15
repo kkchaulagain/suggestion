@@ -24,6 +24,7 @@ interface FeedbackForm {
   businessId: string
   fields: FeedbackField[]
   kind?: FormKind
+  showResultsPublic?: boolean
 }
 
 interface QrPayload {
@@ -229,9 +230,20 @@ export default function FormsPage() {
               variant="flat"
               title={form.title}
               subtitle={
-                <span className="flex items-center gap-2">
+                <span className="flex flex-wrap items-center gap-2">
                   <span data-testid={`form-kind-badge-${form._id}`}>
                     <Tag className="text-xs">{kindLabel(kind)}</Tag>
+                  </span>
+                  <span
+                    data-testid={`form-results-visibility-${form._id}`}
+                    className={`rounded px-2 py-0.5 text-xs font-medium ${
+                      form.showResultsPublic
+                        ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300'
+                        : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400'
+                    }`}
+                    title={form.showResultsPublic ? 'Respondents can view results after submitting' : 'Results are only visible to you'}
+                  >
+                    {form.showResultsPublic ? 'Results public' : 'Results private'}
                   </span>
                   <span>{`${questionCount} ${questionCount === 1 ? 'question' : 'questions'} - ${requiredCount} required`}</span>
                 </span>

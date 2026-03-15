@@ -46,8 +46,13 @@ export default function FormResultsView({
       const url = `${feedbackFormsApi}/${formId}/results${params.toString() ? `?${params.toString()}` : ''}`
       const res = await axios.get<FormResultsData>(url, authHeaders ?? {})
       setData(res.data)
-    } catch {
-      setError('Failed to load results.')
+    } catch (err) {
+      const status = axios.isAxiosError(err) ? err.response?.status : undefined
+      const msg =
+        status === 403 && typeof (err as { response?: { data?: { error?: string } } })?.response?.data?.error === 'string'
+          ? (err as { response: { data: { error: string } } }).response.data.error
+          : 'Failed to load results.'
+      setError(msg)
       setData(null)
     } finally {
       setLoading(false)

@@ -212,7 +212,7 @@ export default function FormRenderPage() {
           <p className="mt-2 text-slate-600 dark:text-slate-300">
             {isPollOrSurvey ? 'Thanks for voting!' : 'Your response has been recorded.'}
           </p>
-          {formId ? (
+          {formId && config?.showResultsPublic ? (
             <div className="mt-4">
               <Link
                 to={`/feedback-forms/${formId}/results`}

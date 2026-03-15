@@ -20,6 +20,7 @@ const mockFormConfig = {
     _id: 'form-1',
     title: 'Customer Feedback',
     description: 'Tell us what you think.',
+    showResultsPublic: true,
     fields: [
       { name: 'comment', label: 'Comment', type: 'short_text', required: true, placeholder: 'Your comment' },
       { name: 'rating', label: 'Rating', type: 'radio', required: true, options: ['Good', 'Bad'] },
@@ -156,6 +157,7 @@ describe('FormRenderPage', () => {
         title: 'Quick Poll',
         description: 'Vote now.',
         kind: 'poll',
+        showResultsPublic: true,
         fields: [
           { name: 'vote', label: 'Your vote', type: 'radio', required: true, options: ['Yes', 'No'] },
         ],
@@ -177,6 +179,35 @@ describe('FormRenderPage', () => {
       expect(screen.getByText(/Thanks for voting!/i)).toBeInTheDocument()
       expect(screen.getByTestId('see-results-link')).toBeInTheDocument()
     })
+  })
+
+  test('after submit does not show See results link when showResultsPublic is false', async () => {
+    const privateFormConfig = {
+      feedbackForm: {
+        _id: 'form-private',
+        title: 'Private Form',
+        description: 'No results link.',
+        showResultsPublic: false,
+        fields: [
+          { name: 'comment', label: 'Comment', type: 'short_text', required: false },
+        ],
+      },
+    }
+    mockedAxios.get.mockResolvedValueOnce({ data: privateFormConfig })
+    mockedAxios.post.mockResolvedValueOnce({ data: { message: 'Submission received' } })
+
+    renderFormRenderPage('form-private')
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /Private Form/i })).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /Submit/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText(/Your response has been recorded/i)).toBeInTheDocument()
+    })
+    expect(screen.queryByTestId('see-results-link')).not.toBeInTheDocument()
   })
 
   test('submit without required field shows validation error and highlights invalid field', async () => {

@@ -70,6 +70,7 @@ interface FeedbackFormResponse {
     description?: string
     fields: FeedbackField[]
     kind?: FormKind
+    showResultsPublic?: boolean
   }
 }
 
@@ -80,8 +81,8 @@ export interface FormTemplate {
   iconName: 'MessageSquare' | 'Calendar' | 'Bug' | 'Briefcase' | 'Star' | 'Mail' | 'CalendarClock' | 'Users' | 'BarChart2' | 'ListChecks'
   title: string
   formDescription: string
+  kind: FormKind
   fields: Omit<FeedbackField, 'clientId'>[]
-  kind?: FormKind
 }
 
 /** Types that show the editable options list in the builder */
@@ -185,7 +186,7 @@ const FORM_TEMPLATES: FormTemplate[] = [
     formDescription: 'Thank you for attending. Please share your feedback so we can improve future events.',
     kind: 'survey',
     fields: [
-      { name: 'rating', label: 'How would you rate this event?', type: 'radio', required: true, options: STAR_RATING_OPTIONS },
+      { name: 'rating', label: 'How would you rate this event?', type: 'rating', required: true, options: STAR_RATING_OPTIONS },
       { name: 'highlight', label: 'What was the best part?', type: 'short_text', required: false, placeholder: 'e.g. keynote, networking, venue' },
       { name: 'improve', label: 'What could we improve?', type: 'long_text', required: false, placeholder: '' },
       { name: 'attend_again', label: 'Would you attend again?', type: 'radio', required: true, options: ['Yes', 'No', 'Maybe'] },
@@ -212,12 +213,13 @@ const FORM_TEMPLATES: FormTemplate[] = [
     iconName: 'MessageSquare',
     title: 'Customer Feedback',
     formDescription: 'We value your feedback. Please take a moment to share your experience.',
+    kind: 'form',
     fields: [
       { name: 'name', label: 'Your name', type: 'short_text', required: true, placeholder: '' },
       { name: 'email', label: 'Email', type: 'short_text', required: true, placeholder: '' },
       { name: 'phone', label: 'Phone', type: 'short_text', required: false, placeholder: '' },
       { name: 'visit_date', label: 'Visit / service date', type: 'short_text', required: false, placeholder: '' },
-      { name: 'overall_rating', label: 'Overall experience', type: 'radio', required: true, options: STAR_RATING_OPTIONS },
+      { name: 'overall_rating', label: 'Overall experience', type: 'rating', required: true, options: STAR_RATING_OPTIONS },
       { name: 'enjoyed', label: 'What did you enjoy?', type: 'long_text', required: false, placeholder: '' },
       { name: 'improve', label: 'What could we improve?', type: 'long_text', required: false, placeholder: '' },
       { name: 'would_recommend', label: 'Would you recommend us?', type: 'radio', required: true, options: ['Yes', 'No', 'Maybe'] },
@@ -231,6 +233,7 @@ const FORM_TEMPLATES: FormTemplate[] = [
     iconName: 'Calendar',
     title: 'Event Registration',
     formDescription: 'Register for our event. We will confirm your attendance by email.',
+    kind: 'form',
     fields: [
       { name: 'name', label: 'Full name', type: 'short_text', required: true, placeholder: '' },
       { name: 'email', label: 'Email', type: 'short_text', required: true, placeholder: '' },
@@ -250,6 +253,7 @@ const FORM_TEMPLATES: FormTemplate[] = [
     iconName: 'Bug',
     title: 'Bug / Issue Report',
     formDescription: 'Help us improve by describing the issue you encountered.',
+    kind: 'form',
     fields: [
       { name: 'name', label: 'Your name', type: 'short_text', required: true, placeholder: '' },
       { name: 'email', label: 'Email', type: 'short_text', required: true, placeholder: '' },
@@ -270,6 +274,7 @@ const FORM_TEMPLATES: FormTemplate[] = [
     iconName: 'Briefcase',
     title: 'Job Application',
     formDescription: 'Apply for this position. We will review your application and get in touch.',
+    kind: 'form',
     fields: [
       { name: 'name', label: 'Full name', type: 'short_text', required: true, placeholder: '' },
       { name: 'email', label: 'Email', type: 'short_text', required: true, placeholder: '' },
@@ -289,12 +294,13 @@ const FORM_TEMPLATES: FormTemplate[] = [
     iconName: 'Star',
     title: 'Product Review',
     formDescription: 'Share your experience with this product.',
+    kind: 'form',
     fields: [
       { name: 'name', label: 'Your name', type: 'short_text', required: true, placeholder: '' },
       { name: 'email', label: 'Email', type: 'short_text', required: true, placeholder: '' },
       { name: 'phone', label: 'Phone', type: 'short_text', required: false, placeholder: '' },
       { name: 'product_name', label: 'Product name', type: 'short_text', required: true, placeholder: '' },
-      { name: 'rating', label: 'Overall rating', type: 'radio', required: true, options: STAR_RATING_OPTIONS },
+      { name: 'rating', label: 'Overall rating', type: 'rating', required: true, options: STAR_RATING_OPTIONS },
       { name: 'liked', label: 'What did you like?', type: 'long_text', required: false, placeholder: '' },
       { name: 'improve', label: 'What could be improved?', type: 'long_text', required: false, placeholder: '' },
       { name: 'buy_again', label: 'Would you buy this again?', type: 'radio', required: true, options: ['Yes', 'No', 'Maybe'] },
@@ -308,6 +314,7 @@ const FORM_TEMPLATES: FormTemplate[] = [
     iconName: 'Mail',
     title: 'Contact / Inquiry',
     formDescription: 'Send us a message. We will respond as soon as possible.',
+    kind: 'form',
     fields: [
       { name: 'name', label: 'Your name', type: 'short_text', required: true, placeholder: '' },
       { name: 'email', label: 'Email', type: 'short_text', required: true, placeholder: '' },
@@ -326,6 +333,7 @@ const FORM_TEMPLATES: FormTemplate[] = [
     iconName: 'CalendarClock',
     title: 'Appointment / Booking Request',
     formDescription: 'Request an appointment. We will confirm availability by email or phone.',
+    kind: 'form',
     fields: [
       { name: 'name', label: 'Your name', type: 'short_text', required: true, placeholder: '' },
       { name: 'email', label: 'Email', type: 'short_text', required: true, placeholder: '' },
@@ -345,12 +353,13 @@ const FORM_TEMPLATES: FormTemplate[] = [
     iconName: 'Users',
     title: 'Employee Survey',
     formDescription: 'Your feedback helps us improve the workplace. All responses are confidential.',
+    kind: 'survey',
     fields: [
       { name: 'employee_name', label: 'Your name (optional)', type: 'short_text', required: false, placeholder: '' },
       { name: 'department', label: 'Department (optional)', type: 'short_text', required: false, placeholder: '' },
-      { name: 'job_satisfaction', label: 'Job satisfaction', type: 'radio', required: true, options: STAR_RATING_OPTIONS },
-      { name: 'management', label: 'Management satisfaction', type: 'radio', required: true, options: STAR_RATING_OPTIONS },
-      { name: 'work_life_balance', label: 'Work-life balance', type: 'radio', required: true, options: STAR_RATING_OPTIONS },
+      { name: 'job_satisfaction', label: 'Job satisfaction', type: 'rating', required: true, options: STAR_RATING_OPTIONS },
+      { name: 'management', label: 'Management satisfaction', type: 'rating', required: true, options: STAR_RATING_OPTIONS },
+      { name: 'work_life_balance', label: 'Work-life balance', type: 'rating', required: true, options: STAR_RATING_OPTIONS },
       { name: 'doing_well', label: 'What are we doing well?', type: 'long_text', required: false, placeholder: '' },
       { name: 'improve', label: 'What could be improved?', type: 'long_text', required: false, placeholder: '' },
       { name: 'recommend', label: 'Would you recommend working here?', type: 'radio', required: true, options: ['Yes', 'No', 'Maybe'] },
@@ -711,8 +720,9 @@ export default function CreateFormPage() {
   const [draggingFieldId, setDraggingFieldId] = useState<string | null>(null)
   const [overFieldId, setOverFieldId] = useState<string | null>(null)
   const [formKind, setFormKind] = useState<FormKind>('form')
+  const [showResultsPublic, setShowResultsPublic] = useState(false)
 
-  const initialSnapshotRef = useRef<{ title: string; description: string; fieldsKey: string } | null>(null)
+  const initialSnapshotRef = useRef<{ title: string; description: string; fieldsKey: string; showResultsPublic: boolean } | null>(null)
   const initialFieldOrderRef = useRef<string[]>(defaultFields.map((field, index) => getFieldClientId(field, index)))
   const { getAuthHeaders } = useAuth()
   const getAuthHeadersRef = useRef(getAuthHeaders)
@@ -722,7 +732,8 @@ export default function CreateFormPage() {
     initialSnapshotRef.current !== null &&
     (title !== initialSnapshotRef.current.title ||
       description !== initialSnapshotRef.current.description ||
-      serializeFieldsForDirty(fields) !== initialSnapshotRef.current.fieldsKey)
+      serializeFieldsForDirty(fields) !== initialSnapshotRef.current.fieldsKey ||
+      showResultsPublic !== initialSnapshotRef.current.showResultsPublic)
 
   const handleSelectTemplate = (template: FormTemplate | null) => {
     if (template) {
@@ -731,22 +742,26 @@ export default function CreateFormPage() {
       setDescription(template.formDescription)
       setFields(nextFields)
       setFormKind(template.kind ?? 'form')
+      setShowResultsPublic(false)
       initialFieldOrderRef.current = nextFields.map((field, index) => getFieldClientId(field, index))
       initialSnapshotRef.current = {
         title: template.title,
         description: template.formDescription,
         fieldsKey: serializeFieldsForDirty(nextFields),
+        showResultsPublic: false,
       }
     } else {
       setTitle('Feedback form')
       setDescription('test')
       setFields(defaultFields)
       setFormKind('form')
+      setShowResultsPublic(false)
       initialFieldOrderRef.current = defaultFields.map((field, index) => getFieldClientId(field, index))
       initialSnapshotRef.current = {
         title: 'Feedback form',
         description: 'test',
         fieldsKey: serializeFieldsForDirty(defaultFields),
+        showResultsPublic: false,
       }
     }
     setEditingFieldId(null)
@@ -773,16 +788,19 @@ export default function CreateFormPage() {
         const loadedDescription = data.feedbackForm.description ?? ''
         const loadedFields = normalizeLoadedFields(data.feedbackForm.fields)
         const loadedKind = data.feedbackForm.kind ?? 'form'
+        const loadedShowResultsPublic = data.feedbackForm.showResultsPublic ?? false
         setTitle(loadedTitle)
         setDescription(loadedDescription)
         setFields(loadedFields)
         setFormKind(loadedKind)
+        setShowResultsPublic(loadedShowResultsPublic)
         initialFieldOrderRef.current = loadedFields.map((field, index) => getFieldClientId(field, index))
         setEditingFieldId(null)
         initialSnapshotRef.current = {
           title: loadedTitle,
           description: loadedDescription,
           fieldsKey: serializeFieldsForDirty(loadedFields),
+          showResultsPublic: loadedShowResultsPublic,
         }
       } catch (err: unknown) {
         if (!active) return
@@ -1039,6 +1057,7 @@ export default function CreateFormPage() {
       title: title.trim(),
       description: description.trim(),
       kind: formKind,
+      showResultsPublic,
       fields: fields.map((field) => ({
         name: toFieldName(field.name || field.label),
         label: field.label.trim(),
@@ -1171,6 +1190,24 @@ export default function CreateFormPage() {
             placeholder="Briefly describe this form"
             rows={3}
           />
+          <div className="flex items-start gap-3 pt-1">
+            <input
+              id="form-show-results-public"
+              type="checkbox"
+              checked={showResultsPublic}
+              onChange={(e) => setShowResultsPublic(e.target.checked)}
+              className="mt-1 h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 dark:border-slate-600 dark:bg-slate-800"
+              aria-describedby="form-show-results-public-hint"
+            />
+            <div className="flex-1">
+              <label htmlFor="form-show-results-public" className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                Show results page to respondents
+              </label>
+              <p id="form-show-results-public-hint" className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                When enabled, respondents will see a &quot;See results&quot; link after submitting and can view aggregated results. Default is off.
+              </p>
+            </div>
+          </div>
         </div>
 
         <form

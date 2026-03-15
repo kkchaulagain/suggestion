@@ -33,6 +33,22 @@ describe('FormResultsView', () => {
     })
   })
 
+  it('shows API error message when results are not publicly available (403)', async () => {
+    const axiosError = {
+      response: { status: 403, data: { error: 'Results are not publicly available for this form' } },
+    }
+    const isAxiosErrorSpy = jest.spyOn(axios, 'isAxiosError').mockReturnValue(true)
+    mockedAxios.get.mockRejectedValueOnce(axiosError)
+
+    render(<FormResultsView formId="form-1" />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('results-error')).toBeInTheDocument()
+      expect(screen.getByText(/Results are not publicly available for this form/i)).toBeInTheDocument()
+    })
+    isAxiosErrorSpy.mockRestore()
+  })
+
   it('shows empty state when no submissions', async () => {
     mockedAxios.get.mockResolvedValueOnce({
       data: {

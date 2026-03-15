@@ -244,6 +244,7 @@ describe('FormsPage', () => {
             title: 'Survey',
             businessId: 'b1',
             kind: 'survey',
+            showResultsPublic: true,
             fields: [
               { name: 'r', label: 'Rating', type: 'radio', required: true, options: ['1', '2'] },
               { name: 'c', label: 'Comment', type: 'short_text', required: false },
@@ -262,6 +263,9 @@ describe('FormsPage', () => {
     expect(screen.getByTestId('form-kind-badge-f-form')).toHaveTextContent('Form')
     expect(screen.getByTestId('form-kind-badge-f-poll')).toHaveTextContent('Poll')
     expect(screen.getByTestId('form-kind-badge-f-survey')).toHaveTextContent('Survey')
+
+    expect(screen.getByTestId('form-results-visibility-f-form')).toHaveTextContent('Results private')
+    expect(screen.getByTestId('form-results-visibility-f-survey')).toHaveTextContent('Results public')
 
     fireEvent.click(screen.getAllByRole('button', { name: /^Results$/i })[0])
     expect(mockNavigate).toHaveBeenCalledWith(expect.stringContaining('tab=results'))

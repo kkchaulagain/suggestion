@@ -84,6 +84,10 @@ const feedbackFormSchema = new mongoose.Schema(
       trim: true,
       maxlength: 1000,
     },
+    showResultsPublic: {
+      type: Boolean,
+      default: false,
+    },
     fields: {
       type: [feedbackFieldSchema],
       required: [true, 'Fields are required'],

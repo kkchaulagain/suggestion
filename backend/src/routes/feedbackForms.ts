@@ -3,9 +3,11 @@ import type { Types } from 'mongoose';
 const express = require('express');
 const mongoose = require('mongoose');
 const QRCode = require('qrcode');
+const jwt = require('jsonwebtoken');
 const { FeedbackForm } = require('../models/FeedbackForm');
 const { FeedbackSubmission } = require('../models/FeedbackSubmission');
 const Business = require('../models/Business');
+const User = require('../models/User');
 const { isAuthenticated } = require('../middleware/isauthenticated');
 const { authorize } = require('../middleware/authorize');
 const router = express.Router();
@@ -52,6 +54,7 @@ interface FeedbackFormPayload {
   description?: string;
   fields?: FeedbackFieldInput[];
   kind?: FormKind;
+  showResultsPublic?: boolean;
   businessId?: Types.ObjectId;
 }
 
@@ -60,6 +63,7 @@ interface RequestBody {
   description?: string;
   fields?: FeedbackFieldInput[];
   kind?: string;
+  showResultsPublic?: boolean;
 }
 
 function buildPayload(body: RequestBody): FeedbackFormPayload {
@@ -79,6 +83,9 @@ function buildPayload(body: RequestBody): FeedbackFormPayload {
     if (FORM_KINDS.includes(k as FormKind)) {
       payload.kind = k as FormKind;
     }
+  }
+  if (Object.prototype.hasOwnProperty.call(body, 'showResultsPublic') && typeof body.showResultsPublic === 'boolean') {
+    payload.showResultsPublic = body.showResultsPublic;
   }
 
   return payload;
@@ -210,6 +217,38 @@ async function resolveBusinessProfile(req: AuthenticatedRequest, res: Response, 
     return next();
   } catch (_err) {
     return res.status(500).json({ error: 'Failed to verify business profile' });
+  }
+}
+
+/** Optionally attach user and businessProfile when valid token is present; never returns 401. */
+async function optionalAuthAndBusiness(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  try {
+    const headerToken = (req.headers?.cookie ?? '')
+      .split(';')
+      .map((part: string) => part.trim())
+      .find((part: string) => part.startsWith('token='))
+      ?.split('=')[1];
+    const authHeader = (req.headers?.authorization ?? '').toString();
+    const bearerToken = authHeader.toLowerCase().startsWith('bearer ')
+      ? authHeader.slice(7).trim()
+      : undefined;
+    const cookieToken = (req as Request & { cookies?: { token?: string } }).cookies?.token;
+    const token = bearerToken || cookieToken || headerToken;
+    if (!token) return next();
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'default_secret_key') as { userId?: string };
+    if (!decoded?.userId) return next();
+    req.id = decoded.userId;
+    const user = await User.findById(decoded.userId).select('role').lean();
+    if (user) (req as AuthenticatedRequest).user = user as { role?: string };
+    if (req.user?.role === 'admin') {
+      req.businessProfile = null;
+      return next();
+    }
+    const businessProfile = await Business.findOne({ owner: decoded.userId }).select('_id').lean();
+    if (businessProfile) req.businessProfile = businessProfile as BusinessProfileDoc;
+    next();
+  } catch (_err) {
+    next();
   }
 }
 
@@ -365,7 +404,7 @@ router.post('/:id/submit', async (req: Request, res: Response) => {
   }
 });
 
-router.get('/:id/results', async (req: Request, res: Response) => {
+router.get('/:id/results', optionalAuthAndBusiness, async (req: Request, res: Response) => {
   const id = req.params.id;
   if (!mongoose.Types.ObjectId.isValid(id)) {
     return res.status(400).json({ error: 'Invalid feedback form id' });
@@ -375,7 +414,23 @@ router.get('/:id/results', async (req: Request, res: Response) => {
     if (!form) {
       return res.status(404).json({ error: 'Feedback form not found' });
     }
-    const formDoc = form as { _id: unknown; title?: string; fields?: Array<{ name: string; label: string; type: string; options?: string[] }> };
+    const formDoc = form as {
+      _id: unknown;
+      title?: string;
+      businessId?: Types.ObjectId;
+      showResultsPublic?: boolean;
+      fields?: Array<{ name: string; label: string; type: string; options?: string[] }>;
+    };
+    const showResultsPublic = formDoc.showResultsPublic === true;
+    const authReq = req as AuthenticatedRequest;
+    const isOwner =
+      authReq.businessProfile &&
+      formDoc.businessId &&
+      authReq.businessProfile._id.toString() === formDoc.businessId.toString();
+    const isAdmin = authReq.user?.role === 'admin';
+    if (!showResultsPublic && !isOwner && !isAdmin) {
+      return res.status(403).json({ error: 'Results are not publicly available for this form' });
+    }
     const query: Record<string, unknown> = { formId: new mongoose.Types.ObjectId(id) };
     const dateFromRaw = req.query.dateFrom;
     const dateToRaw = req.query.dateTo;
