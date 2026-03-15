@@ -344,6 +344,7 @@ export default function SubmissionsPage() {
         <FormResultsView
           formId={formIdApplied}
           authHeaders={authHeaders}
+          showDateFilter
           titleOverride={selectedForm?.title}
         />
       ) : (
