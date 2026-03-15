@@ -23,7 +23,7 @@ export default function FormCard({
   const isFlat = variant === 'flat'
   const wrapperClass = isFlat
     ? 'border-b border-stone-200/80 py-5 first:pt-0 dark:border-stone-700/80'
-    : 'rounded-2xl border border-stone-200/80 bg-white p-5 dark:border-stone-700/80 dark:bg-stone-900 sm:p-6'
+    : 'rounded-2xl border border-stone-200/80 bg-white p-5 transition-shadow transition-colors duration-200 hover:border-stone-300 hover:shadow-md dark:border-stone-700/80 dark:bg-stone-900 dark:hover:border-stone-600 dark:hover:shadow-lg dark:hover:shadow-black/20 sm:p-6'
 
   return (
     <div className={wrapperClass}>

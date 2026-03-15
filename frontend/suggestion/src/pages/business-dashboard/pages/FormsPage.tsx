@@ -32,9 +32,18 @@ interface QrPayload {
   formUrl: string
 }
 
-/** Human-readable summary for the "Questions included" line: just labels. */
-function formatFieldsSummary(fields: FeedbackField[]): string {
-  return fields.map((f) => f.label || f.name).join(', ')
+/** Human-readable summary for the "Questions included" line: just labels. Optionally truncate. */
+function formatFieldsSummary(fields: FeedbackField[], maxItems = 5): string {
+  const labels = fields.map((f) => f.label || f.name)
+  if (labels.length <= maxItems) return labels.join(', ')
+  return `${labels.slice(0, maxItems).join(', ')} +${labels.length - maxItems} more`
+}
+
+/** Show description only if it looks like real content (not empty or placeholder). */
+function getDisplayDescription(description: string | undefined): string | undefined {
+  const t = (description ?? '').trim()
+  if (t.length < 2) return undefined
+  return t
 }
 
 function kindLabel(kind: FormKind | undefined): string {
@@ -164,7 +173,7 @@ export default function FormsPage() {
             type="button"
             variant="primary"
             size="sm"
-            className="min-h-9 rounded-xl border-0 bg-stone-900 px-4 font-medium text-white shadow-none transition hover:bg-stone-800 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-200"
+            className="min-h-9 rounded-xl border-0 bg-stone-900 px-4 font-medium text-white shadow-sm transition hover:bg-stone-800 focus-visible:ring-2 focus-visible:ring-stone-400 focus-visible:ring-offset-2 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-200 dark:focus-visible:ring-stone-500"
             onClick={() => navigate('/dashboard/forms/create')}
           >
             <Plus className="h-4 w-4" />
@@ -174,22 +183,26 @@ export default function FormsPage() {
       />
 
       {savedForms.length > 0 ? (
-        <div className="flex flex-wrap items-center gap-2 pt-1">
+        <div className="flex flex-wrap items-center gap-2 pt-1" role="group" aria-label="Filter by form type">
           <span className="text-[11px] font-medium uppercase tracking-widest text-stone-400 dark:text-stone-500">Filter</span>
-          {(['', 'form', 'poll', 'survey'] as const).map((value) => (
-            <button
-              key={value || 'all'}
-              type="button"
-              onClick={() => setKindFilter(value)}
-              className={`rounded-xl px-3 py-1.5 text-xs font-medium transition ${
-                (value === '' ? !kindFilter : kindFilter === value)
-                  ? 'bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900'
-                  : 'bg-stone-100 text-stone-600 hover:bg-stone-200 dark:bg-stone-800 dark:text-stone-400 dark:hover:bg-stone-700'
-              }`}
-            >
-              {value === '' ? 'All' : value.charAt(0).toUpperCase() + value.slice(1)}
-            </button>
-          ))}
+          {(['', 'form', 'poll', 'survey'] as const).map((value) => {
+            const isSelected = value === '' ? !kindFilter : kindFilter === value
+            return (
+              <button
+                key={value || 'all'}
+                type="button"
+                aria-pressed={isSelected}
+                onClick={() => setKindFilter(value)}
+                className={`rounded-xl px-3 py-1.5 text-xs font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400 focus-visible:ring-offset-2 dark:focus-visible:ring-stone-500 ${
+                  isSelected
+                    ? 'border-2 border-stone-600 bg-stone-900 text-white shadow-sm dark:border-stone-400 dark:bg-stone-100 dark:text-stone-900'
+                    : 'border-2 border-transparent bg-stone-100 text-stone-600 hover:bg-stone-200 dark:bg-stone-800 dark:text-stone-400 dark:hover:bg-stone-700'
+                }`}
+              >
+                {value === '' ? 'All' : value.charAt(0).toUpperCase() + value.slice(1)}
+              </button>
+            )
+          })}
         </div>
       ) : null}
 
@@ -238,10 +251,10 @@ export default function FormsPage() {
                   <span className="text-stone-500 dark:text-stone-400">{`${questionCount} ${questionCount === 1 ? 'question' : 'questions'} · ${requiredCount} required`}</span>
                 </span>
               }
-              description={form.description || undefined}
+              description={getDisplayDescription(form.description) ?? undefined}
             >
               {form.fields.length > 0 ? (
-                <p className="mt-2 text-xs text-stone-500 dark:text-stone-400" id={`${form._id}-questions`}>
+                <p className="mt-2 line-clamp-2 text-xs text-stone-500 dark:text-stone-400" id={`${form._id}-questions`}>
                   <span className="font-medium text-stone-600 dark:text-stone-300">Questions included:</span>{' '}
                   {formatFieldsSummary(form.fields)}
                 </p>
@@ -251,12 +264,16 @@ export default function FormsPage() {
               <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">
                 Share the form via QR or link, then use Responses to track submissions.
               </p>
-              <div className="mt-5 flex flex-wrap items-center gap-2">
+              <div
+                className="mt-5 -mx-5 -mb-5 flex flex-wrap items-center gap-2 rounded-b-2xl border-t border-stone-200/80 bg-stone-50/80 px-5 py-4 dark:border-stone-700/80 dark:bg-stone-800/40"
+                role="toolbar"
+                aria-label={`Actions for ${form.title}`}
+              >
                 <Button
                   type="button"
                   variant="secondary"
                   size="sm"
-                  className="min-h-9 rounded-lg border-stone-300 bg-stone-50 px-3.5 font-medium text-stone-800 hover:bg-stone-100 dark:border-stone-600 dark:bg-stone-800 dark:text-stone-200 dark:hover:bg-stone-700"
+                  className="min-h-9 rounded-lg border-stone-300 bg-white px-3.5 font-medium text-stone-800 shadow-sm hover:bg-stone-100 dark:border-stone-600 dark:bg-stone-800 dark:text-stone-200 dark:hover:bg-stone-700"
                   onClick={() => navigate(`/dashboard/forms/${form._id}/edit`)}
                 >
                   <Pencil className="h-4 w-4 shrink-0" />
@@ -266,7 +283,7 @@ export default function FormsPage() {
                   type="button"
                   variant="secondary"
                   size="sm"
-                  className="min-h-9 rounded-lg border-stone-300 bg-stone-50 px-3.5 font-medium text-stone-800 hover:bg-stone-100 dark:border-stone-600 dark:bg-stone-800 dark:text-stone-200 dark:hover:bg-stone-700"
+                  className="min-h-9 rounded-lg border-stone-300 bg-white px-3.5 font-medium text-stone-800 shadow-sm hover:bg-stone-100 dark:border-stone-600 dark:bg-stone-800 dark:text-stone-200 dark:hover:bg-stone-700"
                   onClick={() => navigate(`/dashboard/submissions?formId=${encodeURIComponent(form._id)}`)}
                 >
                   <Eye className="h-4 w-4 shrink-0" />
@@ -276,7 +293,7 @@ export default function FormsPage() {
                   type="button"
                   variant="secondary"
                   size="sm"
-                  className="min-h-9 rounded-lg border-stone-300 bg-stone-50 px-3.5 font-medium text-stone-800 hover:bg-stone-100 dark:border-stone-600 dark:bg-stone-800 dark:text-stone-200 dark:hover:bg-stone-700"
+                  className="min-h-9 rounded-lg border-stone-300 bg-white px-3.5 font-medium text-stone-800 shadow-sm hover:bg-stone-100 dark:border-stone-600 dark:bg-stone-800 dark:text-stone-200 dark:hover:bg-stone-700"
                   onClick={() => navigate(`/dashboard/submissions?formId=${encodeURIComponent(form._id)}&tab=results`)}
                 >
                   <BarChart3 className="h-4 w-4 shrink-0" />
@@ -286,7 +303,7 @@ export default function FormsPage() {
                   type="button"
                   variant="secondary"
                   size="sm"
-                  className="min-h-9 rounded-lg border-stone-300 bg-stone-50 px-3.5 font-medium text-stone-800 hover:bg-stone-100 dark:border-stone-600 dark:bg-stone-800 dark:text-stone-200 dark:hover:bg-stone-700"
+                  className="min-h-9 rounded-lg border-stone-300 bg-white px-3.5 font-medium text-stone-800 shadow-sm hover:bg-stone-100 dark:border-stone-600 dark:bg-stone-800 dark:text-stone-200 dark:hover:bg-stone-700"
                   onClick={() => handleOpenShareModal(form._id)}
                 >
                   <QrCode className="h-4 w-4 shrink-0" />
