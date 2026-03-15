@@ -33,6 +33,7 @@ import {
   ChevronUp,
   Clock,
   Eye,
+  GripVertical,
   Hash,
   Image,
   Link as LinkIcon,
@@ -408,12 +409,15 @@ function SortableFieldRow({
           className="pointer-events-none absolute inset-x-0 top-0 h-0.5 rounded bg-emerald-500"
         />
       ) : null}
-      <div
-        className={`flex flex-wrap items-center justify-between gap-3 rounded-md px-1 py-1 ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
-        aria-label={`Move field: ${field.label || 'Untitled'}`}
-        {...attributes}
-        {...listeners}
-      >
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-md px-1 py-1">
+        <span
+          className={`flex shrink-0 touch-none cursor-grab self-stretch items-center rounded px-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 active:cursor-grabbing dark:text-slate-500 dark:hover:bg-slate-700 dark:hover:text-slate-300 ${isDragging ? 'cursor-grabbing' : ''}`}
+          aria-label={`Drag to reorder: ${field.label || 'Untitled'}`}
+          {...attributes}
+          {...listeners}
+        >
+          <GripVertical className="h-4 w-4" />
+        </span>
         <div className="min-w-0 flex-1">
           <span className="text-sm font-medium text-slate-900 dark:text-slate-100">{field.label}</span>
           {field.required ? <span className="ml-1 text-rose-600 dark:text-rose-400" aria-hidden>*</span> : null}
