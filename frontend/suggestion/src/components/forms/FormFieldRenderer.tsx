@@ -7,6 +7,7 @@ import {
   StarRatingField,
   ImageUploadField,
   NameField,
+  EmailField
 } from './field-types'
 import { isStarRatingOptions } from './formFieldUtils'
 
@@ -18,6 +19,7 @@ export type FormFieldType =
   | 'radio'
   | 'image_upload'
   | 'name'
+  | 'email'
 
 export interface FormFieldConfig {
   name: string
@@ -161,6 +163,21 @@ export default function FormFieldRenderer({
         required={field.required}
         isAnonymous={field.allowAnonymous}
         error={error}
+      />
+    )
+  }
+  if(field.type ==='email')
+  {
+    return(
+      <EmailField
+      id={id}
+      label={labelNode}
+      value={typeof value ==='string'? value:''}
+      onChange={(v)=>handleChange(v)}
+      placeholder={field.placeholder}
+      disabled={disabled}
+      required={field.required}
+      error={error}
       />
     )
   }

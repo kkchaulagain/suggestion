@@ -11,6 +11,7 @@ import {
   RadioField,
   ImageUploadField,
   NameField,
+  EmailField,
 } from '../components/forms'
 
 describe('isStarRatingOptions', () => {
@@ -54,6 +55,7 @@ test('field-type components are exported from index', () => {
   expect(RadioField).toBeDefined()
   expect(ImageUploadField).toBeDefined()
   expect(NameField).toBeDefined()
+  expect(EmailField).toBeDefined()
 })
 
 describe('FormFieldRenderer', () => {
@@ -203,5 +205,47 @@ describe('FormFieldRenderer', () => {
       />,
     )
     expect(screen.queryByLabelText(/submit anonymously/i)).not.toBeInTheDocument()
+  })
+
+  test('renders email field as email input', () => {
+    const onChange = jest.fn()
+    render(
+      <FormFieldRenderer
+        field={{
+          name: 'userEmail',
+          label: 'Email Address',
+          type: 'email',
+          required: true,
+          placeholder: 'you@example.com',
+        }}
+        value=""
+        onChange={onChange}
+      />,
+    )
+    expect(screen.getByText('Email Address')).toBeInTheDocument()
+    const input = screen.getByRole('textbox')
+    expect(input).toHaveAttribute('type', 'email')
+    expect(input).toHaveAttribute('placeholder', 'you@example.com')
+    fireEvent.change(input, { target: { value: 'alice@example.com' } })
+    expect(onChange).toHaveBeenCalledWith('userEmail', 'alice@example.com')
+  })
+
+  test('passing error to email field highlights the input and shows message', () => {
+    render(
+      <FormFieldRenderer
+        field={{
+          name: 'userEmail',
+          label: 'Email Address',
+          type: 'email',
+          required: true,
+        }}
+        value=""
+        onChange={() => {}}
+        error="Invalid email address"
+      />,
+    )
+    const input = screen.getByRole('textbox', { name: /Email Address/i })
+    expect(input).toHaveAttribute('aria-invalid', 'true')
+    expect(screen.getByText('Invalid email address')).toBeInTheDocument()
   })
 })

@@ -604,4 +604,51 @@ describe('CreateFormPage', () => {
       })
     })
   })
+
+  describe('Email field type', () => {
+    test('can add an Email field from the add field modal', async () => {
+      renderCreateFormPage()
+      goToFormBuilder()
+
+      fireEvent.click(screen.getByRole('button', { name: /\+ Add new field/i }))
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: /Add new field/i })).toBeInTheDocument()
+      })
+      fireEvent.click(screen.getByRole('button', { name: /^Email$/i }))
+
+      await waitFor(() => {
+        expect(screen.getByText('Email 4')).toBeInTheDocument()
+      })
+    })
+
+    test('saves Email field with type email in payload', async () => {
+      mockedAxios.post.mockResolvedValueOnce({ data: {} })
+      renderCreateFormPage()
+      goToFormBuilder()
+
+      fireEvent.click(screen.getByRole('button', { name: /\+ Add new field/i }))
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: /Add new field/i })).toBeInTheDocument()
+      })
+      fireEvent.click(screen.getByRole('button', { name: /^Email$/i }))
+
+      fireEvent.click(screen.getByRole('button', { name: /save form/i }))
+
+      await waitFor(() => {
+        expect(mockedAxios.post).toHaveBeenCalledWith(
+          feedbackFormsApi,
+          expect.objectContaining({
+            fields: expect.arrayContaining([
+              expect.objectContaining({
+                name: 'email_4',
+                type: 'email',
+                required: false,
+              }),
+            ]),
+          }),
+          expect.any(Object),
+        )
+      })
+    })
+  })
 })
