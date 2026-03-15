@@ -7,10 +7,11 @@ const mongoose = require('mongoose');
 import type { Request, Response, NextFunction } from 'express';
 
 // Mock isAuthenticated middleware to control req.id
-const mockIsAuthenticated = jest.fn((req: Request, res: Response, next: NextFunction) => {
+const defaultMockImpl = (req: Request, res: Response, next: NextFunction) => {
   (req as Request & { id?: string }).id = new mongoose.Types.ObjectId().toString();
   next();
-});
+};
+const mockIsAuthenticated = jest.fn(defaultMockImpl);
 
 jest.mock('../middleware/isauthenticated', () => ({
   isAuthenticated: (req: Request, res: Response, next: NextFunction) => mockIsAuthenticated(req, res, next),
@@ -32,6 +33,7 @@ describe('Feedback Forms API Coverage', () => {
 
   afterEach(async () => {
     jest.clearAllMocks();
+    mockIsAuthenticated.mockImplementation(defaultMockImpl);
     await Business.deleteMany({});
     await FeedbackForm.deleteMany({});
   });
@@ -100,8 +102,8 @@ describe('Feedback Forms API Coverage', () => {
       pancardNumber: '1234567',
       description: 'Desc',
     });
-    mockIsAuthenticated.mockImplementationOnce((req, res, next) => {
-      req.id = ownerId.toString();
+    mockIsAuthenticated.mockImplementation((req, res, next) => {
+      (req as Request & { id?: string }).id = ownerId.toString();
       next();
     });
 
@@ -131,8 +133,8 @@ describe('Feedback Forms API Coverage', () => {
       pancardNumber: '1234567',
       description: 'Desc',
     });
-    mockIsAuthenticated.mockImplementationOnce((req, res, next) => {
-      req.id = ownerId.toString();
+    mockIsAuthenticated.mockImplementation((req, res, next) => {
+      (req as Request & { id?: string }).id = ownerId.toString();
       next();
     });
 
@@ -167,8 +169,8 @@ describe('Feedback Forms API Coverage', () => {
       pancardNumber: '1234567',
       description: 'Desc',
     });
-    mockIsAuthenticated.mockImplementationOnce((req, res, next) => {
-      req.id = ownerId.toString();
+    mockIsAuthenticated.mockImplementation((req, res, next) => {
+      (req as Request & { id?: string }).id = ownerId.toString();
       next();
     });
 
@@ -193,8 +195,8 @@ describe('Feedback Forms API Coverage', () => {
       pancardNumber: '1234567',
       description: 'Desc',
     });
-    mockIsAuthenticated.mockImplementationOnce((req, res, next) => {
-      req.id = ownerId.toString();
+    mockIsAuthenticated.mockImplementation((req, res, next) => {
+      (req as Request & { id?: string }).id = ownerId.toString();
       next();
     });
     const form = await FeedbackForm.create({
@@ -221,8 +223,8 @@ describe('Feedback Forms API Coverage', () => {
       pancardNumber: '1234567',
       description: 'Desc',
     });
-    mockIsAuthenticated.mockImplementationOnce((req, res, next) => {
-      req.id = ownerId.toString();
+    mockIsAuthenticated.mockImplementation((req, res, next) => {
+      (req as Request & { id?: string }).id = ownerId.toString();
       next();
     });
     const form = await FeedbackForm.create({
@@ -251,8 +253,8 @@ describe('Feedback Forms API Coverage', () => {
       pancardNumber: '1234567',
       description: 'Desc',
     });
-    mockIsAuthenticated.mockImplementationOnce((req, res, next) => {
-      req.id = ownerId.toString();
+    mockIsAuthenticated.mockImplementation((req, res, next) => {
+      (req as Request & { id?: string }).id = ownerId.toString();
       next();
     });
     const form = await FeedbackForm.create({
