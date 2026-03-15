@@ -203,6 +203,38 @@ describe('Feedback Forms API', () => {
     expect(res.body.feedbackForm.fields[0].type).toBe('text');
   });
 
+  it('updates form with metaTitle, metaDescription, landing fields, formStyle, and showResultsPublic', async () => {
+    const { authHeader, businessId } = await createBusinessAuth();
+
+    const created = await FeedbackForm.create({
+      businessId,
+      title: 'Base form',
+      fields: [{ name: 'q', label: 'Q', type: 'text' }],
+    });
+
+    const res = await request(app)
+      .put(`/api/feedback-forms/${created._id}`)
+      .set(authHeader)
+      .send({
+        title: 'Base form',
+        fields: [{ name: 'q', label: 'Q', type: 'text' }],
+        metaTitle: '  SEO Title Here  ',
+        metaDescription: '  SEO description for the form  ',
+        landingHeadline: 'Vote now',
+        thankYouHeadline: 'Thanks!',
+        formStyle: 'drawer',
+        showResultsPublic: true,
+      })
+      .expect(200);
+
+    expect(res.body.feedbackForm.metaTitle).toBe('SEO Title Here');
+    expect(res.body.feedbackForm.metaDescription).toBe('SEO description for the form');
+    expect(res.body.feedbackForm.landingHeadline).toBe('Vote now');
+    expect(res.body.feedbackForm.thankYouHeadline).toBe('Thanks!');
+    expect(res.body.feedbackForm.formStyle).toBe('drawer');
+    expect(res.body.feedbackForm.showResultsPublic).toBe(true);
+  });
+
   it('generates a QR code that points to the frontend form URL', async () => {
     const { authHeader, businessId } = await createBusinessAuth();
 
@@ -724,6 +756,26 @@ describe('Feedback Forms API', () => {
       const res = await request(app)
         .get(`/api/feedback-forms/${form._id}/results`)
         .query({ dateFrom, dateTo })
+        .set(authHeader)
+        .expect(200);
+      expect(res.body.totalResponses).toBe(2);
+    });
+
+    it('filters results when dateTo is YYYY-MM-DD format', async () => {
+      const { authHeader, businessId } = await createBusinessAuth();
+      const form = await FeedbackForm.create({
+        businessId,
+        title: 'Date filter poll',
+        fields: [{ name: 'v', label: 'V', type: 'radio', options: ['A', 'B'] }],
+      });
+      const formSnapshot = [{ name: 'v', label: 'V', type: 'radio', options: ['A', 'B'] }];
+      await FeedbackSubmission.create([
+        { formId: form._id, businessId, formSnapshot, responses: { v: 'A' }, submittedAt: new Date('2025-03-02T10:00:00Z') },
+        { formId: form._id, businessId, formSnapshot, responses: { v: 'B' }, submittedAt: new Date('2025-03-04T22:00:00Z') },
+      ]);
+      const res = await request(app)
+        .get(`/api/feedback-forms/${form._id}/results`)
+        .query({ dateFrom: '2025-03-01', dateTo: '2025-03-05' })
         .set(authHeader)
         .expect(200);
       expect(res.body.totalResponses).toBe(2);
