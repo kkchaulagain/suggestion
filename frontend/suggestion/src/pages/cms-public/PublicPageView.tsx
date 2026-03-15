@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { useParams } from 'react-router-dom'
 import axios from 'axios'
-import { FileText, Share2, BarChart3 } from 'lucide-react'
+import { FileText, Share2, BarChart3, Sparkles } from 'lucide-react'
 import { pagesApi } from '../../utils/apipath'
 import { EmptyState, PublicLayout } from '../../components/layout'
 import { HeroSection, FeatureCard, CTASection } from '../../components/landing'
@@ -28,6 +28,12 @@ interface HeroCta {
 interface HeroPayload {
   headline: string
   subheadline: string
+  variant?: 'centered' | 'split' | 'splitReversed' | 'centeredWithMediaBelow'
+  style?: 'default' | 'minimal' | 'dark'
+  mediaType?: 'none' | 'image' | 'icon'
+  imageUrl?: string
+  imageAlt?: string
+  icon?: string
   primaryCta?: HeroCta
   secondaryCta?: HeroCta
 }
@@ -42,6 +48,12 @@ interface CTAPayload {
   text: string
   ctaLabel: string
   ctaHref: string
+}
+
+interface ImagePayload {
+  imageUrl: string
+  alt?: string
+  caption?: string
 }
 
 interface FeatureGridItem {
@@ -62,10 +74,11 @@ type BlockPayload =
   | HeroPayload
   | FeatureCardPayload
   | FeatureGridPayload
+  | ImagePayload
   | CTAPayload
 
 interface Block {
-  type: 'heading' | 'paragraph' | 'form' | 'hero' | 'feature_card' | 'feature_grid' | 'cta'
+  type: 'heading' | 'paragraph' | 'form' | 'hero' | 'feature_card' | 'feature_grid' | 'image' | 'cta'
   payload: BlockPayload
 }
 
@@ -73,6 +86,13 @@ const FEATURE_ICON_MAP: Record<string, ReactNode> = {
   'file-text': <FileText className="h-6 w-6" />,
   share2: <Share2 className="h-6 w-6" />,
   'bar-chart3': <BarChart3 className="h-6 w-6" />,
+}
+
+const HERO_ICON_MAP: Record<string, ReactNode> = {
+  sparkles: <Sparkles className="h-16 w-16" />,
+  'file-text': <FileText className="h-16 w-16" />,
+  share2: <Share2 className="h-16 w-16" />,
+  'bar-chart3': <BarChart3 className="h-16 w-16" />,
 }
 
 type RenderNode =
@@ -144,11 +164,33 @@ function renderBlock(block: Block, index: number): React.ReactNode {
     const headline = p?.headline?.trim()
     const subheadline = p?.subheadline?.trim()
     if (!headline && !subheadline) return null
+    const mediaType = p?.mediaType ?? 'none'
+    const media = mediaType === 'image' && p?.imageUrl?.trim()
+      ? (
+        <img
+          src={p.imageUrl.trim()}
+          alt={p.imageAlt?.trim() || 'Hero image'}
+          className="w-full rounded-xl object-cover"
+          loading="lazy"
+        />
+      )
+      : mediaType === 'icon'
+        ? (
+          <div className="flex min-h-56 items-center justify-center text-emerald-600 dark:text-emerald-400">
+            {HERO_ICON_MAP[(p?.icon ?? '').toLowerCase()] ?? HERO_ICON_MAP.sparkles}
+          </div>
+        )
+        : undefined
+    const effectiveVariant = p?.variant ?? (media ? 'split' : 'centered')
+    const effectiveStyle = p?.style ?? 'default'
     return (
       <div key={index}>
         <HeroSection
           headline={headline || ''}
           subheadline={subheadline || ''}
+          media={media}
+          variant={effectiveVariant}
+          style={effectiveStyle}
           primaryCta={p?.primaryCta?.label && p?.primaryCta?.href ? { label: p.primaryCta.label, href: p.primaryCta.href } : undefined}
           secondaryCta={p?.secondaryCta?.label && p?.secondaryCta?.href ? { label: p.secondaryCta.label, href: p.secondaryCta.href } : undefined}
         />
@@ -203,6 +245,26 @@ function renderBlock(block: Block, index: number): React.ReactNode {
           ctaHref={ctaHref || '#'}
         />
       </div>
+    )
+  }
+  if (block.type === 'image') {
+    const p = block.payload as ImagePayload
+    const imageUrl = p?.imageUrl?.trim()
+    if (!imageUrl) return null
+    const alt = p?.alt?.trim() || 'Page image'
+    const caption = p?.caption?.trim()
+    return (
+      <figure key={index} className="space-y-3">
+        <img
+          src={imageUrl}
+          alt={alt}
+          className="w-full rounded-2xl border border-stone-200 object-cover shadow-sm dark:border-stone-700"
+          loading="lazy"
+        />
+        {caption ? (
+          <figcaption className="text-sm text-stone-500 dark:text-stone-400">{caption}</figcaption>
+        ) : null}
+      </figure>
     )
   }
   return null

@@ -102,6 +102,8 @@ export default function LandingPage() {
           headline="Collect feedback and suggestions from your customers"
           subheadline="Create forms, share a link or QR code, and get responses in one place. Simple, fast, and built for businesses."
           badge="New: Poll support"
+          variant="split"
+          style="default"
           primaryCta={{ label: 'Get started', href: '/signup' }}
           secondaryCta={{ label: 'Log in', href: '/login' }}
           media={heroMediaPlaceholder}

@@ -269,15 +269,17 @@ describe('Pages API', () => {
       const newBlocks = [
         { type: 'heading', payload: { level: 1, text: 'Hello' } },
         { type: 'paragraph', payload: { text: 'Content' } },
+        { type: 'image', payload: { imageUrl: 'https://example.com/a.jpg', alt: 'Example image', caption: 'Screenshot' } },
       ];
       const res = await request(app)
         .put(`/api/pages/${page._id}`)
         .set(authHeader)
         .send({ blocks: newBlocks })
         .expect(200);
-      expect(res.body.page.blocks).toHaveLength(2);
+      expect(res.body.page.blocks).toHaveLength(3);
       expect(res.body.page.blocks[0].type).toBe('heading');
       expect(res.body.page.blocks[1].type).toBe('paragraph');
+      expect(res.body.page.blocks[2].type).toBe('image');
     });
   });
 

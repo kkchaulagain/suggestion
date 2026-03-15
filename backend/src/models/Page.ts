@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-const BLOCK_TYPES = ['heading', 'paragraph', 'form', 'hero', 'feature_card', 'feature_grid', 'cta'] as const;
+const BLOCK_TYPES = ['heading', 'paragraph', 'form', 'hero', 'feature_card', 'feature_grid', 'image', 'cta'] as const;
 const PAGE_STATUSES = ['draft', 'published'] as const;
 
 const blockSchema = new mongoose.Schema(
@@ -8,7 +8,7 @@ const blockSchema = new mongoose.Schema(
     type: {
       type: String,
       required: true,
-      enum: { values: BLOCK_TYPES, message: 'Block type must be heading, paragraph, form, hero, feature_card, feature_grid, or cta' },
+      enum: { values: BLOCK_TYPES, message: 'Block type must be heading, paragraph, form, hero, feature_card, feature_grid, image, or cta' },
     },
     /** For heading: { level: 1|2|3, text: string }. For paragraph: { text: string }. For form: { formId: ObjectId }. */
     payload: {

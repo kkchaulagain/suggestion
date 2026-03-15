@@ -1,12 +1,28 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import axios from 'axios'
-import { ChevronDown, ChevronUp, Heading1, Type, FileText, Trash2, Layout, LayoutGrid, Megaphone, Plus, Grid3X3 } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
+import {
+  ChevronDown,
+  ChevronUp,
+  FileText,
+  Grid3X3,
+  Heading1,
+  Layout,
+  LayoutGrid,
+  Image,
+  Megaphone,
+  Plus,
+  Sparkles,
+  Trash2,
+  Type,
+} from 'lucide-react'
 import { useAuth } from '../../../context/AuthContext'
-import { pagesApi, feedbackFormsApi } from '../../../utils/apipath'
+import { feedbackFormsApi, pagesApi } from '../../../utils/apipath'
 import { Button, Card, ErrorMessage, Input, Select, Textarea } from '../../../components/ui'
+import ImageUploadCropDialog from '../../../components/media/ImageUploadCropDialog'
 
-type BlockType = 'heading' | 'paragraph' | 'form' | 'hero' | 'feature_card' | 'feature_grid' | 'cta'
+type BlockType = 'heading' | 'paragraph' | 'form' | 'hero' | 'feature_card' | 'feature_grid' | 'image' | 'cta'
 
 interface HeadingPayload {
   level: 1 | 2 | 3
@@ -26,9 +42,18 @@ interface HeroCta {
   href: string
 }
 
+type HeroLayoutVariant = 'centered' | 'split' | 'splitReversed' | 'centeredWithMediaBelow'
+type HeroStyleVariant = 'default' | 'minimal' | 'dark'
+
 interface HeroPayload {
   headline: string
   subheadline: string
+  variant?: HeroLayoutVariant
+  style?: HeroStyleVariant
+  mediaType?: 'none' | 'image' | 'icon'
+  imageUrl?: string
+  imageAlt?: string
+  icon?: string
   primaryCta?: HeroCta
   secondaryCta?: HeroCta
 }
@@ -43,6 +68,12 @@ interface CTAPayload {
   text: string
   ctaLabel: string
   ctaHref: string
+}
+
+interface ImagePayload {
+  imageUrl: string
+  alt: string
+  caption?: string
 }
 
 interface FeatureGridItem {
@@ -63,12 +94,17 @@ type BlockPayload =
   | HeroPayload
   | FeatureCardPayload
   | FeatureGridPayload
+  | ImagePayload
   | CTAPayload
 
-interface Block {
+interface ApiBlock {
   _id?: string
   type: BlockType
   payload: BlockPayload
+}
+
+interface Block extends ApiBlock {
+  clientId: string
 }
 
 interface FeedbackFormOption {
@@ -83,11 +119,19 @@ interface CmsPageDoc {
   metaTitle?: string
   metaDescription?: string
   status: 'draft' | 'published'
-  blocks: Block[]
+  blocks: ApiBlock[]
 }
 
-function createBlock(type: BlockType, payload: BlockPayload): Block {
-  return { type, payload }
+interface BlockOption {
+  type: BlockType
+  label: string
+  description: string
+  icon: LucideIcon
+}
+
+interface UploadTarget {
+  blockClientId: string
+  type: 'image' | 'hero_image'
 }
 
 const FEATURE_CARD_ICONS = [
@@ -95,6 +139,35 @@ const FEATURE_CARD_ICONS = [
   { value: 'share2', label: 'Share' },
   { value: 'bar-chart3', label: 'Chart' },
 ] as const
+
+const HERO_MEDIA_ICONS = [
+  { value: 'sparkles', label: 'Sparkles' },
+  { value: 'file-text', label: 'Document' },
+  { value: 'share2', label: 'Share' },
+  { value: 'bar-chart3', label: 'Chart' },
+] as const
+
+const BLOCK_OPTIONS: BlockOption[] = [
+  { type: 'heading', label: 'Heading', description: 'Section heading or title', icon: Heading1 },
+  { type: 'paragraph', label: 'Paragraph', description: 'Body copy and supporting text', icon: Type },
+  { type: 'form', label: 'Form', description: 'Embed a feedback form', icon: FileText },
+  { type: 'hero', label: 'Hero', description: 'Landing hero with CTAs', icon: Layout },
+  { type: 'feature_card', label: 'Feature Card', description: 'Single feature highlight', icon: LayoutGrid },
+  { type: 'feature_grid', label: 'Feature Grid', description: 'List or grid of feature cards', icon: Grid3X3 },
+  { type: 'image', label: 'Image', description: 'Photo, screenshot, or visual asset', icon: Image },
+  { type: 'cta', label: 'CTA Banner', description: 'Call-to-action section', icon: Megaphone },
+]
+
+let blockCounter = 0
+
+function createClientId() {
+  blockCounter += 1
+  return `cms-block-${blockCounter}`
+}
+
+function createBlock(type: BlockType, payload: BlockPayload): Block {
+  return { clientId: createClientId(), type, payload }
+}
 
 function createEmptyBlock(type: BlockType): Block {
   switch (type) {
@@ -105,15 +178,93 @@ function createEmptyBlock(type: BlockType): Block {
     case 'form':
       return createBlock('form', { formId: '' })
     case 'hero':
-      return createBlock('hero', { headline: '', subheadline: '', primaryCta: { label: '', href: '' }, secondaryCta: { label: '', href: '' } })
+      return createBlock('hero', {
+        headline: '',
+        subheadline: '',
+        variant: 'centered',
+        style: 'default',
+        mediaType: 'none',
+        imageUrl: '',
+        imageAlt: '',
+        icon: 'sparkles',
+        primaryCta: { label: '', href: '' },
+        secondaryCta: { label: '', href: '' },
+      })
     case 'feature_card':
       return createBlock('feature_card', { title: '', description: '', icon: 'file-text' })
     case 'feature_grid':
-      return createBlock('feature_grid', { columns: 3, items: [{ icon: 'file-text', title: '', description: '' }] })
+      return createBlock('feature_grid', {
+        columns: 3,
+        items: [{ icon: 'file-text', title: '', description: '' }],
+      })
+    case 'image':
+      return createBlock('image', { imageUrl: '', alt: '', caption: '' })
     case 'cta':
       return createBlock('cta', { text: '', ctaLabel: '', ctaHref: '/signup' })
     default:
       return createBlock('paragraph', { text: '' })
+  }
+}
+
+function hydrateBlocks(blocks: ApiBlock[] | undefined): Block[] {
+  return Array.isArray(blocks)
+    ? blocks.map((block) => ({
+        ...block,
+        clientId: block._id ?? createClientId(),
+      }))
+    : []
+}
+
+function serializeBlocks(blocks: Block[]): ApiBlock[] {
+  return blocks.map((block) => ({
+    _id: block._id,
+    type: block.type,
+    payload: block.payload,
+  }))
+}
+
+function getBlockOption(type: BlockType) {
+  return BLOCK_OPTIONS.find((option) => option.type === type) ?? BLOCK_OPTIONS[0]
+}
+
+function getStatusClasses(status: 'draft' | 'published') {
+  return status === 'published'
+    ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:ring-emerald-800'
+    : 'bg-amber-50 text-amber-700 ring-1 ring-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:ring-amber-800'
+}
+
+function getBlockSummary(block: Block): string {
+  switch (block.type) {
+    case 'heading': {
+      const payload = block.payload as HeadingPayload
+      return payload.text.trim() || `Heading ${payload.level}`
+    }
+    case 'paragraph':
+      return (block.payload as ParagraphPayload).text.trim() || 'Body copy'
+    case 'form':
+      return (block.payload as FormBlockPayload).formId || 'Embedded feedback form'
+    case 'hero': {
+      const payload = block.payload as HeroPayload
+      const v = payload.variant ?? 'centered'
+      const label = v === 'centered' ? 'Hero banner' : `Hero (${v === 'splitReversed' ? 'Split reversed' : v === 'centeredWithMediaBelow' ? 'Centered + media below' : 'Split'})`
+      return payload.headline.trim() || label
+    }
+    case 'feature_card':
+      return (block.payload as FeatureCardPayload).title.trim() || 'Single feature card'
+    case 'feature_grid': {
+      const payload = block.payload as FeatureGridPayload
+      return `${payload.items?.length ?? 0} item${payload.items?.length === 1 ? '' : 's'}`
+    }
+    case 'image': {
+      const payload = block.payload as ImagePayload
+      return payload.caption?.trim() || payload.alt?.trim() || payload.imageUrl?.trim() || 'Image block'
+    }
+    case 'cta': {
+      const payload = block.payload as CTAPayload
+      return payload.text.trim() || payload.ctaLabel.trim() || 'Call to action'
+    }
+    default:
+      return 'Content block'
   }
 }
 
@@ -134,6 +285,22 @@ export default function CreatePagePage() {
   const [loading, setLoading] = useState(isEdit)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [collapsedBlockIds, setCollapsedBlockIds] = useState<Record<string, boolean>>({})
+  const [activeInsertIndex, setActiveInsertIndex] = useState<number | null>(null)
+  const [uploadTarget, setUploadTarget] = useState<UploadTarget | null>(null)
+
+  const pageStatusLabel = status === 'published' ? 'Published' : 'Draft'
+  const pageLabel = isEdit ? 'Edit Page' : 'Create Page'
+  const displaySlug =
+    slug.trim() || title.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+
+  const formOptions = useMemo(
+    () => [
+      { value: '', label: '— Select a form —' },
+      ...forms.map((form) => ({ value: form._id, label: form.title })),
+    ],
+    [forms],
+  )
 
   useEffect(() => {
     const loadForms = async () => {
@@ -156,13 +323,13 @@ export default function CreatePagePage() {
         setError('')
         const headers = { withCredentials: true, headers: getAuthHeaders() }
         const res = await axios.get<{ page: CmsPageDoc }>(`${pagesApi}/${id}`, headers)
-        const p = res.data.page
-        setTitle(p.title)
-        setSlug(p.slug)
-        setMetaTitle(p.metaTitle ?? '')
-        setMetaDescription(p.metaDescription ?? '')
-        setStatus(p.status)
-        setBlocks(Array.isArray(p.blocks) ? p.blocks : [])
+        const page = res.data.page
+        setTitle(page.title)
+        setSlug(page.slug)
+        setMetaTitle(page.metaTitle ?? '')
+        setMetaDescription(page.metaDescription ?? '')
+        setStatus(page.status)
+        setBlocks(hydrateBlocks(page.blocks))
       } catch {
         setError('Failed to load page.')
       } finally {
@@ -170,11 +337,18 @@ export default function CreatePagePage() {
       }
     }
     void load()
-  }, [isEdit, id, getAuthHeaders])
+  }, [getAuthHeaders, id, isEdit])
 
-  const addBlock = useCallback((type: BlockType) => {
-    setBlocks((prev) => [...prev, createEmptyBlock(type)])
-  }, [])
+  const addBlock = useCallback((type: BlockType, insertAt = blocks.length) => {
+    const nextBlock = createEmptyBlock(type)
+    setBlocks((prev) => {
+      const next = [...prev]
+      next.splice(insertAt, 0, nextBlock)
+      return next
+    })
+    setCollapsedBlockIds((prev) => ({ ...prev, [nextBlock.clientId]: false }))
+    setActiveInsertIndex(null)
+  }, [blocks.length])
 
   const updateBlock = useCallback((index: number, payload: BlockPayload) => {
     setBlocks((prev) => {
@@ -195,7 +369,22 @@ export default function CreatePagePage() {
   }, [])
 
   const removeBlock = useCallback((index: number) => {
-    setBlocks((prev) => prev.filter((_, i) => i !== index))
+    setBlocks((prev) => {
+      const block = prev[index]
+      if (block) {
+        setCollapsedBlockIds((current) => {
+          const next = { ...current }
+          delete next[block.clientId]
+          return next
+        })
+      }
+      return prev.filter((_, blockIndex) => blockIndex !== index)
+    })
+    setActiveInsertIndex(null)
+  }, [])
+
+  const toggleBlockCollapsed = useCallback((clientId: string) => {
+    setCollapsedBlockIds((prev) => ({ ...prev, [clientId]: !prev[clientId] }))
   }, [])
 
   const handleSave = useCallback(async () => {
@@ -204,11 +393,16 @@ export default function CreatePagePage() {
       setError('Title is required.')
       return
     }
-    const trimmedSlug = slug.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') || trimmedTitle.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+
+    const trimmedSlug =
+      slug.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') ||
+      trimmedTitle.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+
     if (!trimmedSlug) {
       setError('Slug is required.')
       return
     }
+
     try {
       setSaving(true)
       setError('')
@@ -219,22 +413,552 @@ export default function CreatePagePage() {
         metaTitle: metaTitle.trim() || undefined,
         metaDescription: metaDescription.trim() || undefined,
         status,
-        blocks,
+        blocks: serializeBlocks(blocks),
       }
       if (isEdit && id) {
         await axios.put(`${pagesApi}/${id}`, payload, headers)
-        navigate('/dashboard/pages')
       } else {
         await axios.post(pagesApi, payload, headers)
-        navigate('/dashboard/pages')
       }
+      navigate('/dashboard/pages')
     } catch (err: unknown) {
       const data = (err as { response?: { data?: { error?: string } } })?.response?.data
       setError(data?.error ?? 'Failed to save page.')
     } finally {
       setSaving(false)
     }
-  }, [title, slug, metaTitle, metaDescription, status, blocks, isEdit, id, navigate, getAuthHeaders])
+  }, [blocks, getAuthHeaders, id, isEdit, metaDescription, metaTitle, navigate, slug, status, title])
+
+  const renderInsertControl = (insertIndex: number) => {
+    const isActive = activeInsertIndex === insertIndex
+
+    return (
+      <div className="relative py-2" key={`insert-${insertIndex}`}>
+        <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 border-t border-dashed border-stone-200 dark:border-stone-700" />
+        <div className="relative flex justify-center">
+          <button
+            type="button"
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-stone-200 bg-white text-stone-500 shadow-sm transition hover:-translate-y-0.5 hover:border-stone-300 hover:text-stone-700 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-300 dark:hover:border-stone-600 dark:hover:text-stone-100"
+            onClick={() => setActiveInsertIndex((current) => (current === insertIndex ? null : insertIndex))}
+            aria-label={`Insert block at position ${insertIndex + 1}`}
+            aria-expanded={isActive}
+          >
+            <Plus className="h-4 w-4" />
+          </button>
+        </div>
+        {isActive ? (
+          <div className="mt-3 rounded-3xl border border-stone-200/80 bg-white p-4 shadow-[0_24px_60px_-36px_rgba(15,23,42,0.35)] dark:border-stone-700 dark:bg-stone-900">
+            <p className="mb-3 text-sm font-semibold text-stone-900 dark:text-stone-100">Insert block</p>
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              {BLOCK_OPTIONS.map((option) => {
+                const Icon = option.icon
+                return (
+                  <Button
+                    key={option.type}
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    className="h-auto justify-start rounded-2xl border-stone-200 px-3 py-3 text-left shadow-none hover:border-stone-300 dark:border-stone-700 dark:hover:border-stone-600"
+                    onClick={() => addBlock(option.type, insertIndex)}
+                    aria-label={`Add ${option.label} block`}
+                  >
+                    <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-300">
+                      <Icon className="h-4 w-4" />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block text-sm font-semibold text-stone-900 dark:text-stone-100">
+                        {option.label}
+                      </span>
+                      <span className="block text-xs font-normal text-stone-500 dark:text-stone-400">
+                        {option.description}
+                      </span>
+                    </span>
+                  </Button>
+                )
+              })}
+            </div>
+          </div>
+        ) : null}
+      </div>
+    )
+  }
+
+  const renderBlockFields = (block: Block, index: number) => {
+    if (block.type === 'heading') {
+      return (
+        <div className="grid gap-4 md:grid-cols-[180px_minmax(0,1fr)]">
+          <Select
+            id={`block-${block.clientId}-level`}
+            label="Level"
+            value={String((block.payload as HeadingPayload).level)}
+            onChange={(value) =>
+              updateBlock(index, {
+                ...(block.payload as HeadingPayload),
+                level: Number(value) as 1 | 2 | 3,
+              })
+            }
+            options={[
+              { value: '1', label: 'Heading 1' },
+              { value: '2', label: 'Heading 2' },
+              { value: '3', label: 'Heading 3' },
+            ]}
+            className="rounded-2xl border-stone-200 focus:border-violet-500 focus:ring-violet-500/20 dark:border-stone-700 dark:focus:border-violet-400 dark:focus:ring-violet-400/20"
+          />
+          <Input
+            id={`block-${block.clientId}-text`}
+            label="Text"
+            value={(block.payload as HeadingPayload).text}
+            onChange={(value) => updateBlock(index, { ...(block.payload as HeadingPayload), text: value })}
+            placeholder="Heading text"
+            className="rounded-2xl border-stone-200 focus:border-violet-500 focus:ring-violet-500/20 dark:border-stone-700 dark:focus:border-violet-400 dark:focus:ring-violet-400/20"
+          />
+        </div>
+      )
+    }
+
+    if (block.type === 'paragraph') {
+      return (
+        <Textarea
+          id={`block-${block.clientId}-paragraph`}
+          label="Paragraph"
+          value={(block.payload as ParagraphPayload).text}
+          onChange={(value) => updateBlock(index, { ...(block.payload as ParagraphPayload), text: value })}
+          placeholder="Paragraph text"
+          rows={4}
+          className="rounded-2xl border-stone-200 focus:border-violet-500 focus:ring-violet-500/20 dark:border-stone-700 dark:focus:border-violet-400 dark:focus:ring-violet-400/20"
+        />
+      )
+    }
+
+    if (block.type === 'form') {
+      return (
+        <Select
+          id={`block-${block.clientId}-form`}
+          label="Select form"
+          value={(block.payload as FormBlockPayload).formId}
+          onChange={(value) => updateBlock(index, { ...(block.payload as FormBlockPayload), formId: value })}
+          options={formOptions}
+          className="rounded-2xl border-stone-200 focus:border-violet-500 focus:ring-violet-500/20 dark:border-stone-700 dark:focus:border-violet-400 dark:focus:ring-violet-400/20"
+        />
+      )
+    }
+
+    if (block.type === 'hero') {
+      const payload = block.payload as HeroPayload
+      return (
+        <div className="space-y-4">
+          <Input
+            id={`block-${block.clientId}-hero-headline`}
+            label="Headline"
+            value={payload.headline}
+            onChange={(value) => updateBlock(index, { ...payload, headline: value })}
+            placeholder="Main headline"
+            className="rounded-2xl border-stone-200 focus:border-violet-500 focus:ring-violet-500/20 dark:border-stone-700 dark:focus:border-violet-400 dark:focus:ring-violet-400/20"
+          />
+          <Textarea
+            id={`block-${block.clientId}-hero-subheadline`}
+            label="Subheadline"
+            value={payload.subheadline}
+            onChange={(value) => updateBlock(index, { ...payload, subheadline: value })}
+            placeholder="Supporting text"
+            rows={3}
+            className="rounded-2xl border-stone-200 focus:border-violet-500 focus:ring-violet-500/20 dark:border-stone-700 dark:focus:border-violet-400 dark:focus:ring-violet-400/20"
+          />
+          <Select
+            id={`block-${block.clientId}-hero-variant`}
+            label="Layout"
+            value={payload.variant ?? 'centered'}
+            onChange={(value) =>
+              updateBlock(index, { ...payload, variant: value as HeroLayoutVariant })
+            }
+            options={[
+              { value: 'centered', label: 'Centered' },
+              { value: 'split', label: 'Split (text left, media right)' },
+              { value: 'splitReversed', label: 'Split reversed (media left)' },
+              { value: 'centeredWithMediaBelow', label: 'Centered with media below' },
+            ]}
+            className="rounded-2xl border-stone-200 focus:border-violet-500 focus:ring-violet-500/20 dark:border-stone-700 dark:focus:border-violet-400 dark:focus:ring-violet-400/20"
+          />
+          <Select
+            id={`block-${block.clientId}-hero-style`}
+            label="Style"
+            value={payload.style ?? 'default'}
+            onChange={(value) =>
+              updateBlock(index, { ...payload, style: value as HeroStyleVariant })
+            }
+            options={[
+              { value: 'default', label: 'Default' },
+              { value: 'minimal', label: 'Minimal' },
+              { value: 'dark', label: 'Dark' },
+            ]}
+            className="rounded-2xl border-stone-200 focus:border-violet-500 focus:ring-violet-500/20 dark:border-stone-700 dark:focus:border-violet-400 dark:focus:ring-violet-400/20"
+          />
+          <Select
+            id={`block-${block.clientId}-hero-media-type`}
+            label="Hero media"
+            value={payload.mediaType ?? 'none'}
+            onChange={(value) =>
+              updateBlock(index, {
+                ...payload,
+                mediaType: value as 'none' | 'image' | 'icon',
+              })
+            }
+            options={[
+              { value: 'none', label: 'No media' },
+              { value: 'image', label: 'Image' },
+              { value: 'icon', label: 'Icon' },
+            ]}
+            className="rounded-2xl border-stone-200 focus:border-violet-500 focus:ring-violet-500/20 dark:border-stone-700 dark:focus:border-violet-400 dark:focus:ring-violet-400/20"
+          />
+          {payload.mediaType === 'image' ? (
+            <div className="grid gap-4 md:grid-cols-2">
+              <Input
+                id={`block-${block.clientId}-hero-image-url`}
+                label="Hero image URL"
+                value={payload.imageUrl ?? ''}
+                onChange={(value) => updateBlock(index, { ...payload, imageUrl: value })}
+                placeholder="https://example.com/hero.png"
+                className="rounded-2xl border-stone-200 focus:border-violet-500 focus:ring-violet-500/20 dark:border-stone-700 dark:focus:border-violet-400 dark:focus:ring-violet-400/20"
+              />
+              <Input
+                id={`block-${block.clientId}-hero-image-alt`}
+                label="Hero image alt text"
+                value={payload.imageAlt ?? ''}
+                onChange={(value) => updateBlock(index, { ...payload, imageAlt: value })}
+                placeholder="Describe the hero image"
+                className="rounded-2xl border-stone-200 focus:border-violet-500 focus:ring-violet-500/20 dark:border-stone-700 dark:focus:border-violet-400 dark:focus:ring-violet-400/20"
+              />
+              <div className="md:col-span-2">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  className="rounded-full border-stone-200 px-4 dark:border-stone-700"
+                  onClick={() => setUploadTarget({ blockClientId: block.clientId, type: 'hero_image' })}
+                >
+                  <Image className="h-4 w-4" />
+                  Upload & Crop Hero Image
+                </Button>
+              </div>
+            </div>
+          ) : null}
+          {payload.mediaType === 'icon' ? (
+            <Select
+              id={`block-${block.clientId}-hero-icon`}
+              label="Hero icon"
+              value={payload.icon ?? 'sparkles'}
+              onChange={(value) => updateBlock(index, { ...payload, icon: value })}
+              options={HERO_MEDIA_ICONS.map((option) => ({ value: option.value, label: option.label }))}
+              className="rounded-2xl border-stone-200 focus:border-violet-500 focus:ring-violet-500/20 dark:border-stone-700 dark:focus:border-violet-400 dark:focus:ring-violet-400/20"
+            />
+          ) : null}
+          <div className="grid gap-4 md:grid-cols-2">
+            <Input
+              id={`block-${block.clientId}-hero-primary-label`}
+              label="Primary CTA label"
+              value={payload.primaryCta?.label ?? ''}
+              onChange={(value) =>
+                updateBlock(index, {
+                  ...payload,
+                  primaryCta: {
+                    ...(payload.primaryCta ?? { href: '/' }),
+                    label: value,
+                    href: payload.primaryCta?.href ?? '/',
+                  },
+                })
+              }
+              placeholder="e.g. Get started"
+              className="rounded-2xl border-stone-200 focus:border-violet-500 focus:ring-violet-500/20 dark:border-stone-700 dark:focus:border-violet-400 dark:focus:ring-violet-400/20"
+            />
+            <Input
+              id={`block-${block.clientId}-hero-primary-href`}
+              label="Primary CTA link"
+              value={payload.primaryCta?.href ?? ''}
+              onChange={(value) =>
+                updateBlock(index, {
+                  ...payload,
+                  primaryCta: {
+                    ...(payload.primaryCta ?? { label: '' }),
+                    label: payload.primaryCta?.label ?? '',
+                    href: value,
+                  },
+                })
+              }
+              placeholder="e.g. /signup"
+              className="rounded-2xl border-stone-200 focus:border-violet-500 focus:ring-violet-500/20 dark:border-stone-700 dark:focus:border-violet-400 dark:focus:ring-violet-400/20"
+            />
+            <Input
+              id={`block-${block.clientId}-hero-secondary-label`}
+              label="Secondary CTA label"
+              value={payload.secondaryCta?.label ?? ''}
+              onChange={(value) =>
+                updateBlock(index, {
+                  ...payload,
+                  secondaryCta: {
+                    ...(payload.secondaryCta ?? { href: '/' }),
+                    label: value,
+                    href: payload.secondaryCta?.href ?? '/',
+                  },
+                })
+              }
+              placeholder="e.g. Log in"
+              className="rounded-2xl border-stone-200 focus:border-violet-500 focus:ring-violet-500/20 dark:border-stone-700 dark:focus:border-violet-400 dark:focus:ring-violet-400/20"
+            />
+            <Input
+              id={`block-${block.clientId}-hero-secondary-href`}
+              label="Secondary CTA link"
+              value={payload.secondaryCta?.href ?? ''}
+              onChange={(value) =>
+                updateBlock(index, {
+                  ...payload,
+                  secondaryCta: {
+                    ...(payload.secondaryCta ?? { label: '' }),
+                    label: payload.secondaryCta?.label ?? '',
+                    href: value,
+                  },
+                })
+              }
+              placeholder="e.g. /login"
+              className="rounded-2xl border-stone-200 focus:border-violet-500 focus:ring-violet-500/20 dark:border-stone-700 dark:focus:border-violet-400 dark:focus:ring-violet-400/20"
+            />
+          </div>
+        </div>
+      )
+    }
+
+    if (block.type === 'feature_card') {
+      const payload = block.payload as FeatureCardPayload
+      return (
+        <div className="space-y-4">
+          <Select
+            id={`block-${block.clientId}-feature-icon`}
+            label="Icon"
+            value={payload.icon}
+            onChange={(value) => updateBlock(index, { ...payload, icon: value })}
+            options={FEATURE_CARD_ICONS.map((option) => ({ value: option.value, label: option.label }))}
+            className="rounded-2xl border-stone-200 focus:border-violet-500 focus:ring-violet-500/20 dark:border-stone-700 dark:focus:border-violet-400 dark:focus:ring-violet-400/20"
+          />
+          <Input
+            id={`block-${block.clientId}-feature-title`}
+            label="Title"
+            value={payload.title}
+            onChange={(value) => updateBlock(index, { ...payload, title: value })}
+            placeholder="Feature title"
+            className="rounded-2xl border-stone-200 focus:border-violet-500 focus:ring-violet-500/20 dark:border-stone-700 dark:focus:border-violet-400 dark:focus:ring-violet-400/20"
+          />
+          <Textarea
+            id={`block-${block.clientId}-feature-description`}
+            label="Description"
+            value={payload.description}
+            onChange={(value) => updateBlock(index, { ...payload, description: value })}
+            placeholder="Short description"
+            rows={3}
+            className="rounded-2xl border-stone-200 focus:border-violet-500 focus:ring-violet-500/20 dark:border-stone-700 dark:focus:border-violet-400 dark:focus:ring-violet-400/20"
+          />
+        </div>
+      )
+    }
+
+    if (block.type === 'cta') {
+      const payload = block.payload as CTAPayload
+      return (
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="md:col-span-2">
+            <Input
+              id={`block-${block.clientId}-cta-text`}
+              label="Text"
+              value={payload.text}
+              onChange={(value) => updateBlock(index, { ...payload, text: value })}
+              placeholder="e.g. Ready to start?"
+              className="rounded-2xl border-stone-200 focus:border-violet-500 focus:ring-violet-500/20 dark:border-stone-700 dark:focus:border-violet-400 dark:focus:ring-violet-400/20"
+            />
+          </div>
+          <Input
+            id={`block-${block.clientId}-cta-label`}
+            label="Button label"
+            value={payload.ctaLabel}
+            onChange={(value) => updateBlock(index, { ...payload, ctaLabel: value })}
+            placeholder="e.g. Sign up free"
+            className="rounded-2xl border-stone-200 focus:border-violet-500 focus:ring-violet-500/20 dark:border-stone-700 dark:focus:border-violet-400 dark:focus:ring-violet-400/20"
+          />
+          <Input
+            id={`block-${block.clientId}-cta-href`}
+            label="Button link"
+            value={payload.ctaHref}
+            onChange={(value) => updateBlock(index, { ...payload, ctaHref: value })}
+            placeholder="e.g. /signup"
+            className="rounded-2xl border-stone-200 focus:border-violet-500 focus:ring-violet-500/20 dark:border-stone-700 dark:focus:border-violet-400 dark:focus:ring-violet-400/20"
+          />
+        </div>
+      )
+    }
+
+    if (block.type === 'image') {
+      const payload = block.payload as ImagePayload
+      return (
+        <div className="space-y-4">
+          <Input
+            id={`block-${block.clientId}-image-url`}
+            label="Image URL"
+            value={payload.imageUrl}
+            onChange={(value) => updateBlock(index, { ...payload, imageUrl: value })}
+            placeholder="https://example.com/image.jpg"
+            className="rounded-2xl border-stone-200 focus:border-violet-500 focus:ring-violet-500/20 dark:border-stone-700 dark:focus:border-violet-400 dark:focus:ring-violet-400/20"
+          />
+          <Input
+            id={`block-${block.clientId}-image-alt`}
+            label="Alt text"
+            value={payload.alt}
+            onChange={(value) => updateBlock(index, { ...payload, alt: value })}
+            placeholder="Describe the image for accessibility"
+            className="rounded-2xl border-stone-200 focus:border-violet-500 focus:ring-violet-500/20 dark:border-stone-700 dark:focus:border-violet-400 dark:focus:ring-violet-400/20"
+          />
+          <Textarea
+            id={`block-${block.clientId}-image-caption`}
+            label="Caption (optional)"
+            value={payload.caption ?? ''}
+            onChange={(value) => updateBlock(index, { ...payload, caption: value })}
+            placeholder="Optional caption below the image"
+            rows={2}
+            className="rounded-2xl border-stone-200 focus:border-violet-500 focus:ring-violet-500/20 dark:border-stone-700 dark:focus:border-violet-400 dark:focus:ring-violet-400/20"
+          />
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            className="rounded-full border-stone-200 px-4 dark:border-stone-700"
+            onClick={() => setUploadTarget({ blockClientId: block.clientId, type: 'image' })}
+          >
+            <Image className="h-4 w-4" />
+            Upload & Crop Image
+          </Button>
+          {payload.imageUrl?.trim() ? (
+            <div className="overflow-hidden rounded-2xl border border-stone-200 bg-stone-50 dark:border-stone-700 dark:bg-stone-800/40">
+              <img
+                src={payload.imageUrl}
+                alt={payload.alt || 'Preview image'}
+                className="max-h-80 w-full object-cover"
+              />
+            </div>
+          ) : null}
+        </div>
+      )
+    }
+
+    if (block.type === 'feature_grid') {
+      const payload = block.payload as FeatureGridPayload
+      return (
+        <div className="space-y-4">
+          <Select
+            id={`block-${block.clientId}-grid-columns`}
+            label="Columns"
+            value={String(payload.columns ?? 3)}
+            onChange={(value) => updateBlock(index, { ...payload, columns: Number(value) as 2 | 3 })}
+            options={[
+              { value: '2', label: '2 columns' },
+              { value: '3', label: '3 columns' },
+            ]}
+            className="rounded-2xl border-stone-200 focus:border-violet-500 focus:ring-violet-500/20 dark:border-stone-700 dark:focus:border-violet-400 dark:focus:ring-violet-400/20"
+          />
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-semibold text-stone-900 dark:text-stone-100">Grid items</p>
+              <span className="text-xs text-stone-500 dark:text-stone-400">
+                {payload.items.length} item{payload.items.length === 1 ? '' : 's'}
+              </span>
+            </div>
+            {payload.items.map((item, itemIndex) => (
+              <div
+                key={`${block.clientId}-item-${itemIndex}`}
+                className="rounded-2xl border border-stone-200/80 bg-stone-50/60 p-4 dark:border-stone-700 dark:bg-stone-800/50"
+              >
+                <div className="mb-3 flex items-center justify-between">
+                  <p className="text-sm font-medium text-stone-900 dark:text-stone-100">Item {itemIndex + 1}</p>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 rounded-full p-0 text-stone-500 hover:text-rose-600 dark:hover:text-rose-400"
+                    onClick={() => {
+                      const newItems = payload.items.filter((_, currentIndex) => currentIndex !== itemIndex)
+                      updateBlock(index, {
+                        ...payload,
+                        items: newItems.length ? newItems : [{ icon: 'file-text', title: '', description: '' }],
+                      })
+                    }}
+                    aria-label={`Remove item ${itemIndex + 1}`}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <Select
+                    id={`block-${block.clientId}-grid-item-${itemIndex}-icon`}
+                    label="Icon"
+                    value={item.icon ?? 'file-text'}
+                    onChange={(value) => {
+                      const newItems = [...payload.items]
+                      if (newItems[itemIndex]) newItems[itemIndex] = { ...newItems[itemIndex], icon: value }
+                      updateBlock(index, { ...payload, items: newItems })
+                    }}
+                    options={FEATURE_CARD_ICONS.map((option) => ({
+                      value: option.value,
+                      label: option.label,
+                    }))}
+                    className="rounded-2xl border-stone-200 focus:border-violet-500 focus:ring-violet-500/20 dark:border-stone-700 dark:focus:border-violet-400 dark:focus:ring-violet-400/20"
+                  />
+                  <Input
+                    id={`block-${block.clientId}-grid-item-${itemIndex}-title`}
+                    label="Title"
+                    value={item.title ?? ''}
+                    onChange={(value) => {
+                      const newItems = [...payload.items]
+                      if (newItems[itemIndex]) newItems[itemIndex] = { ...newItems[itemIndex], title: value }
+                      updateBlock(index, { ...payload, items: newItems })
+                    }}
+                    placeholder="Title"
+                    className="rounded-2xl border-stone-200 focus:border-violet-500 focus:ring-violet-500/20 dark:border-stone-700 dark:focus:border-violet-400 dark:focus:ring-violet-400/20"
+                  />
+                  <div className="md:col-span-2">
+                    <Textarea
+                      id={`block-${block.clientId}-grid-item-${itemIndex}-description`}
+                      label="Description"
+                      value={item.description ?? ''}
+                      onChange={(value) => {
+                        const newItems = [...payload.items]
+                        if (newItems[itemIndex]) newItems[itemIndex] = { ...newItems[itemIndex], description: value }
+                        updateBlock(index, { ...payload, items: newItems })
+                      }}
+                      placeholder="Description"
+                      rows={3}
+                      className="rounded-2xl border-stone-200 focus:border-violet-500 focus:ring-violet-500/20 dark:border-stone-700 dark:focus:border-violet-400 dark:focus:ring-violet-400/20"
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            className="rounded-full border-stone-200 px-4 dark:border-stone-700"
+            onClick={() =>
+              updateBlock(index, {
+                ...payload,
+                items: [...payload.items, { icon: 'file-text', title: '', description: '' }],
+              })
+            }
+          >
+            <Plus className="h-4 w-4" />
+            Add item
+          </Button>
+        </div>
+      )
+    }
+
+    return null
+  }
 
   if (loading) {
     return (
@@ -245,393 +969,274 @@ export default function CreatePagePage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-8">
-      <div className="flex items-center gap-4">
-        <Link to="/dashboard/pages" className="text-stone-600 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-100">
-          ← Back to Pages
-        </Link>
-      </div>
-
-      {error ? <ErrorMessage message={error} /> : null}
-
-      <Card>
-        <h2 className="mb-4 text-lg font-semibold">Page details</h2>
-        <div className="space-y-4">
-          <Input
-            id="page-title"
-            label="Title"
-            value={title}
-            onChange={(value) => setTitle(value)}
-            placeholder="e.g. Contact us"
-            required
-          />
-          <Input
-            id="page-slug"
-            label="URL slug"
-            value={slug}
-            onChange={(value) => setSlug(value)}
-            placeholder="e.g. contact-us (URL: /c/<page-id>/contact-us)"
-          />
-          <Input
-            id="meta-title"
-            label="Meta title (optional)"
-            value={metaTitle}
-            onChange={(value) => setMetaTitle(value)}
-            placeholder="SEO title"
-          />
-          <Textarea
-            id="meta-description"
-            label="Meta description (optional)"
-            value={metaDescription}
-            onChange={(value) => setMetaDescription(value)}
-            placeholder="SEO description"
-            rows={2}
-          />
-          <Select
-            id="page-status"
-            label="Status"
-            value={status}
-            onChange={(value) => setStatus(value as 'draft' | 'published')}
-            options={[
-              { value: 'draft', label: 'Draft' },
-              { value: 'published', label: 'Published' },
-            ]}
-          />
-        </div>
-      </Card>
-
-      <Card>
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Content blocks</h2>
-          <div className="flex flex-wrap gap-2">
-            <Button type="button" variant="secondary" size="sm" onClick={() => addBlock('heading')}>
-              <Heading1 className="h-4 w-4" />
-              Heading
-            </Button>
-            <Button type="button" variant="secondary" size="sm" onClick={() => addBlock('paragraph')}>
-              <Type className="h-4 w-4" />
-              Paragraph
-            </Button>
-            <Button type="button" variant="secondary" size="sm" onClick={() => addBlock('form')}>
-              <FileText className="h-4 w-4" />
-              Form
-            </Button>
-            <Button type="button" variant="secondary" size="sm" onClick={() => addBlock('hero')}>
-              <Layout className="h-4 w-4" />
-              Hero
-            </Button>
-            <Button type="button" variant="secondary" size="sm" onClick={() => addBlock('feature_card')}>
-              <LayoutGrid className="h-4 w-4" />
-              Feature card
-            </Button>
-            <Button type="button" variant="secondary" size="sm" onClick={() => addBlock('cta')}>
-              <Megaphone className="h-4 w-4" />
-              CTA
-            </Button>
-            <Button type="button" variant="secondary" size="sm" onClick={() => addBlock('feature_grid')}>
-              <Grid3X3 className="h-4 w-4" />
-              Feature grid
+    <div className="space-y-6">
+      <div className="sticky top-0 z-20 -mx-4 border-b border-stone-200/80 bg-stone-50/95 px-4 py-4 backdrop-blur dark:border-stone-800 dark:bg-stone-950/90 sm:-mx-6 sm:px-6">
+        <div className="mx-auto flex max-w-7xl flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="space-y-2">
+            <Link
+              to="/dashboard/pages"
+              className="inline-flex items-center gap-2 text-sm text-stone-500 transition hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-100"
+            >
+              <ChevronDown className="h-4 w-4 rotate-90" />
+              Back to Pages
+            </Link>
+            <div className="flex flex-wrap items-center gap-3">
+              <h1 className="text-2xl font-semibold tracking-tight text-stone-950 dark:text-stone-50">
+                {pageLabel}
+              </h1>
+              <span
+                className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-medium ${getStatusClasses(status)}`}
+              >
+                <span className="h-2 w-2 rounded-full bg-current opacity-75" />
+                {pageStatusLabel}
+              </span>
+            </div>
+            <p className="text-sm text-stone-500 dark:text-stone-400">
+              Structure your page with reusable blocks, then publish it at `/c/&lt;page-id&gt;/{displaySlug || 'page-slug'}`.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <Link to="/dashboard/pages">
+              <Button variant="secondary" size="sm" className="rounded-full border-stone-200 px-4 dark:border-stone-700">
+                Cancel
+              </Button>
+            </Link>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => void handleSave()}
+              disabled={saving}
+              className="rounded-full bg-gradient-to-r from-emerald-600 to-violet-600 px-5 text-white shadow-[0_18px_40px_-18px_rgba(16,185,129,0.55)] hover:from-emerald-500 hover:to-violet-500 dark:from-emerald-500 dark:to-violet-500"
+            >
+              <Sparkles className="h-4 w-4" />
+              {saving ? 'Saving…' : 'Save Changes'}
             </Button>
           </div>
         </div>
-        {blocks.length === 0 ? (
-          <p className="text-sm text-stone-500 dark:text-stone-400">No blocks yet. Add a heading, paragraph, form, hero, feature card, feature grid, or CTA above.</p>
-        ) : (
-          <ul className="space-y-4">
-            {blocks.map((block, index) => (
-              <li key={index} className="flex gap-2 rounded-lg border border-stone-200 bg-stone-50/50 p-3 dark:border-stone-700 dark:bg-stone-800/50">
-                <div className="flex flex-col gap-0.5">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 w-7 p-0"
-                    onClick={() => moveBlock(index, 'up')}
-                    disabled={index === 0}
-                    aria-label="Move up"
-                  >
-                    <ChevronUp className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 w-7 p-0"
-                    onClick={() => moveBlock(index, 'down')}
-                    disabled={index === blocks.length - 1}
-                    aria-label="Move down"
-                  >
-                    <ChevronDown className="h-4 w-4" />
-                  </Button>
-                </div>
-                <div className="min-w-0 flex-1">
-                  {block.type === 'heading' && (
-                    <div>
-                      <Select
-                        id={`block-${index}-level`}
-                        label="Level"
-                        value={String((block.payload as HeadingPayload).level)}
-                        onChange={(value) => updateBlock(index, { ...block.payload, level: Number(value) as 1 | 2 | 3 })}
-                        options={[
-                          { value: '1', label: 'Heading 1' },
-                          { value: '2', label: 'Heading 2' },
-                          { value: '3', label: 'Heading 3' },
-                        ]}
-                      />
-                      <Input
-                        id={`block-${index}-text`}
-                        label="Text"
-                        value={(block.payload as HeadingPayload).text}
-                        onChange={(value) => updateBlock(index, { ...block.payload, text: value })}
-                        placeholder="Heading text"
-                      />
-                    </div>
-                  )}
-                  {block.type === 'paragraph' && (
-                    <Textarea
-                      id={`block-${index}-text`}
-                      label="Paragraph"
-                      value={(block.payload as ParagraphPayload).text}
-                      onChange={(value) => updateBlock(index, { ...block.payload, text: value })}
-                      placeholder="Paragraph text"
-                      rows={3}
-                    />
-                  )}
-                  {block.type === 'form' && (
-                    <Select
-                      id={`block-${index}-form`}
-                      label="Select form"
-                      value={(block.payload as FormBlockPayload).formId}
-                      onChange={(value) => updateBlock(index, { ...block.payload, formId: value })}
-                      options={[
-                        { value: '', label: '— Select a form —' },
-                        ...forms.map((f) => ({ value: f._id, label: f.title })),
-                      ]}
-                    />
-                  )}
-                  {block.type === 'hero' && (
-                    <div className="space-y-3">
-                      <Input
-                        id={`block-${index}-hero-headline`}
-                        label="Headline"
-                        value={(block.payload as HeroPayload).headline}
-                        onChange={(value) => updateBlock(index, { ...block.payload, headline: value })}
-                        placeholder="Main headline"
-                      />
-                      <Textarea
-                        id={`block-${index}-hero-subheadline`}
-                        label="Subheadline"
-                        value={(block.payload as HeroPayload).subheadline}
-                        onChange={(value) => updateBlock(index, { ...block.payload, subheadline: value })}
-                        placeholder="Supporting text"
-                        rows={2}
-                      />
-                      <Input
-                        id={`block-${index}-hero-primary-label`}
-                        label="Primary CTA label"
-                        value={(block.payload as HeroPayload).primaryCta?.label ?? ''}
-                        onChange={(value) => updateBlock(index, {
-                          ...block.payload,
-                          primaryCta: { ...(block.payload as HeroPayload).primaryCta, label: value, href: (block.payload as HeroPayload).primaryCta?.href ?? '/' },
-                        })}
-                        placeholder="e.g. Get started"
-                      />
-                      <Input
-                        id={`block-${index}-hero-primary-href`}
-                        label="Primary CTA link"
-                        value={(block.payload as HeroPayload).primaryCta?.href ?? ''}
-                        onChange={(value) => updateBlock(index, {
-                          ...block.payload,
-                          primaryCta: { ...(block.payload as HeroPayload).primaryCta, href: value, label: (block.payload as HeroPayload).primaryCta?.label ?? '' },
-                        })}
-                        placeholder="e.g. /signup"
-                      />
-                      <Input
-                        id={`block-${index}-hero-secondary-label`}
-                        label="Secondary CTA label"
-                        value={(block.payload as HeroPayload).secondaryCta?.label ?? ''}
-                        onChange={(value) => updateBlock(index, {
-                          ...block.payload,
-                          secondaryCta: { ...(block.payload as HeroPayload).secondaryCta, label: value, href: (block.payload as HeroPayload).secondaryCta?.href ?? '/' },
-                        })}
-                        placeholder="e.g. Log in"
-                      />
-                      <Input
-                        id={`block-${index}-hero-secondary-href`}
-                        label="Secondary CTA link"
-                        value={(block.payload as HeroPayload).secondaryCta?.href ?? ''}
-                        onChange={(value) => updateBlock(index, {
-                          ...block.payload,
-                          secondaryCta: { ...(block.payload as HeroPayload).secondaryCta, href: value, label: (block.payload as HeroPayload).secondaryCta?.label ?? '' },
-                        })}
-                        placeholder="e.g. /login"
-                      />
-                    </div>
-                  )}
-                  {block.type === 'feature_card' && (
-                    <div className="space-y-3">
-                      <Select
-                        id={`block-${index}-feature-icon`}
-                        label="Icon"
-                        value={(block.payload as FeatureCardPayload).icon}
-                        onChange={(value) => updateBlock(index, { ...block.payload, icon: value })}
-                        options={FEATURE_CARD_ICONS.map((o) => ({ value: o.value, label: o.label }))}
-                      />
-                      <Input
-                        id={`block-${index}-feature-title`}
-                        label="Title"
-                        value={(block.payload as FeatureCardPayload).title}
-                        onChange={(value) => updateBlock(index, { ...block.payload, title: value })}
-                        placeholder="Feature title"
-                      />
-                      <Textarea
-                        id={`block-${index}-feature-desc`}
-                        label="Description"
-                        value={(block.payload as FeatureCardPayload).description}
-                        onChange={(value) => updateBlock(index, { ...block.payload, description: value })}
-                        placeholder="Short description"
-                        rows={2}
-                      />
-                    </div>
-                  )}
-                  {block.type === 'cta' && (
-                    <div className="space-y-3">
-                      <Input
-                        id={`block-${index}-cta-text`}
-                        label="Text"
-                        value={(block.payload as CTAPayload).text}
-                        onChange={(value) => updateBlock(index, { ...block.payload, text: value })}
-                        placeholder="e.g. Ready to start?"
-                      />
-                      <Input
-                        id={`block-${index}-cta-label`}
-                        label="Button label"
-                        value={(block.payload as CTAPayload).ctaLabel}
-                        onChange={(value) => updateBlock(index, { ...block.payload, ctaLabel: value })}
-                        placeholder="e.g. Sign up free"
-                      />
-                      <Input
-                        id={`block-${index}-cta-href`}
-                        label="Button link"
-                        value={(block.payload as CTAPayload).ctaHref}
-                        onChange={(value) => updateBlock(index, { ...block.payload, ctaHref: value })}
-                        placeholder="e.g. /signup"
-                      />
-                    </div>
-                  )}
-                  {block.type === 'feature_grid' && (
-                    <div className="space-y-3">
-                      <Select
-                        id={`block-${index}-grid-cols`}
-                        label="Columns"
-                        value={String((block.payload as FeatureGridPayload).columns ?? 3)}
-                        onChange={(value) => updateBlock(index, { ...block.payload, columns: Number(value) as 2 | 3 })}
-                        options={[
-                          { value: '2', label: '2 columns' },
-                          { value: '3', label: '3 columns' },
-                        ]}
-                      />
-                      <p className="text-xs font-medium text-stone-600 dark:text-stone-400">Items</p>
-                      {((block.payload as FeatureGridPayload).items ?? []).map((item, itemIndex) => (
-                        <div key={itemIndex} className="rounded border border-stone-200 bg-white p-3 dark:border-stone-600 dark:bg-stone-800">
-                          <div className="mb-2 flex items-center justify-between">
-                            <span className="text-xs text-stone-500">Item {itemIndex + 1}</span>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="h-7 w-7 p-0 text-stone-500 hover:text-rose-600"
-                              onClick={() => {
-                                const p = block.payload as FeatureGridPayload
-                                const newItems = (p.items ?? []).filter((_, i) => i !== itemIndex)
-                                updateBlock(index, { ...p, items: newItems.length ? newItems : [{ icon: 'file-text', title: '', description: '' }] })
-                              }}
-                              aria-label="Remove item"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                          <div className="space-y-2">
-                            <Select
-                              id={`block-${index}-grid-item-${itemIndex}-icon`}
-                              label="Icon"
-                              value={item.icon ?? 'file-text'}
-                              onChange={(value) => {
-                                const p = block.payload as FeatureGridPayload
-                                const newItems = [...(p.items ?? [])]
-                                if (newItems[itemIndex]) newItems[itemIndex] = { ...newItems[itemIndex], icon: value }
-                                updateBlock(index, { ...p, items: newItems })
-                              }}
-                              options={FEATURE_CARD_ICONS.map((o) => ({ value: o.value, label: o.label }))}
-                            />
-                            <Input
-                              id={`block-${index}-grid-item-${itemIndex}-title`}
-                              label="Title"
-                              value={item.title ?? ''}
-                              onChange={(value) => {
-                                const p = block.payload as FeatureGridPayload
-                                const newItems = [...(p.items ?? [])]
-                                if (newItems[itemIndex]) newItems[itemIndex] = { ...newItems[itemIndex], title: value }
-                                updateBlock(index, { ...p, items: newItems })
-                              }}
-                              placeholder="Title"
-                            />
-                            <Textarea
-                              id={`block-${index}-grid-item-${itemIndex}-desc`}
-                              label="Description"
-                              value={item.description ?? ''}
-                              onChange={(value) => {
-                                const p = block.payload as FeatureGridPayload
-                                const newItems = [...(p.items ?? [])]
-                                if (newItems[itemIndex]) newItems[itemIndex] = { ...newItems[itemIndex], description: value }
-                                updateBlock(index, { ...p, items: newItems })
-                              }}
-                              placeholder="Description"
-                              rows={2}
-                            />
-                          </div>
-                        </div>
-                      ))}
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => {
-                          const p = block.payload as FeatureGridPayload
-                          const items = [...(p.items ?? []), { icon: 'file-text', title: '', description: '' }]
-                          updateBlock(index, { ...p, items })
-                        }}
-                      >
-                        <Plus className="h-4 w-4" />
-                        Add item
-                      </Button>
-                    </div>
-                  )}
-                </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8 shrink-0 p-0 text-stone-500 hover:text-rose-600"
-                  onClick={() => removeBlock(index)}
-                  aria-label="Remove block"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Card>
-
-      <div className="flex gap-2">
-        <Button variant="primary" onClick={() => void handleSave()} disabled={saving}>
-          {saving ? 'Saving…' : isEdit ? 'Update page' : 'Create page'}
-        </Button>
-        <Link to="/dashboard/pages">
-          <Button variant="secondary">Cancel</Button>
-        </Link>
       </div>
+
+      <div className="mx-auto max-w-7xl">
+        {error ? <ErrorMessage message={error} /> : null}
+
+        <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+          <div className="space-y-4">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-semibold text-stone-950 dark:text-stone-50">Content blocks</h2>
+                <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">
+                  Add sections where you want them. Collapse larger blocks to keep the page easy to scan.
+                </p>
+              </div>
+            </div>
+
+            {blocks.length === 0 ? (
+              <Card className="rounded-[28px] border-stone-200/80 bg-white/90 shadow-[0_30px_60px_-40px_rgba(15,23,42,0.45)] dark:border-stone-800 dark:bg-stone-900/80">
+                <div className="space-y-4 py-4">
+                  <div>
+                    <h3 className="text-base font-semibold text-stone-950 dark:text-stone-50">Start with your first block</h3>
+                    <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">
+                      Choose a section below to begin building the page.
+                    </p>
+                  </div>
+                  {renderInsertControl(0)}
+                </div>
+              </Card>
+            ) : (
+              <div className="space-y-1">
+                {renderInsertControl(0)}
+                {blocks.map((block, index) => {
+                  const option = getBlockOption(block.type)
+                  const Icon = option.icon
+                  const isCollapsed = collapsedBlockIds[block.clientId] === true
+
+                  return (
+                    <div key={block.clientId} className="space-y-1">
+                      <Card className="rounded-[28px] border-stone-200/80 bg-white/95 shadow-[0_30px_60px_-40px_rgba(15,23,42,0.4)] dark:border-stone-800 dark:bg-stone-900/80">
+                        <div className="space-y-5">
+                          <div className="flex items-start gap-3">
+                            <button
+                              type="button"
+                              onClick={() => toggleBlockCollapsed(block.clientId)}
+                              className="flex min-w-0 flex-1 items-start gap-3 text-left"
+                              aria-label={`${isCollapsed ? 'Expand' : 'Collapse'} ${option.label} block`}
+                              aria-expanded={!isCollapsed}
+                            >
+                              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-300">
+                                <Icon className="h-5 w-5" />
+                              </span>
+                              <span className="min-w-0">
+                                <span className="block text-lg font-semibold text-stone-950 dark:text-stone-50">
+                                  {option.label}
+                                </span>
+                                <span className="mt-1 block truncate text-sm text-stone-500 dark:text-stone-400">
+                                  {getBlockSummary(block)}
+                                </span>
+                              </span>
+                            </button>
+                            <div className="flex shrink-0 items-center gap-1">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-9 w-9 rounded-full p-0 text-stone-500 hover:bg-stone-100 hover:text-stone-700 dark:hover:bg-stone-800 dark:hover:text-stone-200"
+                                onClick={() => moveBlock(index, 'up')}
+                                disabled={index === 0}
+                                aria-label={`Move ${option.label} block up`}
+                              >
+                                <ChevronUp className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-9 w-9 rounded-full p-0 text-stone-500 hover:bg-stone-100 hover:text-stone-700 dark:hover:bg-stone-800 dark:hover:text-stone-200"
+                                onClick={() => moveBlock(index, 'down')}
+                                disabled={index === blocks.length - 1}
+                                aria-label={`Move ${option.label} block down`}
+                              >
+                                <ChevronDown className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-9 w-9 rounded-full p-0 text-stone-500 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/30 dark:hover:text-rose-400"
+                                onClick={() => removeBlock(index)}
+                                aria-label={`Remove ${option.label} block`}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+
+                          {isCollapsed ? null : (
+                            <div className="border-t border-stone-100 pt-5 dark:border-stone-800">
+                              {renderBlockFields(block, index)}
+                            </div>
+                          )}
+                        </div>
+                      </Card>
+                      {renderInsertControl(index + 1)}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+
+          <aside className="xl:sticky xl:top-24 xl:self-start">
+            <Card className="rounded-[28px] border-stone-200/80 bg-white/95 shadow-[0_30px_60px_-40px_rgba(15,23,42,0.4)] dark:border-stone-800 dark:bg-stone-900/80">
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-lg font-semibold text-stone-950 dark:text-stone-50">Page details</h2>
+                  <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">
+                    Manage metadata, publishing state, and the page URL.
+                  </p>
+                </div>
+
+                <div className="space-y-4">
+                  <Input
+                    id="page-title"
+                    label="Title"
+                    value={title}
+                    onChange={(value) => setTitle(value)}
+                    placeholder="e.g. Contact us"
+                    required
+                    className="rounded-2xl border-stone-200 focus:border-violet-500 focus:ring-violet-500/20 dark:border-stone-700 dark:focus:border-violet-400 dark:focus:ring-violet-400/20"
+                  />
+                  <Input
+                    id="page-slug"
+                    label="Slug"
+                    value={slug}
+                    onChange={(value) => setSlug(value)}
+                    placeholder="contact-us"
+                    className="rounded-2xl border-stone-200 focus:border-violet-500 focus:ring-violet-500/20 dark:border-stone-700 dark:focus:border-violet-400 dark:focus:ring-violet-400/20"
+                  />
+                  <Input
+                    id="meta-title"
+                    label="Meta title"
+                    value={metaTitle}
+                    onChange={(value) => setMetaTitle(value)}
+                    placeholder="SEO title"
+                    className="rounded-2xl border-stone-200 focus:border-violet-500 focus:ring-violet-500/20 dark:border-stone-700 dark:focus:border-violet-400 dark:focus:ring-violet-400/20"
+                  />
+                  <Textarea
+                    id="meta-description"
+                    label="Meta description"
+                    value={metaDescription}
+                    onChange={(value) => setMetaDescription(value)}
+                    placeholder="SEO description"
+                    rows={3}
+                    className="rounded-2xl border-stone-200 focus:border-violet-500 focus:ring-violet-500/20 dark:border-stone-700 dark:focus:border-violet-400 dark:focus:ring-violet-400/20"
+                  />
+                  <Select
+                    id="page-status"
+                    label="Status"
+                    value={status}
+                    onChange={(value) => setStatus(value as 'draft' | 'published')}
+                    options={[
+                      { value: 'draft', label: 'Draft' },
+                      { value: 'published', label: 'Published' },
+                    ]}
+                    className="rounded-2xl border-stone-200 focus:border-violet-500 focus:ring-violet-500/20 dark:border-stone-700 dark:focus:border-violet-400 dark:focus:ring-violet-400/20"
+                  />
+                </div>
+
+                <div className="rounded-2xl border border-dashed border-stone-200 bg-stone-50/60 p-4 dark:border-stone-700 dark:bg-stone-800/40">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-stone-500 dark:text-stone-400">
+                    Preview URL
+                  </p>
+                  <p className="mt-2 break-all text-sm text-stone-700 dark:text-stone-200">
+                    {isEdit && id ? `/c/${id}/${displaySlug || 'page-slug'}` : '/c/<page-id>/' + (displaySlug || 'page-slug')}
+                  </p>
+                </div>
+              </div>
+            </Card>
+          </aside>
+        </div>
+      </div>
+
+      <ImageUploadCropDialog
+        isOpen={Boolean(uploadTarget)}
+        onClose={() => setUploadTarget(null)}
+        title={
+          uploadTarget?.type === 'hero_image'
+            ? 'Upload and crop hero image'
+            : 'Upload and crop image'
+        }
+        aspect={uploadTarget?.type === 'hero_image' ? 16 / 9 : 4 / 3}
+        onUploaded={(url) => {
+          if (!uploadTarget) return
+          setBlocks((prev) =>
+            prev.map((block) => {
+              if (block.clientId !== uploadTarget.blockClientId) return block
+              if (uploadTarget.type === 'hero_image' && block.type === 'hero') {
+                const payload = block.payload as HeroPayload
+                return {
+                  ...block,
+                  payload: {
+                    ...payload,
+                    mediaType: 'image',
+                    imageUrl: url,
+                  },
+                }
+              }
+              if (uploadTarget.type === 'image' && block.type === 'image') {
+                const payload = block.payload as ImagePayload
+                return {
+                  ...block,
+                  payload: {
+                    ...payload,
+                    imageUrl: url,
+                  },
+                }
+              }
+              return block
+            }),
+          )
+          setUploadTarget(null)
+        }}
+      />
     </div>
   )
 }

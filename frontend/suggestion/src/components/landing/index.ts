@@ -1,5 +1,5 @@
 export { default as HeroSection } from './HeroSection'
-export type { HeroSectionProps, HeroSectionCta } from './HeroSection'
+export type { HeroSectionProps, HeroSectionCta, HeroLayoutVariant, HeroStyleVariant } from './HeroSection'
 export { default as FeatureCard } from './FeatureCard'
 export type { FeatureCardProps } from './FeatureCard'
 export { default as FeatureGrid } from './FeatureGrid'
