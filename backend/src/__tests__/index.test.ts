@@ -13,7 +13,7 @@ jest.mock('../app', () => ({
 
 describe('index onStartFailed', () => {
   it('logs error and exits when called with an error', () => {
-    const exitSpy = jest.spyOn(process, 'exit').mockImplementation(() => {});
+    const exitSpy = jest.spyOn(process, 'exit').mockImplementation((() => {}) as (code?: string | number | null) => never);
     const { logger } = require('../logger');
     const errorSpy = jest.spyOn(logger, 'error');
 
