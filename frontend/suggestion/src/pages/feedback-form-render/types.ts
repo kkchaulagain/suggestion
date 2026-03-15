@@ -39,6 +39,10 @@ export interface FeedbackFormField {
   stepId?: string
   stepOrder?: number
   validation?: FieldValidationRules
+  /** Scale field: label at low end (e.g. "Mostly disagree") */
+  scaleMinLabel?: string
+  /** Scale field: label at high end (e.g. "Mostly agree") */
+  scaleMaxLabel?: string
 }
 
 export interface FormStep {

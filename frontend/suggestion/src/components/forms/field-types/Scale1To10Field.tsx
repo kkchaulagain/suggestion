@@ -1,7 +1,23 @@
 import type { ReactNode } from 'react'
 import FieldWrapper from './FieldWrapper'
 
-const SCALE_OPTIONS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']
+const MIN = 1
+const MAX = 10
+const DEFAULT_VALUE = 6
+
+/** Standard 1–10 agreement scale labels (Likert-style). */
+export const SCALE_VALUE_LABELS: Record<number, string> = {
+  1: 'Strongly disagree',
+  2: 'Disagree',
+  3: 'Somewhat disagree',
+  4: 'Slightly disagree',
+  5: 'Neutral',
+  6: 'Slightly agree',
+  7: 'Somewhat agree',
+  8: 'Agree',
+  9: 'Strongly agree',
+  10: 'Completely agree',
+}
 
 export interface Scale1To10FieldProps {
   id: string
@@ -25,6 +41,37 @@ export default function Scale1To10Field({
   error,
 }: Scale1To10FieldProps) {
   const labelId = `${id}-label`
+  const numericValue = value === '' ? null : Math.min(MAX, Math.max(MIN, parseInt(value, 10)))
+  const sliderValue = numericValue ?? DEFAULT_VALUE
+  const valueLabel = SCALE_VALUE_LABELS[sliderValue as keyof typeof SCALE_VALUE_LABELS] ?? ''
+  const thumbPercent = ((sliderValue - MIN) / (MAX - MIN)) * 100
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const v = e.target.value
+    onChange(String(v))
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Home') {
+      e.preventDefault()
+      onChange(String(MIN))
+    } else if (e.key === 'End') {
+      e.preventDefault()
+      onChange(String(MAX))
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') {
+      const next = (numericValue ?? DEFAULT_VALUE) - 1
+      if (next >= MIN) {
+        e.preventDefault()
+        onChange(String(next))
+      }
+    } else if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
+      const next = (numericValue ?? DEFAULT_VALUE) + 1
+      if (next <= MAX) {
+        e.preventDefault()
+        onChange(String(next))
+      }
+    }
+  }
 
   return (
     <FieldWrapper id={id} label={label} error={error}>
@@ -33,35 +80,37 @@ export default function Scale1To10Field({
           role="group"
           aria-labelledby={labelId}
           aria-required={required}
-          className="flex flex-wrap gap-2"
+          className="w-full"
         >
-          {SCALE_OPTIONS.map((option) => {
-            const isSelected = value === option
-            return (
-              <button
-                key={`${name}-${option}`}
-                id={option === '1' ? id : undefined}
-                type="button"
+          <div className="w-full">
+            <div className="relative min-w-0 py-2 pt-6">
+              <input
+                type="range"
+                id={id}
+                name={name}
+                min={MIN}
+                max={MAX}
+                step={1}
+                value={sliderValue}
+                onChange={handleChange}
+                onKeyDown={handleKeyDown}
                 disabled={disabled}
-                onClick={() => onChange(option)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault()
-                    onChange(option)
-                  }
-                }}
-                className={`min-w-[2.25rem] rounded-lg border px-3 py-2 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900 disabled:pointer-events-none disabled:opacity-50 ${
-                  isSelected
-                    ? 'border-emerald-600 bg-emerald-600 text-white dark:border-emerald-500 dark:bg-emerald-500'
-                    : 'border-slate-300 bg-white text-slate-700 hover:border-slate-400 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-slate-500 dark:hover:bg-slate-700'
-                }`}
-                aria-pressed={isSelected}
-                aria-label={`${option} out of 10`}
+                required={required}
+                aria-valuemin={MIN}
+                aria-valuemax={MAX}
+                aria-valuenow={sliderValue}
+                aria-valuetext={value === '' ? 'Not selected' : valueLabel ? `${valueLabel} (${sliderValue} of 10)` : `${sliderValue} of 10`}
+                className="scale-slider w-full h-10 cursor-pointer appearance-none bg-transparent touch-manipulation disabled:cursor-not-allowed disabled:opacity-50 [&::-webkit-slider-runnable-track]:h-2.5 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-runnable-track]:bg-slate-200 [&::-webkit-slider-runnable-track]:dark:bg-slate-700 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-emerald-600 [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:border-0 [&::-webkit-slider-thumb]:-mt-2 [&::-webkit-slider-thumb]:transition-transform [&::-webkit-slider-thumb]:hover:scale-110 [&::-webkit-slider-thumb]:active:scale-105 [&::-moz-range-track]:h-2.5 [&::-moz-range-track]:rounded-full [&::-moz-range-track]:bg-slate-200 [&::-moz-range-track]:dark:bg-slate-700 [&::-moz-range-thumb]:h-6 [&::-moz-range-thumb]:w-6 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-emerald-600 [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:shadow-md"
+              />
+              <span
+                className="pointer-events-none absolute top-0 -translate-x-1/2 whitespace-nowrap rounded-md bg-emerald-600 px-2 py-1 text-xs font-semibold text-white shadow-md transition-[left] duration-75 dark:bg-emerald-500"
+                style={{ left: `${thumbPercent}%` }}
+                aria-hidden
               >
-                {option}
-              </button>
-            )
-          })}
+                {valueLabel || sliderValue}
+              </span>
+            </div>
+          </div>
         </div>
         <input
           type="hidden"

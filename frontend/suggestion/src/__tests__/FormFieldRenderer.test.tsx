@@ -252,7 +252,7 @@ describe('FormFieldRenderer', () => {
     expect(screen.getByText('Invalid email address')).toBeInTheDocument()
   })
 
-  test('renders scale as Scale1To10Field', () => {
+  test('renders scale with value in floater under thumb', () => {
     const onChange = jest.fn()
     render(
       <FormFieldRenderer
@@ -262,14 +262,16 @@ describe('FormFieldRenderer', () => {
           type: 'scale',
           required: true,
         }}
-        value=""
+        value="7"
         onChange={onChange}
       />,
     )
     expect(screen.getByText('Score (1-10)')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /7 out of 10/i })).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: /7 out of 10/i }))
-    expect(onChange).toHaveBeenCalledWith('score', '7')
+    expect(screen.getByText('Somewhat agree')).toBeInTheDocument()
+    const slider = screen.getByRole('slider', { name: /score/i })
+    expect(slider).toHaveAttribute('aria-valuenow', '7')
+    fireEvent.change(slider, { target: { value: '3' } })
+    expect(onChange).toHaveBeenCalledWith('score', '3')
   })
 
   test('renders rating type as StarRatingField', () => {
@@ -395,7 +397,7 @@ describe('FormFieldRenderer', () => {
   })
 })
 
-test('Scale1To10Field is exported and renderable', () => {
+test('Scale1To10Field is exported and renderable as slider', () => {
   const onChange = jest.fn()
   render(
     <Scale1To10Field
@@ -407,27 +409,29 @@ test('Scale1To10Field is exported and renderable', () => {
     />,
   )
   expect(screen.getByRole('group', { name: /score/i })).toBeInTheDocument()
-  expect(screen.getByRole('button', { name: /5 out of 10/i })).toHaveAttribute('aria-pressed', 'true')
-  fireEvent.click(screen.getByRole('button', { name: /8 out of 10/i }))
+  expect(screen.getByText('Neutral')).toBeInTheDocument()
+  const slider = screen.getByRole('slider', { name: /score/i })
+  expect(slider).toHaveAttribute('aria-valuenow', '5')
+  fireEvent.change(slider, { target: { value: '8' } })
   expect(onChange).toHaveBeenCalledWith('8')
 })
 
-test('Scale1To10Field triggers onChange on Enter and Space key', () => {
+test('Scale1To10Field slider responds to keyboard (Arrow and End)', () => {
   const onChange = jest.fn()
   render(
     <Scale1To10Field
       id="score"
       name="score"
       label="Score"
-      value=""
+      value="1"
       onChange={onChange}
     />,
   )
-  const button7 = screen.getByRole('button', { name: /7 out of 10/i })
-  button7.focus()
-  fireEvent.keyDown(button7, { key: 'Enter' })
-  expect(onChange).toHaveBeenCalledWith('7')
+  const slider = screen.getByRole('slider', { name: /score/i })
+  slider.focus()
+  fireEvent.keyDown(slider, { key: 'ArrowRight' })
+  expect(onChange).toHaveBeenCalledWith('2')
   onChange.mockClear()
-  fireEvent.keyDown(button7, { key: ' ' })
-  expect(onChange).toHaveBeenCalledWith('7')
+  fireEvent.keyDown(slider, { key: 'End' })
+  expect(onChange).toHaveBeenCalledWith('10')
 })

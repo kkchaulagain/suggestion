@@ -51,6 +51,10 @@ export interface FormFieldConfig {
   allowAnonymous?: boolean
   stepId?: string
   stepOrder?: number
+  /** Scale field: label at low end (e.g. "Mostly disagree") */
+  scaleMinLabel?: string
+  /** Scale field: label at high end (e.g. "Mostly agree") */
+  scaleMaxLabel?: string
 }
 
 export interface FormFieldRendererProps {

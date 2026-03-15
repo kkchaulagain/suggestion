@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import axios from 'axios'
-import { Home, Send, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Home, Send, ChevronLeft, ChevronRight, Check } from 'lucide-react'
 import { feedbackFormsApi, uploadApi } from '../../utils/apipath'
 import type { FeedbackFormConfig, FeedbackFormField, FormStep } from './types'
 import { Button, Card, ErrorMessage, ThemeToggle } from '../../components/ui'
@@ -25,6 +25,8 @@ function getInitialValues(fields: FeedbackFormField[]): FormValues {
   for (const field of fields) {
     if (field.type === 'checkbox') {
       initial[field.name] = []
+    } else if (field.type === 'scale' || field.type === 'scale_1_10') {
+      initial[field.name] = '6'
     } else {
       initial[field.name] = ''
     }
@@ -314,42 +316,85 @@ export default function FormRenderPage() {
   const isLastStep = currentStepIndex === totalSteps - 1
 
   return (
-    <div className="relative">
-      <div className="absolute right-0 top-0 p-2">
-        <ThemeToggle />
-      </div>
-      <Card className="rounded-xl sm:p-8">
-        <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">{config.title}</h1>
-        {config.description ? (
-          <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{config.description}</p>
-        ) : null}
+    <div className="min-h-[40vh] w-full max-w-full overflow-x-hidden px-0 py-2 sm:py-4">
+      <Card className="relative mx-auto w-full max-w-xl overflow-hidden rounded-xl p-4 sm:p-8">
+        <div className="absolute right-4 top-4 sm:right-6 sm:top-6 z-10">
+          <ThemeToggle />
+        </div>
+        <div className="min-w-0 pr-10 sm:pr-12">
+          <h1 className="break-words text-xl font-bold text-slate-900 dark:text-slate-100 sm:text-2xl">
+            {config.title}
+          </h1>
+          {config.description ? (
+            <p className="mt-2 break-words text-sm text-slate-600 dark:text-slate-300">{config.description}</p>
+          ) : null}
 
         {isMultistep && currentStepData ? (
-          <div className="mt-4">
-            <div className="flex items-center gap-2" aria-label={`Step ${currentStepIndex + 1} of ${totalSteps}`}>
-              {stepsWithFields.map((_, i) => (
-                <div
-                  key={i}
-                  className={`h-1.5 flex-1 rounded-full transition-colors ${
-                    i <= currentStepIndex
-                      ? 'bg-emerald-500 dark:bg-emerald-400'
-                      : 'bg-slate-200 dark:bg-slate-700'
-                  }`}
-                />
-              ))}
-            </div>
-            <p className="mt-2 text-xs font-medium text-slate-500 dark:text-slate-400">
+          <div
+            className="mt-6 min-w-0 rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-4 dark:border-slate-700 dark:bg-slate-800/50"
+            aria-label={`Step ${currentStepIndex + 1} of ${totalSteps}`}
+          >
+            <p className="mb-3 text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
               Step {currentStepIndex + 1} of {totalSteps}
-              {currentStepData.step.title ? ` — ${currentStepData.step.title}` : ''}
             </p>
+            <div className="flex min-w-0 items-center justify-between">
+              {stepsWithFields.map(({ step }, i) => {
+                const isCompleted = i < currentStepIndex
+                const isCurrent = i === currentStepIndex
+                return (
+                  <div key={step.id} className="flex min-w-0 flex-1 items-center last:flex-none">
+                    <div className="flex flex-col items-center gap-1.5">
+                      <div
+                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold transition-all ${
+                          isCompleted
+                            ? 'bg-emerald-500 text-white dark:bg-emerald-400'
+                            : isCurrent
+                              ? 'border-2 border-emerald-500 bg-emerald-500 text-white ring-4 ring-emerald-500/20 dark:border-emerald-400 dark:bg-emerald-400 dark:ring-emerald-400/20'
+                              : 'border-2 border-slate-300 bg-white text-slate-400 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-500'
+                        }`}
+                        aria-current={isCurrent ? 'step' : undefined}
+                      >
+                        {isCompleted ? (
+                          <Check className="h-4 w-4" strokeWidth={3} aria-hidden />
+                        ) : (
+                          <span>{i + 1}</span>
+                        )}
+                      </div>
+                      <span
+                        className={`max-w-[4.5rem] truncate text-center text-xs font-medium sm:max-w-[5rem] ${
+                          isCurrent
+                            ? 'text-slate-800 dark:text-slate-200'
+                            : isCompleted
+                              ? 'text-slate-600 dark:text-slate-300'
+                              : 'text-slate-400 dark:text-slate-500'
+                        }`}
+                        title={step.title || `Step ${i + 1}`}
+                      >
+                        {step.title || `Step ${i + 1}`}
+                      </span>
+                    </div>
+                    {i < stepsWithFields.length - 1 ? (
+                      <div
+                        className={`mx-1 h-0.5 flex-1 min-w-0 sm:mx-2 ${
+                          isCompleted ? 'bg-emerald-500 dark:bg-emerald-400' : 'bg-slate-200 dark:bg-slate-600'
+                        }`}
+                        aria-hidden
+                      />
+                    ) : null}
+                  </div>
+                )
+              })}
+            </div>
             {currentStepData.step.description ? (
-              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{currentStepData.step.description}</p>
+              <p className="mt-3 break-words border-t border-slate-200 pt-3 text-xs text-slate-600 dark:border-slate-600 dark:text-slate-400">
+                {currentStepData.step.description}
+              </p>
             ) : null}
           </div>
         ) : null}
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-5" noValidate>
-          <div className="space-y-5">
+          <div className="space-y-5 min-w-0">
             {fieldsToRender.map((field) => (
               <FormFieldRenderer
                 key={field.name}
@@ -366,27 +411,33 @@ export default function FormRenderPage() {
           ) : null}
 
           {isMultistep ? (
-            <div className="flex min-h-[44px] flex-shrink-0 items-center gap-3 pt-6">
+            <div className="relative z-0 flex min-h-[44px] w-full max-w-full flex-shrink-0 flex-col gap-3 pt-6 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
               {currentStepIndex > 0 ? (
                 <Button
                   type="button"
                   variant="secondary"
                   size="md"
-                  className="min-w-[100px] flex-1 sm:flex-none"
+                  className="w-full min-h-[48px] touch-manipulation shadow-sm sm:min-h-[44px] sm:w-auto sm:min-w-[100px]"
                   onClick={(e) => {
                     e.preventDefault()
                     handleBack()
                   }}
                 >
-                  <ChevronLeft className="h-4 w-4" />
+                  <ChevronLeft className="h-4 w-4 shrink-0" />
                   Back
                 </Button>
               ) : (
-                <span className="flex-1" aria-hidden />
+                <span className="hidden sm:inline sm:flex-1" aria-hidden />
               )}
               {isLastStep ? (
-                <Button type="submit" variant="primary" size="md" disabled={submitting} className="min-w-[120px] flex-1 sm:flex-none">
-                  <Send className="h-4 w-4" />
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="md"
+                  disabled={submitting}
+                  className="w-full min-h-[48px] touch-manipulation shadow-md sm:min-h-[44px] sm:w-auto sm:min-w-[120px]"
+                >
+                  <Send className="h-4 w-4 shrink-0" />
                   {submitting ? 'Submitting...' : 'Submit'}
                 </Button>
               ) : (
@@ -394,7 +445,7 @@ export default function FormRenderPage() {
                   type="button"
                   variant="primary"
                   size="md"
-                  className="min-w-[100px] flex-1 sm:flex-none"
+                  className="w-full min-h-[48px] touch-manipulation shadow-md sm:min-h-[44px] sm:w-auto sm:min-w-[100px]"
                   onClick={(e) => {
                     e.preventDefault()
                     e.stopPropagation()
@@ -402,19 +453,26 @@ export default function FormRenderPage() {
                   }}
                 >
                   Next
-                  <ChevronRight className="h-4 w-4" />
+                  <ChevronRight className="h-4 w-4 shrink-0" />
                 </Button>
               )}
             </div>
           ) : (
             <div className="pt-2">
-              <Button type="submit" variant="primary" size="md" disabled={submitting} className="w-full">
-                <Send className="h-4 w-4" />
+              <Button
+                type="submit"
+                variant="primary"
+                size="md"
+                disabled={submitting}
+                className="w-full min-h-[48px] touch-manipulation shadow-md sm:min-h-[44px]"
+              >
+                <Send className="h-4 w-4 shrink-0" />
                 {submitting ? 'Submitting...' : 'Submit'}
               </Button>
             </div>
           )}
         </form>
+        </div>
       </Card>
       <FormRenderFooter />
     </div>

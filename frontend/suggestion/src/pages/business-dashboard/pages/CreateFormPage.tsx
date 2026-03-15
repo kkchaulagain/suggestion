@@ -219,7 +219,7 @@ function makeDefaultLabel(type: FeedbackFieldType, count: number): string {
     checkbox: 'Checkbox group',
     radio: 'Single choice',
     dropdown: 'Dropdown',
-    scale: 'Scale 1–10',
+    scale: 'Your rating',
     rating: 'Rating',
     image: 'Attachment',
   }
