@@ -1,5 +1,5 @@
 import type { ChoiceFieldResult, ResultOption } from '../../types/results'
-import { getEmojiScaleDisplay } from './EmojiScaleResults'
+import { getEmojiScaleDisplay } from './emojiScaleUtils'
 import { Card } from '../ui'
 
 function buildAriaSummary(options: ResultOption[]): string {

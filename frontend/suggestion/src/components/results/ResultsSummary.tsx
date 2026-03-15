@@ -4,10 +4,6 @@ import type { FormResultsData, ChoiceFieldResult, ResultOption } from '../../typ
 import { isChoiceFieldResult } from '../../types/results'
 import { Card } from '../ui'
 
-const EMOJI_MAP: Record<string, string> = {
-  '2': '😡', '4': '😕', '6': '😐', '8': '🙂', '10': '😄',
-}
-
 function isNumericScaleOptions(options: ResultOption[]): boolean {
   if (options.length === 0) return false
   return options.every((o) => {

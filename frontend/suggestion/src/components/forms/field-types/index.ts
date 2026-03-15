@@ -26,7 +26,7 @@ export { default as EmailField } from './EmailField'
 export type { EmailFieldProps } from './EmailField'
 
 export { default as Scale1To10Field } from './Scale1To10Field'
-export type { Scale1To10FieldProps } from './Scale1To10Field'
+export type { Scale1To10FieldProps } from './Scale1To10Field.constants'
 export { default as ScaleChipsField } from './ScaleChipsField'
 export type { ScaleChipsFieldProps } from './ScaleChipsField'
 
