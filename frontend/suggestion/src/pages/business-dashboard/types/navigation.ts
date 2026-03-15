@@ -10,7 +10,7 @@ export interface SidebarItem {
 }
 
 /** Roles that can access the business dashboard (forms, submissions, businesses). */
-export const DASHBOARD_ROLES = ['admin', 'business', 'governmentservices'] as const
+export const DASHBOARD_ROLES = ['admin', 'business', 'governmentservices', 'user'] as const
 
 /** Sidebar items for business dashboard. Each item is shown only to roles in its requiredRoles (or all dashboard roles if omitted). */
 export const sidebarItems: SidebarItem[] = [

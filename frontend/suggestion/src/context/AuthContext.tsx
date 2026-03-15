@@ -22,6 +22,7 @@ export interface User {
   email: string
   role?: UserRole
   isActive?: boolean
+  avatarId?: string | null
 }
 
 interface LoginCredentials {
@@ -179,6 +180,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           email: data.email,
           role: data.role,
           isActive: data.isActive !== false,
+          avatarId: data.avatarId ?? undefined,
         }
       }
       return null

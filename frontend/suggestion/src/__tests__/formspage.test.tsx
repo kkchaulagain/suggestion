@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import '@testing-library/jest-dom'
-import { MemoryRouter } from 'react-router-dom'
+import { TestRouter } from './test-router'
 import axios from 'axios'
 
 import FormsPage from '../pages/business-dashboard/pages/FormsPage'
@@ -22,9 +22,9 @@ jest.mock('react-router-dom', () => ({
 
 function renderFormsPage() {
   return render(
-    <MemoryRouter>
+    <TestRouter>
       <FormsPage />
-    </MemoryRouter>,
+    </TestRouter>,
   )
 }
 
@@ -62,7 +62,19 @@ describe('FormsPage', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/dashboard/forms/create')
   })
 
-  interface FormsListApiResponse { data: { feedbackForms: Array<{ _id: string; title?: string; description?: string; businessId?: string; fields?: Array<{ name: string; label: string; type: string; required?: boolean }> }> } }
+  interface FormsListApiResponse {
+    data: {
+      feedbackForms: Array<{
+        _id: string
+        title?: string
+        description?: string
+        businessId?: string
+        kind?: string
+        showResultsPublic?: boolean
+        fields?: Array<{ name: string; label: string; type: string; required?: boolean; options?: string[] }>
+      }>
+    }
+  }
 
   test('generates and shows QR code for a form', async () => {
     mockedAxios.get.mockResolvedValueOnce({
@@ -73,7 +85,7 @@ describe('FormsPage', () => {
             title: 'Customer Feedback',
             description: 'Tell us what to improve',
             businessId: 'b1',
-            fields: [{ name: 'comment', label: 'Comment', type: 'long_text', required: false }],
+            fields: [{ name: 'comment', label: 'Comment', type: 'text', required: false }],
           },
         ],
       },
@@ -92,7 +104,7 @@ describe('FormsPage', () => {
     await waitFor(() => {
       expect(screen.getByText(/Customer Feedback/i)).toBeInTheDocument()
     })
-    expect(screen.getByText('1 question - 0 required')).toBeInTheDocument()
+    expect(screen.getByText('1 question · 0 required')).toBeInTheDocument()
     expect(screen.getByText(/Questions included:/i)).toBeInTheDocument()
     expect(screen.getByText(/Comment/)).toBeInTheDocument()
 
@@ -116,7 +128,7 @@ describe('FormsPage', () => {
             _id: 'f1',
             title: 'Test Form',
             businessId: 'b1',
-            fields: [{ name: 'q', label: 'Q', type: 'short_text', required: false }],
+            fields: [{ name: 'q', label: 'Q', type: 'text', required: false }],
           },
         ],
       },
@@ -142,7 +154,7 @@ describe('FormsPage', () => {
             _id: 'f2',
             title: 'Issue Form',
             businessId: 'b1',
-            fields: [{ name: 'issue', label: 'Issue', type: 'short_text', required: true }],
+            fields: [{ name: 'issue', label: 'Issue', type: 'text', required: true }],
           },
         ],
       },
@@ -177,9 +189,9 @@ describe('FormsPage', () => {
         feedbackForms: [
           {
             _id: 'form-xyz-456',
-            title: 'Survey',
+            title: 'Edit Target Form',
             businessId: 'b1',
-            fields: [{ name: 'q', label: 'Question', type: 'short_text', required: false }],
+            fields: [{ name: 'q', label: 'Question', type: 'text', required: false }],
           },
         ],
       },
@@ -188,7 +200,7 @@ describe('FormsPage', () => {
     renderFormsPage()
 
     await waitFor(() => {
-      expect(screen.getByText(/Survey/i)).toBeInTheDocument()
+      expect(screen.getByText(/Edit Target Form/i)).toBeInTheDocument()
     })
 
     fireEvent.click(screen.getByRole('button', { name: /^edit$/i }))
@@ -204,7 +216,7 @@ describe('FormsPage', () => {
             _id: 'form-abc-123',
             title: 'Feedback Form',
             businessId: 'b1',
-            fields: [{ name: 'q', label: 'Question', type: 'short_text', required: false }],
+            fields: [{ name: 'q', label: 'Question', type: 'text', required: false }],
           },
         ],
       },
@@ -221,6 +233,93 @@ describe('FormsPage', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/dashboard/submissions?formId=form-abc-123')
   })
 
+  test('shows Form / Poll / Survey badge per form and Results button navigates with tab=results', async () => {
+    mockedAxios.get.mockResolvedValueOnce({
+      data: {
+        feedbackForms: [
+          {
+            _id: 'f-form',
+            title: 'Standard Form',
+            businessId: 'b1',
+            kind: 'form',
+            fields: [{ name: 'q', label: 'Q', type: 'text', required: false }],
+          },
+          {
+            _id: 'f-poll',
+            title: 'Quick Poll',
+            businessId: 'b1',
+            kind: 'poll',
+            fields: [{ name: 'vote', label: 'Vote', type: 'radio', required: true, options: ['A', 'B'] }],
+          },
+          {
+            _id: 'f-survey',
+            title: 'Survey',
+            businessId: 'b1',
+            kind: 'survey',
+            showResultsPublic: true,
+            fields: [
+              { name: 'r', label: 'Rating', type: 'radio', required: true, options: ['1', '2'] },
+              { name: 'c', label: 'Comment', type: 'text', required: false },
+            ],
+          },
+        ],
+      },
+    } as FormsListApiResponse)
+
+    renderFormsPage()
+
+    await waitFor(() => {
+      expect(screen.getByText(/Standard Form/i)).toBeInTheDocument()
+    })
+
+    expect(screen.getByTestId('form-kind-badge-f-form')).toHaveTextContent('Form')
+    expect(screen.getByTestId('form-kind-badge-f-poll')).toHaveTextContent('Poll')
+    expect(screen.getByTestId('form-kind-badge-f-survey')).toHaveTextContent('Survey')
+
+    expect(screen.getByTestId('form-results-visibility-f-form')).toHaveTextContent('Results private')
+    expect(screen.getByTestId('form-results-visibility-f-survey')).toHaveTextContent('Results public')
+
+    fireEvent.click(screen.getAllByRole('button', { name: /^Results$/i })[0])
+    expect(mockNavigate).toHaveBeenCalledWith(expect.stringContaining('tab=results'))
+  })
+
+  test('filter by kind shows only matching forms', async () => {
+    mockedAxios.get.mockResolvedValueOnce({
+      data: {
+        feedbackForms: [
+          {
+            _id: 'f1',
+            title: 'Form One',
+            businessId: 'b1',
+            kind: 'form',
+            fields: [{ name: 'q', label: 'Q', type: 'text', required: false }],
+          },
+          {
+            _id: 'f2',
+            title: 'Poll One',
+            businessId: 'b1',
+            kind: 'poll',
+            fields: [{ name: 'v', label: 'V', type: 'radio', required: true, options: ['X'] }],
+          },
+        ],
+      },
+    } as FormsListApiResponse)
+
+    renderFormsPage()
+
+    await waitFor(() => {
+      expect(screen.getByText(/Form One/i)).toBeInTheDocument()
+      expect(screen.getByText(/Poll One/i)).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /^Poll$/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText(/Poll One/i)).toBeInTheDocument()
+      expect(screen.queryByText(/Form One/i)).not.toBeInTheDocument()
+    })
+  })
+
   test('renders useful summary information instead of business id text', async () => {
     mockedAxios.get.mockResolvedValueOnce({
       data: {
@@ -231,8 +330,8 @@ describe('FormsPage', () => {
             description: 'Collect quick front-desk details',
             businessId: 'b1',
             fields: [
-              { name: 'name', label: 'Name', type: 'short_text', required: true },
-              { name: 'purpose', label: 'Purpose', type: 'long_text', required: false },
+              { name: 'name', label: 'Name', type: 'text', required: true },
+              { name: 'purpose', label: 'Purpose', type: 'text', required: false },
             ],
           },
         ],
@@ -245,10 +344,37 @@ describe('FormsPage', () => {
       expect(screen.getByText(/Walk-in Form/i)).toBeInTheDocument()
     })
 
-    expect(screen.getByText('2 questions - 1 required')).toBeInTheDocument()
+    expect(screen.getByText('2 questions · 1 required')).toBeInTheDocument()
     expect(screen.queryByText(/Business ID:/i)).not.toBeInTheDocument()
   })
-  
+
+  test('truncates questions included when form has more than 5 fields', async () => {
+    const sixFields = [
+      { name: 'q1', label: 'Question 1', type: 'text', required: false },
+      { name: 'q2', label: 'Question 2', type: 'text', required: false },
+      { name: 'q3', label: 'Question 3', type: 'text', required: false },
+      { name: 'q4', label: 'Question 4', type: 'text', required: false },
+      { name: 'q5', label: 'Question 5', type: 'text', required: false },
+      { name: 'q6', label: 'Question 6', type: 'text', required: false },
+    ]
+    mockedAxios.get.mockResolvedValueOnce({
+      data: {
+        feedbackForms: [
+          { _id: 'f-long', title: 'Long Form', businessId: 'b1', fields: sixFields },
+        ],
+      },
+    } as FormsListApiResponse)
+
+    renderFormsPage()
+
+    await waitFor(() => {
+      expect(screen.getByText(/Long Form/i)).toBeInTheDocument()
+    })
+
+    expect(screen.getByText(/Questions included:/i)).toBeInTheDocument()
+    expect(screen.getByText(/\+1 more/)).toBeInTheDocument()
+  })
+
   test('Delete button opens modal and deletes form on confirm', async () => {
     mockedAxios.get.mockResolvedValueOnce({
       data: {
@@ -257,7 +383,7 @@ describe('FormsPage', () => {
             _id: 'f-delete-1',
             title: 'Delete Form',
             businessId: 'b1',
-            fields: [{ name: 'q', label: 'Question', type: 'short_text', required: false }],
+            fields: [{ name: 'q', label: 'Question', type: 'text', required: false }],
           },
         ],
       },
@@ -296,7 +422,7 @@ describe('FormsPage', () => {
             _id: 'f-delete-error-1',
             title: 'Delete Error Form',
             businessId: 'b1',
-            fields: [{ name: 'q', label: 'Question', type: 'short_text', required: false }],
+            fields: [{ name: 'q', label: 'Question', type: 'text', required: false }],
           },
         ],
       },
@@ -330,7 +456,7 @@ describe('FormsPage', () => {
             _id: 'f-close-1',
             title: 'Backdrop Close Form',
             businessId: 'b1',
-            fields: [{ name: 'q', label: 'Question', type: 'short_text', required: false }],
+            fields: [{ name: 'q', label: 'Question', type: 'text', required: false }],
           },
         ],
       },
@@ -361,7 +487,7 @@ test('Cancel button in delete modal closes modal and clears error', async () => 
           _id: 'f-cancel-1',
           title: 'Cancel Form',
           businessId: 'b1',
-          fields: [{ name: 'q', label: 'Question', type: 'short_text', required: false }],
+          fields: [{ name: 'q', label: 'Question', type: 'text', required: false }],
         },
       ],
     },
@@ -389,7 +515,7 @@ test('delete modal onClose is blocked while deletion is in progress', async () =
           _id: 'f-blocking-1',
           title: 'Blocking Form',
           businessId: 'b1',
-          fields: [{ name: 'q', label: 'Question', type: 'short_text', required: false }],
+          fields: [{ name: 'q', label: 'Question', type: 'text', required: false }],
         },
       ],
     },
@@ -421,7 +547,7 @@ test('delete modal onClose is blocked while deletion is in progress', async () =
           _id: 'f-blocking-1',
           title: 'Blocking Form',
           businessId: 'b1',
-          fields: [{ name: 'q', label: 'Question', type: 'short_text', required: false }],
+          fields: [{ name: 'q', label: 'Question', type: 'text', required: false }],
         },
       ],
     },

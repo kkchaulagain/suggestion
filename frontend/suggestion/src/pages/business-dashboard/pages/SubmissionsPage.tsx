@@ -4,8 +4,9 @@ import axios from 'axios'
 import { Eye, X } from 'lucide-react'
 import { useAuth } from '../../../context/AuthContext'
 import { feedbackFormsApi, feedbackFormSubmissionsApi } from '../../../utils/apipath'
-import { Button, ErrorMessage, Modal } from '../../../components/ui'
-import { DataTable, EmptyState, PageHeader, Pagination } from '../../../components/layout'
+import { Button, ErrorMessage, Modal, Tag } from '../../../components/ui'
+import { EmptyState, FormCard, PageHeader, Pagination } from '../../../components/layout'
+import { FormResultsView, getEmojiScaleDisplay } from '../../../components/results'
 import SubmissionsFilter from '../components/SubmissionsFilter'
 
 interface FormSnapshotField {
@@ -38,6 +39,104 @@ function formatSubmittedAt(iso: string): string {
   }
 }
 
+/** Relative time for recency at a glance (e.g. "2h ago", "Yesterday"). */
+function formatRelativeTime(iso: string): string {
+  try {
+    const d = new Date(iso)
+    if (Number.isNaN(d.getTime())) return iso
+    const now = Date.now()
+    const ms = now - d.getTime()
+    const sec = Math.floor(ms / 1000)
+    const min = Math.floor(ms / 60000)
+    const hour = Math.floor(ms / 3600000)
+    const day = Math.floor(ms / 86400000)
+    if (sec < 60) return 'Just now'
+    if (min < 60) return `${min}m ago`
+    if (hour < 24) return `${hour}h ago`
+    if (day === 1) return 'Yesterday'
+    if (day < 7) return `${day} days ago`
+    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+  } catch {
+    return iso
+  }
+}
+
+/** Picks one highlight answer for the card: choice (radio/select), scale/emoji, or first short text. */
+function getKeyAnswer(submission: Submission): { label: string; value: string; isEmoji?: boolean } | null {
+  const skipTypes = ['image', 'image_upload', 'file']
+  for (const field of submission.formSnapshot) {
+    if (skipTypes.includes(field.type)) continue
+    const raw = submission.responses[field.name]
+    if (raw == null) continue
+    const label = field.label || field.name
+    if (field.type === 'radio' || field.type === 'select' || (field.options && field.options.length > 0)) {
+      const value = Array.isArray(raw) ? raw[0] : String(raw).trim()
+      if (value) return { label, value, isEmoji: false }
+    }
+    if (field.type === 'scale' || field.type === 'scale_emoji' || field.type === 'scale_1_10') {
+      const value = typeof raw === 'string' ? raw.trim() : Array.isArray(raw) ? raw[0] : ''
+      if (value) {
+        const emojiDisplay = getEmojiScaleDisplay(value)
+        if (emojiDisplay) return { label, value: `${emojiDisplay.emoji} ${emojiDisplay.label}`, isEmoji: true }
+        return { label, value, isEmoji: false }
+      }
+    }
+    const text = Array.isArray(raw) ? raw.join(', ') : String(raw).trim()
+    if (text.length > 0 && !text.startsWith('http') && !text.startsWith('data:')) {
+      const short = text.length > 60 ? `${text.slice(0, 60)}…` : text
+      return { label, value: short, isEmoji: false }
+    }
+  }
+  return null
+}
+
+/** Submitter name from a name-like field for "From: X" on the card. Prefers labels with "name" over "email". */
+function getSubmitterDisplay(submission: Submission): string | undefined {
+  const isNameField = (l: string) => /(^|\s)(your\s+)?name|full\s+name|submitter/i.test(l) && !/e-?mail/i.test(l)
+  for (const field of submission.formSnapshot) {
+    const label = field.label || field.name
+    if (!isNameField(label)) continue
+    const raw = submission.responses[field.name]
+    if (raw == null) continue
+    const text = Array.isArray(raw) ? raw[0] : String(raw).trim()
+    if (text.length > 0 && text.length < 100 && !text.includes('@')) return text
+  }
+  return undefined
+}
+
+/** Whether submission is from the last 24h for "New" badge. */
+function isRecent(iso: string, withinMs = 86400000): boolean {
+  try {
+    const d = new Date(iso)
+    return !Number.isNaN(d.getTime()) && Date.now() - d.getTime() < withinMs
+  } catch {
+    return false
+  }
+}
+
+/** Human-readable list of field labels for "Questions answered" line (like Forms "Questions included"). */
+function formatSubmissionFieldsSummary(fields: FormSnapshotField[], maxItems = 5): string {
+  const labels = fields.map((f) => f.label || f.name)
+  if (labels.length <= maxItems) return labels.join(', ')
+  return `${labels.slice(0, maxItems).join(', ')} +${labels.length - maxItems} more`
+}
+
+/** One-line preview from first short text response for card description. Skips images and long blobs. */
+function getResponsePreview(submission: Submission, maxLen = 80): string | undefined {
+  const skipTypes = ['image', 'image_upload', 'file']
+  for (const field of submission.formSnapshot) {
+    if (skipTypes.includes(field.type)) continue
+    const value = submission.responses[field.name]
+    if (value == null) continue
+    const text = Array.isArray(value) ? value.join(', ') : String(value).trim()
+    if (text.length === 0) continue
+    if (text.startsWith('http://') || text.startsWith('https://') || text.startsWith('data:')) continue
+    if (text.length > maxLen) return `${text.slice(0, maxLen)}…`
+    return text
+  }
+  return undefined
+}
+
 function isImageUrl(value: string, fieldType: string): boolean {
   if (!value || typeof value !== 'string') return false
   const trimmed = value.trim()
@@ -68,8 +167,13 @@ function ResponseDetailModal({
           {submission.formSnapshot.map((field) => {
             const value = submission.responses[field.name]
             const isCheckbox = field.type === 'checkbox' && Array.isArray(value)
-            const displayText =
-              isCheckbox
+            const emojiDisplay =
+              typeof value === 'string' && (field.type === 'scale' || field.type === 'scale_emoji' || field.type === 'scale_1_10')
+                ? getEmojiScaleDisplay(value)
+                : null
+            const displayText = emojiDisplay
+              ? `${emojiDisplay.emoji} ${emojiDisplay.label}`
+              : isCheckbox
                 ? value.length ? value.join(', ') : '—'
                 : typeof value === 'string'
                   ? value || '—'
@@ -117,9 +221,13 @@ function ResponseDetailModal({
   )
 }
 
+type SubmissionsTab = 'responses' | 'results'
+
 export default function SubmissionsPage() {
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const formIdFromUrl = searchParams.get('formId') ?? ''
+  const tabParam = searchParams.get('tab') ?? 'responses'
+  const activeTab: SubmissionsTab = tabParam === 'results' ? 'results' : 'responses'
 
   const [forms, setForms] = useState<FeedbackForm[]>([])
   const [submissions, setSubmissions] = useState<Submission[]>([])
@@ -184,6 +292,18 @@ export default function SubmissionsPage() {
   )
   const authHeadersRef = useRef(authHeaders)
   authHeadersRef.current = authHeaders
+
+  const setTab = useCallback(
+    (tab: SubmissionsTab) => {
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev)
+        next.set('tab', tab)
+        return next
+      })
+    },
+    [setSearchParams],
+  )
+  const selectedForm = formIdApplied ? forms.find((f) => f._id === formIdApplied) : null
 
   const loadForms = useCallback(async () => {
     const headers = authHeadersRef.current
@@ -260,39 +380,53 @@ export default function SubmissionsPage() {
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
 
-  const tableColumns = [
-    {
-      key: 'formTitle' as const,
-      header: 'Form',
-      render: (row: Submission) => row.formTitle || row.formId,
-    },
-    {
-      key: 'submittedAt' as const,
-      header: 'Submitted at',
-      render: (row: Submission) => formatSubmittedAt(row.submittedAt),
-    },
-    {
-      key: '_id' as const,
-      header: 'Actions',
-      render: (row: Submission) => (
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="min-h-0 rounded bg-slate-100 px-2 py-1 text-xs font-medium dark:bg-slate-700"
-          onClick={() => setViewSubmission(row)}
-        >
-          <Eye className="h-3.5 w-3.5" />
-          View
-        </Button>
-      ),
-    },
-  ]
+  const rangeStart = total === 0 ? 0 : (page - 1) * pageSize + 1
+  const rangeEnd = Math.min(page * pageSize, total)
+  const summaryText =
+    total === 0
+      ? 'No submissions'
+      : total <= pageSize
+        ? `${total} submission${total === 1 ? '' : 's'}`
+        : `Showing ${rangeStart}–${rangeEnd} of ${total} submissions`
+
+  const showTabs = Boolean(formIdFromUrl && formIdFromUrl.trim())
 
   return (
     <section className="space-y-6" aria-label="Submissions">
       <PageHeader title="Submissions" />
 
+      {showTabs ? (
+        <div className="flex gap-2 border-b border-slate-200 dark:border-slate-700" role="tablist">
+          <button
+            type="button"
+            onClick={() => setTab('responses')}
+            className={`border-b-2 px-3 py-2 text-sm font-medium ${activeTab === 'responses' ? 'border-emerald-600 text-emerald-600 dark:border-emerald-400 dark:text-emerald-400' : 'border-transparent text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100'}`}
+            aria-selected={activeTab === 'responses'}
+            role="tab"
+          >
+            Responses
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab('results')}
+            className={`border-b-2 px-3 py-2 text-sm font-medium ${activeTab === 'results' ? 'border-emerald-600 text-emerald-600 dark:border-emerald-400 dark:text-emerald-400' : 'border-transparent text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100'}`}
+            aria-selected={activeTab === 'results'}
+            role="tab"
+          >
+            Results
+          </button>
+        </div>
+      ) : null}
+
+      {activeTab === 'results' && formIdApplied ? (
+        <FormResultsView
+          formId={formIdApplied}
+          authHeaders={authHeaders}
+          showDateFilter
+          titleOverride={selectedForm?.title}
+        />
+      ) : (
+        <>
       <div>
         <SubmissionsFilter
           forms={forms}
@@ -317,46 +451,83 @@ export default function SubmissionsPage() {
         <EmptyState type="empty" message="No submissions found." />
       ) : (
         <>
-          <div className="md:hidden mt-4 space-y-0">
-            {submissions.map((row) => (
-              <div
-                key={row._id}
-                className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 py-4 first:pt-0 dark:border-slate-700"
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">
-                    {row.formTitle || row.formId}
-                  </p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    {formatSubmittedAt(row.submittedAt)}
-                  </p>
-                </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="min-h-0 rounded bg-slate-100 px-2 py-1 text-xs font-medium dark:bg-slate-700 shrink-0"
-                  onClick={() => setViewSubmission(row)}
-                >
-                  <Eye className="h-3.5 w-3.5" />
-                  View
-                </Button>
-              </div>
-            ))}
+          <p className="mt-4 text-sm text-slate-600 dark:text-slate-400">
+            {summaryText}
+          </p>
+          <div className="mt-4 space-y-5 pt-2">
+            {submissions.map((row) => {
+              const keyAnswer = getKeyAnswer(row)
+              const submitter = getSubmitterDisplay(row)
+              const recent = isRecent(row.submittedAt)
+              return (
+                <FormCard
+                  key={row._id}
+                    variant="card"
+                    title={row.formTitle || row.formId}
+                    subtitle={
+                      <span className="flex flex-wrap items-center gap-2">
+                        <Tag variant="stone">Response</Tag>
+                        {recent ? (
+                          <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300">
+                            New
+                          </span>
+                        ) : null}
+                        <span className="tabular-nums text-stone-500 dark:text-stone-400" title={formatSubmittedAt(row.submittedAt)}>
+                          {formatRelativeTime(row.submittedAt)}
+                        </span>
+                        <span className="text-stone-400 dark:text-stone-500">·</span>
+                        <span className="text-stone-500 dark:text-stone-400">
+                          {row.formSnapshot.length} {row.formSnapshot.length === 1 ? 'question' : 'questions'} answered
+                        </span>
+                      </span>
+                    }
+                    description={getResponsePreview(row)}
+                  >
+                    {submitter ? (
+                      <p className="mt-1.5 text-xs text-stone-600 dark:text-stone-300">
+                        <span className="font-medium text-stone-700 dark:text-stone-200">From:</span> {submitter}
+                      </p>
+                    ) : null}
+                    {keyAnswer && keyAnswer.value !== submitter ? (
+                      <div className="mt-2 rounded-lg border border-stone-200/80 bg-stone-50/80 px-3 py-2 dark:border-stone-700/80 dark:bg-stone-800/40">
+                        <p className="text-xs font-medium text-stone-600 dark:text-stone-400">{keyAnswer.label}</p>
+                        <p className={`mt-0.5 text-sm font-medium ${keyAnswer.isEmoji ? 'text-base' : 'text-stone-800 dark:text-stone-100'}`}>
+                          {keyAnswer.value}
+                        </p>
+                      </div>
+                    ) : null}
+                    {row.formSnapshot.length > 0 ? (
+                      <p className="mt-2 line-clamp-2 text-xs text-stone-500 dark:text-stone-400">
+                        <span className="font-medium text-stone-600 dark:text-stone-300">Questions answered:</span>{' '}
+                        {formatSubmissionFieldsSummary(row.formSnapshot)}
+                      </p>
+                    ) : (
+                      <p className="mt-2 text-xs text-stone-500 dark:text-stone-400">No responses recorded.</p>
+                    )}
+                    <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">
+                      Tap View to see the full response.
+                    </p>
+                    <div
+                      className="mt-5 -mx-5 -mb-5 flex flex-wrap items-center gap-2 rounded-b-2xl border-t border-stone-200/80 bg-stone-50/80 px-5 py-4 dark:border-stone-700/80 dark:bg-stone-800/40"
+                      role="toolbar"
+                      aria-label={`Actions for response to ${row.formTitle || row.formId}`}
+                    >
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="min-h-9 rounded-lg border border-emerald-200 bg-emerald-50 px-3.5 font-medium text-emerald-700 transition hover:bg-emerald-100 hover:border-emerald-300 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300 dark:hover:bg-emerald-900/50 dark:hover:border-emerald-700"
+                        onClick={() => setViewSubmission(row)}
+                      >
+                        <Eye className="h-4 w-4 shrink-0" />
+                        View
+                      </Button>
+                    </div>
+                  </FormCard>
+              )
+            })}
           </div>
-          <div className="hidden md:block">
-            <DataTable<Submission>
-              columns={tableColumns}
-              rows={submissions}
-              emptyMessage="No submissions found."
-              loading={false}
-              page={page}
-              totalPages={totalPages}
-              totalItems={total}
-              onPageChange={setPage}
-            />
-          </div>
-          <div className="md:hidden mt-4">
+          <div className="mt-6">
             <Pagination
               page={page}
               totalPages={totalPages}
@@ -370,6 +541,8 @@ export default function SubmissionsPage() {
       {viewSubmission ? (
         <ResponseDetailModal submission={viewSubmission} onClose={() => setViewSubmission(null)} />
       ) : null}
+        </>
+      )}
     </section>
   )
 }

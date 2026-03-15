@@ -1,9 +1,26 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+
+const DRAWER_DESKTOP_BREAKPOINT = 768
+
+function useIsDesktop() {
+  const [isDesktop, setIsDesktop] = useState(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return false
+    return window.matchMedia(`(min-width: ${DRAWER_DESKTOP_BREAKPOINT}px)`).matches
+  })
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return
+    const mql = window.matchMedia(`(min-width: ${DRAWER_DESKTOP_BREAKPOINT}px)`)
+    const handler = () => setIsDesktop(mql.matches)
+    mql.addEventListener('change', handler)
+    return () => mql.removeEventListener('change', handler)
+  }, [])
+  return isDesktop
+}
 import { useParams, Link } from 'react-router-dom'
 import axios from 'axios'
-import { Home, Send } from 'lucide-react'
+import { Home, Send, ChevronLeft, ChevronRight, Check, X } from 'lucide-react'
 import { feedbackFormsApi, uploadApi } from '../../utils/apipath'
-import type { FeedbackFormConfig, FeedbackFormField } from './types'
+import type { FeedbackFormConfig, FeedbackFormField, FormStep } from './types'
 import { Button, Card, ErrorMessage, ThemeToggle } from '../../components/ui'
 import { EmptyState } from '../../components/layout'
 import { FormFieldRenderer } from '../../components/forms'
@@ -19,13 +36,15 @@ async function uploadImage(file: File): Promise<string> {
 }
 
 type FormValues = Record<string, string | string[] | File | undefined>
-const ANONYMOUS_CAPABLE_TYPES = new Set(['name', 'email'])
+const ANONYMOUS_CAPABLE_TYPES = new Set(['text', 'email'])
 
 function getInitialValues(fields: FeedbackFormField[]): FormValues {
   const initial: FormValues = {}
   for (const field of fields) {
     if (field.type === 'checkbox') {
       initial[field.name] = []
+    } else if (field.type === 'scale' || field.type === 'scale_1_10' || field.type === 'scale_emoji') {
+      initial[field.name] = '6'
     } else {
       initial[field.name] = ''
     }
@@ -33,7 +52,7 @@ function getInitialValues(fields: FeedbackFormField[]): FormValues {
   return initial
 }
 
-function validateRequired(
+function validateRequiredForFields(
   fields: FeedbackFormField[],
   values: FormValues
 ): Record<string, string> {
@@ -62,7 +81,7 @@ function buildSubmitPayload(
     const v = values[field.name]
     if (field.type === 'checkbox') {
       payload[field.name] = Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : []
-    } else if (field.type === 'image_upload') {
+    } else if (field.type === 'image_upload' || field.type === 'image') {
       payload[field.name] = typeof v === 'string' ? v : ''
     } else {
       payload[field.name] = typeof v === 'string' ? v : (v !== undefined && v !== null ? String(v) : '')
@@ -71,15 +90,59 @@ function buildSubmitPayload(
   return payload
 }
 
-const currentYear = new Date().getFullYear()
+function getStepsWithFields(
+  steps: FormStep[] | undefined,
+  fields: FeedbackFormField[]
+): { step: FormStep; fields: FeedbackFormField[] }[] {
+  if (!steps || steps.length === 0) {
+    return [{ step: { id: '__default', title: '', description: undefined, order: 0 }, fields }]
+  }
+  const sorted = [...steps].sort((a, b) => a.order - b.order)
+  const stepIds = new Set(sorted.map((s) => s.id))
 
-function FormRenderFooter() {
-  return (
-    <footer className="mt-8 text-center text-xs text-slate-500 dark:text-slate-400" role="contentinfo">
-      © {currentYear} Suggestion Platform
-    </footer>
-  )
+  const byStep = new Map<string, FeedbackFormField[]>()
+  for (const step of sorted) {
+    byStep.set(
+      step.id,
+      fields
+        .filter((f) => f.stepId === step.id)
+        .sort((a, b) => (a.stepOrder ?? 0) - (b.stepOrder ?? 0)),
+    )
+  }
+
+  const unassigned = fields.filter((f) => !f.stepId || !stepIds.has(f.stepId))
+  if (unassigned.length > 0) {
+    unassigned.forEach((f, i) => {
+      const step = sorted[i % sorted.length]
+      const list = byStep.get(step.id) ?? []
+      list.push(f)
+      byStep.set(step.id, list)
+    })
+  }
+
+  const hasEmptyStep = [...byStep.values()].some((list) => list.length === 0)
+  const hasOverloadedStep = sorted.length > 1 && [...byStep.values()].some((list) => list.length > 1)
+  if (sorted.length > 1 && hasEmptyStep && hasOverloadedStep) {
+    const allAssigned = sorted.flatMap((step) => byStep.get(step.id) ?? [])
+    byStep.clear()
+    sorted.forEach((step) => byStep.set(step.id, []))
+    allAssigned.forEach((f, i) => {
+      const step = sorted[i % sorted.length]
+      const list = byStep.get(step.id) ?? []
+      list.push(f)
+      byStep.set(step.id, list)
+    })
+  }
+
+  return sorted.map((step) => ({
+    step,
+    fields: byStep.get(step.id) ?? [],
+  }))
 }
+
+import FormRenderFooter from './FormRenderFooter'
+import { useFormPageSEO } from './useFormPageSEO'
+import { branding } from './branding'
 
 export default function FormRenderPage() {
   const { formId } = useParams<{ formId: string }>()
@@ -91,6 +154,17 @@ export default function FormRenderPage() {
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [submitted, setSubmitted] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [currentStepIndex, setCurrentStepIndex] = useState(0)
+  const [drawerOpen, setDrawerOpen] = useState(true)
+  const isDesktop = useIsDesktop()
+
+  const stepsWithFields = useMemo(
+    () => (config ? getStepsWithFields(config.steps, config.fields) : []),
+    [config]
+  )
+  const isMultistep = stepsWithFields.length > 1
+  const totalSteps = stepsWithFields.length
+  const currentStepData = stepsWithFields[currentStepIndex]
 
   const loadForm = useCallback(async () => {
     if (!formId) {
@@ -126,6 +200,19 @@ export default function FormRenderPage() {
     void loadForm()
   }, [loadForm])
 
+  useEffect(() => {
+    if (config?.formStyle === 'drawer') {
+      setDrawerOpen(config.drawerDefaultOpen !== false)
+    }
+  }, [config?.formStyle, config?.drawerDefaultOpen])
+
+  useFormPageSEO({
+    title: config?.metaTitle ?? config?.title ?? null,
+    description: config?.metaDescription ?? config?.description ?? null,
+    siteName: branding.siteName,
+    canonicalUrl: typeof window !== 'undefined' ? window.location.href : null,
+  })
+
   const updateValue = useCallback((name: string, value: string | string[] | File | undefined) => {
     setValues((prev) => ({ ...prev, [name]: value }))
     setFieldErrors((prev) => {
@@ -136,11 +223,31 @@ export default function FormRenderPage() {
     setSubmitError(null)
   }, [])
 
+  const handleNext = useCallback(() => {
+    if (!currentStepData) return
+    const errors = validateRequiredForFields(currentStepData.fields, values)
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors)
+      return
+    }
+    setFieldErrors({})
+    setCurrentStepIndex((i) => Math.min(i + 1, totalSteps - 1))
+  }, [currentStepData, values, totalSteps])
+
+  const handleBack = useCallback(() => {
+    setCurrentStepIndex((i) => Math.max(i - 1, 0))
+    setFieldErrors({})
+  }, [])
+
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault()
       if (!config || !formId) return
-      const errors = validateRequired(config.fields, values)
+
+      const allFields = isMultistep
+        ? stepsWithFields.flatMap((s) => s.fields)
+        : config.fields
+      const errors = validateRequiredForFields(allFields, values)
       const hasErrors = Object.keys(errors).length > 0
       if (hasErrors) {
         setFieldErrors(errors)
@@ -153,7 +260,7 @@ export default function FormRenderPage() {
       try {
         const resolvedValues = { ...values }
         for (const field of config.fields) {
-          if (field.type === 'image_upload') {
+          if (field.type === 'image_upload' || field.type === 'image') {
             const v = values[field.name]
             if (v instanceof File) {
               resolvedValues[field.name] = await uploadImage(v)
@@ -172,7 +279,7 @@ export default function FormRenderPage() {
         setSubmitting(false)
       }
     },
-    [config, formId, values]
+    [config, formId, values, isMultistep, stepsWithFields]
   )
 
   if (loading) {
@@ -209,53 +316,378 @@ export default function FormRenderPage() {
     )
   }
 
-  if (submitted) {
+  const resolvedFormStyle = config.formStyle ?? 'default'
+  if (submitted && !(resolvedFormStyle === 'drawer' && !isDesktop)) {
+    const isPollOrSurvey = config?.kind === 'poll' || config?.kind === 'survey'
+    const defaultThankYouHeadline = isPollOrSurvey ? 'Vote submitted' : 'Response recorded'
+    const defaultThankYouMessage = formId && config?.showResultsPublic
+      ? 'You can view results below.'
+      : 'Thanks for taking the time!'
+    const tyHeadline = config?.thankYouHeadline || defaultThankYouHeadline
+    const tyMessage = config?.thankYouMessage || defaultThankYouMessage
+    const tyEmoji = config?.landingEmoji || '✓'
+
     return (
       <div className="relative">
         <div className="absolute right-0 top-0 p-2">
           <ThemeToggle />
         </div>
         <Card padding="lg" className="rounded-xl text-center">
-          <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Thank you</h2>
-          <p className="mt-2 text-slate-600 dark:text-slate-300">Your response has been recorded.</p>
+          <div className="flex justify-center">
+            <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-stone-100 text-3xl dark:bg-stone-800" aria-hidden>
+              {tyEmoji}
+            </span>
+          </div>
+          <h2 className="mt-5 text-xl font-semibold text-stone-900 dark:text-stone-100">
+            {tyHeadline}
+          </h2>
+          <p className="mx-auto mt-2 max-w-xs text-sm leading-relaxed text-stone-500 dark:text-stone-400">
+            {tyMessage}
+          </p>
+          {formId && config?.showResultsPublic ? (
+            <div className="mt-5">
+              <Link
+                to={`/feedback-forms/${formId}/results`}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-stone-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-stone-800 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-200"
+                data-testid="see-results-link"
+              >
+                See results
+              </Link>
+            </div>
+          ) : null}
         </Card>
         <FormRenderFooter />
       </div>
     )
   }
 
-  return (
-    <div className="relative">
-      <div className="absolute right-0 top-0 p-2">
-        <ThemeToggle />
-      </div>
-      <Card className="rounded-xl sm:p-8">
-        <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">{config.title}</h1>
-      {config.description ? (
-        <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{config.description}</p>
-      ) : null}
+  const fieldsToRender = isMultistep && currentStepData
+    ? currentStepData.fields
+    : config.fields
+  const isLastStep = currentStepIndex === totalSteps - 1
+  const formStyle = resolvedFormStyle
+  const formKind = config.kind ?? 'form'
+  const submitLabel =
+    formKind === 'poll' ? 'Cast Vote' : formKind === 'survey' ? 'Submit Vote' : 'Submit'
+  const submittingLabel =
+    formKind === 'poll' ? 'Submitting...' : formKind === 'survey' ? 'Submitting...' : 'Submitting...'
 
-      <form onSubmit={handleSubmit} className="mt-6 space-y-5" noValidate>
-        {config.fields.map((field) => (
-          <FormFieldRenderer
-            key={field.name}
-            field={field as FormFieldConfig}
-            value={values[field.name]}
-            onChange={updateValue}
-            error={fieldErrors[field.name]}
-          />
-        ))}
-
-        {submitError && Object.keys(fieldErrors).length === 0 ? (
-          <ErrorMessage message={submitError} />
+  const formInnerContent = (
+    <>
+      {isMultistep && currentStepData ? (
+          <div
+            className="mt-8 min-w-0"
+            aria-label={`Step ${currentStepIndex + 1} of ${totalSteps}`}
+          >
+            <p className="mb-4 text-[11px] font-medium uppercase tracking-widest text-stone-400 dark:text-stone-500">
+              Step {currentStepIndex + 1} of {totalSteps}
+            </p>
+            <div className="flex min-w-0 items-start justify-between gap-2">
+              {stepsWithFields.map(({ step }, i) => {
+                const isCompleted = i < currentStepIndex
+                const isCurrent = i === currentStepIndex
+                return (
+                  <div key={step.id} className="flex min-w-0 flex-1 flex-col items-center last:flex-none">
+                    <div className="flex w-full items-center">
+                      <div
+                        className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-medium transition-all duration-200 ${
+                          isCompleted
+                            ? 'border-2 border-stone-300 bg-stone-50 text-stone-500 dark:border-stone-600 dark:bg-stone-800/80 dark:text-stone-400'
+                            : isCurrent
+                              ? 'border-2 border-stone-900 bg-stone-900 text-white ring-2 ring-stone-900/20 ring-offset-2 ring-offset-white dark:border-stone-100 dark:bg-stone-100 dark:text-stone-900 dark:ring-stone-100/20 dark:ring-offset-stone-900'
+                              : 'border-2 border-stone-200 bg-stone-100 text-stone-400 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-500'
+                        }`}
+                        aria-current={isCurrent ? 'step' : undefined}
+                      >
+                        {isCompleted ? (
+                          <Check className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden />
+                        ) : (
+                          <span>{i + 1}</span>
+                        )}
+                      </div>
+                      {i < stepsWithFields.length - 1 ? (
+                        <div
+                          className={`ml-1.5 mr-1.5 h-0.5 flex-1 min-w-0 rounded-full transition-colors sm:ml-2 sm:mr-2 ${
+                            isCompleted ? 'bg-stone-300 dark:bg-stone-600' : 'bg-stone-200 dark:bg-stone-700'
+                          }`}
+                          aria-hidden
+                        />
+                      ) : null}
+                    </div>
+                    <span
+                      className={`mt-2 max-w-[4.5rem] truncate text-center text-[11px] font-medium sm:max-w-[5rem] ${
+                        isCurrent
+                          ? 'text-stone-900 dark:text-stone-100'
+                          : isCompleted
+                            ? 'text-stone-500 dark:text-stone-400'
+                            : 'text-stone-400 dark:text-stone-500'
+                      }`}
+                      title={step.title || `Step ${i + 1}`}
+                    >
+                      {step.title || `Step ${i + 1}`}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+            {currentStepData.step.description ? (
+              <p className="mt-4 break-words text-xs leading-relaxed text-stone-500 dark:text-stone-400">
+                {currentStepData.step.description}
+              </p>
+            ) : null}
+          </div>
         ) : null}
 
-        <Button type="submit" variant="primary" size="md" disabled={submitting} className="w-full">
-          <Send className="h-4 w-4" />
-          {submitting ? 'Submitting...' : 'Submit'}
-        </Button>
-      </form>
-      </Card>
+        <form onSubmit={handleSubmit} className="mt-8 space-y-6" noValidate>
+          <div className="space-y-6 min-w-0">
+            {fieldsToRender.map((field) => (
+              <FormFieldRenderer
+                key={field.name}
+                field={field as FormFieldConfig}
+                value={values[field.name]}
+                onChange={updateValue}
+                error={fieldErrors[field.name]}
+                formKind={formKind}
+                formVariant="sheet"
+              />
+            ))}
+          </div>
+
+          {submitError && Object.keys(fieldErrors).length === 0 ? (
+            <ErrorMessage message={submitError} />
+          ) : null}
+
+          {isMultistep ? (
+            <div className="relative z-0 flex min-h-[44px] w-full max-w-full flex-shrink-0 flex-col gap-3 pt-8 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+              {currentStepIndex > 0 ? (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="md"
+                  className="w-full min-h-[48px] touch-manipulation rounded-xl border-stone-200 bg-stone-50 text-stone-700 hover:bg-stone-100 dark:border-stone-600 dark:bg-stone-800 dark:text-stone-200 dark:hover:bg-stone-700 sm:min-h-[44px] sm:w-auto sm:min-w-[100px]"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    handleBack()
+                  }}
+                >
+                  <ChevronLeft className="h-4 w-4 shrink-0" />
+                  Back
+                </Button>
+              ) : (
+                <span className="hidden sm:inline sm:flex-1" aria-hidden />
+              )}
+              {isLastStep ? (
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="md"
+                  disabled={submitting}
+                  className="w-full min-h-[48px] touch-manipulation rounded-xl bg-stone-900 font-medium text-white shadow-none transition hover:bg-stone-800 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-200 sm:min-h-[44px] sm:w-auto sm:min-w-[120px]"
+                >
+                  <Send className="h-4 w-4 shrink-0" />
+                  {submitting ? submittingLabel : submitLabel}
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="md"
+                  className="w-full min-h-[48px] touch-manipulation rounded-xl bg-stone-900 font-medium text-white shadow-none transition hover:bg-stone-800 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-200 sm:min-h-[44px] sm:w-auto sm:min-w-[100px]"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    handleNext()
+                  }}
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4 shrink-0" />
+                </Button>
+              )}
+            </div>
+          ) : (
+            <div className="pt-4">
+              <Button
+                type="submit"
+                variant="primary"
+                size="md"
+                disabled={submitting}
+                className="w-full min-h-[48px] touch-manipulation rounded-xl bg-stone-900 font-medium text-white shadow-none transition hover:bg-stone-800 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-200 sm:min-h-[44px]"
+              >
+                <Send className="h-4 w-4 shrink-0" />
+                {submitting ? submittingLabel : submitLabel}
+              </Button>
+            </div>
+          )}
+        </form>
+    </>
+  )
+
+  const formCardContent = (
+    <div
+      className="relative mx-auto w-full max-w-xl overflow-hidden rounded-2xl border border-stone-200/80 bg-white p-6 dark:border-stone-700/80 dark:bg-stone-900 sm:p-10"
+      style={{ paddingTop: '2.5rem' }}
+    >
+      <div className="absolute right-4 top-4 z-10 sm:right-6 sm:top-6">
+        <ThemeToggle />
+      </div>
+      <div className="min-w-0 pr-10 sm:pr-12">
+        <p className="text-xs font-medium uppercase tracking-widest text-stone-500 dark:text-stone-400">
+          {config.title}
+        </p>
+        {config.description ? (
+          <p className="mt-1 break-words text-sm leading-relaxed text-stone-500 dark:text-stone-400">
+            {config.description}
+          </p>
+        ) : null}
+        {formInnerContent}
+      </div>
+    </div>
+  )
+
+  if (formStyle === 'drawer') {
+    if (isDesktop) {
+      return (
+        <div className="min-h-[40vh] w-full max-w-full overflow-x-hidden px-0 py-2 sm:py-4">
+          {formCardContent}
+          <FormRenderFooter />
+        </div>
+      )
+    }
+    const isPollOrSurvey = formKind === 'poll' || formKind === 'survey'
+    const landingEmoji = config.landingEmoji || (isPollOrSurvey ? '🗳️' : '📋')
+    const landingHeadline = config.landingHeadline || config.title
+    const landingDesc = config.landingDescription || config.description || ''
+    const defaultCta = isPollOrSurvey ? 'Tap to vote' : 'Start'
+    const landingCta = config.landingCtaText || defaultCta
+    const fieldCount = config.fields.length
+    const kindLabel = formKind === 'poll' ? 'Poll' : formKind === 'survey' ? 'Survey' : 'Form'
+
+    return (
+      <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-[#fafaf9] dark:bg-stone-950">
+        {/* Landing / thank-you */}
+        <div
+          className={`relative mx-auto flex min-h-[80vh] w-full max-w-xl flex-col items-center justify-center px-4 py-12 text-center transition-opacity duration-300 ${
+            drawerOpen && !submitted ? 'pointer-events-none opacity-0' : 'opacity-100'
+          }`}
+          aria-hidden={drawerOpen && !submitted}
+        >
+          <div className="absolute right-4 top-4 z-10">
+            <ThemeToggle />
+          </div>
+
+          {submitted ? (() => {
+            const isPoll = formKind === 'poll' || formKind === 'survey'
+            const tyH = config.thankYouHeadline || (isPoll ? 'Vote submitted' : 'Response recorded')
+            const tyM = config.thankYouMessage || (config.showResultsPublic ? 'You can view results below.' : 'Thanks for taking the time!')
+            return (
+              <>
+                <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-stone-100 text-3xl dark:bg-stone-800" aria-hidden>
+                  {landingEmoji}
+                </span>
+                <h1 className="mt-5 text-2xl font-semibold tracking-tight text-stone-900 dark:text-stone-50 sm:text-3xl">
+                  {tyH}
+                </h1>
+                <p className="mx-auto mt-3 max-w-sm text-sm leading-relaxed text-stone-500 dark:text-stone-400">
+                  {tyM}
+                </p>
+                {formId && config.showResultsPublic ? (
+                  <Link
+                    to={`/feedback-forms/${formId}/results`}
+                    className="mt-6 inline-flex items-center gap-1.5 rounded-xl bg-stone-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-stone-800 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-200"
+                    data-testid="see-results-link"
+                  >
+                    See results
+                  </Link>
+                ) : null}
+              </>
+            )
+          })() : (
+            <>
+              <span className="text-5xl" aria-hidden>{landingEmoji}</span>
+
+              <h1 className="mt-5 break-words text-2xl font-semibold tracking-tight text-stone-900 dark:text-stone-50 sm:text-3xl">
+                {landingHeadline}
+              </h1>
+
+              {landingDesc ? (
+                <p className="mx-auto mt-3 max-w-sm break-words text-sm leading-relaxed text-stone-500 dark:text-stone-400">
+                  {landingDesc}
+                </p>
+              ) : null}
+
+              <div className="mt-4 flex items-center gap-2 text-xs text-stone-400 dark:text-stone-500">
+                <span className="rounded-full bg-stone-200/80 px-2.5 py-0.5 font-medium dark:bg-stone-800">{kindLabel}</span>
+                <span>·</span>
+                <span>{fieldCount} {fieldCount === 1 ? 'question' : 'questions'}</span>
+              </div>
+
+              <Button
+                type="button"
+                size="md"
+                className="mt-8 min-h-12 w-full max-w-xs rounded-xl bg-stone-900 px-6 font-medium text-white dark:bg-stone-100 dark:text-stone-900"
+                onClick={() => setDrawerOpen(true)}
+              >
+                {landingCta}
+              </Button>
+            </>
+          )}
+
+          <FormRenderFooter />
+        </div>
+
+        {/* Backdrop when drawer is open: dims page and closes drawer on tap */}
+        {drawerOpen && !submitted ? (
+          <button
+            type="button"
+            className="fixed inset-0 z-20 bg-stone-900/20 backdrop-blur-[2px] transition-opacity dark:bg-stone-950/30"
+            onClick={() => setDrawerOpen(false)}
+            aria-label="Close form"
+          />
+        ) : null}
+
+        {!submitted ? (
+          <div
+            data-testid="form-drawer"
+            className="fixed inset-x-0 bottom-0 z-30 flex max-h-[88vh] flex-col rounded-t-2xl bg-white shadow-[0_-4px_24px_rgba(0,0,0,0.08)] transition-transform duration-300 ease-out dark:bg-stone-900 dark:shadow-[0_-4px_24px_rgba(0,0,0,0.25)]"
+            style={{ transform: drawerOpen ? 'translateY(0)' : 'translateY(calc(100% - 56px))' }}
+            aria-hidden={!drawerOpen}
+          >
+            {!drawerOpen ? (
+              <button
+                type="button"
+                className="flex w-full shrink-0 cursor-pointer items-center justify-center gap-2 border-b border-stone-200/80 py-3 dark:border-stone-700/80"
+                onClick={() => setDrawerOpen(true)}
+                aria-label="Open form"
+              >
+                <span className="h-1 w-10 rounded-full bg-stone-300 dark:bg-stone-600" aria-hidden />
+              </button>
+            ) : null}
+            <header className="flex shrink-0 items-center justify-between border-b border-stone-200/80 px-4 py-3 dark:border-stone-700/80">
+              <span className="text-sm font-medium text-stone-900 dark:text-stone-100">{config.title}</span>
+              <div className="flex items-center gap-1">
+                <ThemeToggle />
+                <button
+                  type="button"
+                  onClick={() => setDrawerOpen(false)}
+                  className="-mr-1 rounded-full p-2 text-stone-500 hover:bg-stone-100 hover:text-stone-700 dark:hover:bg-stone-800 dark:hover:text-stone-300"
+                  aria-label="Close"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            </header>
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-8 pt-5">
+              {formInnerContent}
+            </div>
+          </div>
+        ) : null}
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-[40vh] w-full max-w-full overflow-x-hidden px-0 py-2 sm:py-4">
+      {formCardContent}
       <FormRenderFooter />
     </div>
   )

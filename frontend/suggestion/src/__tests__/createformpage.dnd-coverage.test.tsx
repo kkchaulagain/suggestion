@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import '@testing-library/jest-dom'
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { Route, Routes } from 'react-router-dom'
+import { TestRouter } from './test-router'
 
 import CreateFormPage from '../pages/business-dashboard/pages/CreateFormPage'
 
@@ -24,6 +25,7 @@ jest.mock('@dnd-kit/core', () => {
     PointerSensor: jest.fn(),
     useSensor: jest.fn(() => ({})),
     useSensors: jest.fn((...args: unknown[]) => args),
+    useDroppable: jest.fn(() => ({ setNodeRef: jest.fn(), isOver: false })),
     DndContext: ({
       children,
       onDragStart,
@@ -80,6 +82,17 @@ jest.mock('@dnd-kit/core', () => {
           data-testid="dnd-end-no-over"
           onClick={() => onDragEnd?.({ active: { id: 'default-attachment' }, over: null })}
         />
+        <button
+          type="button"
+          data-testid="dnd-end-step-drop"
+          onClick={() => {
+            const overId = (window as Window & { __dndTestStepDropId__?: string }).__dndTestStepDropId__
+            onDragEnd?.({
+              active: { id: 'default-attachment' },
+              over: overId ? { id: overId } : null,
+            })
+          }}
+        />
         {children}
       </div>
     ),
@@ -110,11 +123,11 @@ jest.mock('@dnd-kit/sortable', () => {
 
 function renderCreateFormPage() {
   return render(
-    <MemoryRouter initialEntries={['/dashboard/forms/create']}>
+    <TestRouter initialEntries={['/dashboard/forms/create']}>
       <Routes>
         <Route path="/dashboard/forms/create" element={<CreateFormPage />} />
       </Routes>
-    </MemoryRouter>,
+    </TestRouter>,
   )
 }
 
@@ -152,7 +165,7 @@ describe('CreateFormPage drag coverage', () => {
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: /add new field/i })).toBeInTheDocument()
     })
-    fireEvent.click(screen.getByRole('button', { name: /^short text$/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^Text$/i }))
 
     fireEvent.click(screen.getByTestId('dnd-end-reorder'))
 
@@ -165,6 +178,37 @@ describe('CreateFormPage drag coverage', () => {
       expect(resetButton).toBeDisabled()
     })
 
-    expect(screen.getByText('Short answer 4')).toBeInTheDocument()
+    expect(screen.getByText('Text field 4')).toBeInTheDocument()
+  })
+
+  test('drag field onto step (step droppable) moves field to that step', async () => {
+    const win = window as Window & { __dndTestStepDropId__?: string }
+    renderCreateFormPage()
+    fireEvent.click(screen.getByRole('button', { name: /configure my own/i }))
+
+    fireEvent.click(screen.getByRole('button', { name: /add step/i }))
+    fireEvent.click(screen.getByRole('button', { name: /add step/i }))
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /^Step 1$/i })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /^Step 2$/i })).toBeInTheDocument()
+    })
+
+    const stepContainers = document.querySelectorAll('[data-stepid]')
+    expect(stepContainers.length).toBe(2)
+    const secondStepId = stepContainers[1].getAttribute('data-stepid')
+    expect(secondStepId).toBeTruthy()
+    win.__dndTestStepDropId__ = `step-drop:${secondStepId}`
+
+    fireEvent.click(screen.getByTestId('dnd-start'))
+    fireEvent.click(screen.getByTestId('dnd-end-step-drop'))
+
+    await waitFor(() => {
+      const containers = document.querySelectorAll('[data-stepid]')
+      expect(containers.length).toBe(2)
+      expect(within(containers[1] as HTMLElement).getByText('attachment')).toBeInTheDocument()
+    })
+
+    delete win.__dndTestStepDropId__
   })
 })

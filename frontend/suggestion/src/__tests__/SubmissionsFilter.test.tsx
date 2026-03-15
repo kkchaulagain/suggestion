@@ -34,7 +34,7 @@ describe('SubmissionsFilter', () => {
         onDateFromChange={() => {}}
         dateTo=""
         onDateToChange={() => {}}
-        selectedFormFields={[{ name: 'comment', label: 'Comment', type: 'short_text' }]}
+        selectedFormFields={[{ name: 'comment', label: 'Comment', type: 'text' }]}
         fieldFilters={{}}
         onFieldFilterChange={onFieldFilterChange}
         onApply={() => {}}

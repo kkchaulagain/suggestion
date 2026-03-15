@@ -11,7 +11,9 @@
     "test:business": "jest --testPathPattern=business.test",
     "test:r2": "jest --runInBand --testPathPattern=src/__tests__/r2.test.ts",
     "seed:admin": "ts-node src/scripts/seed-admin.ts",
-    "lint": "eslint src"
+    "lint": "eslint src && npm run typecheck",
+    "typecheck": "tsc --noEmit",
+    "typecheck:src": "tsc --noEmit -p tsconfig.lint.json"
   },
   "keywords": [],
   "author": "",

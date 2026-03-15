@@ -1,3 +1,4 @@
+import type { Request as ExpressRequest, Response as ExpressResponse } from 'express';
 import { authorize } from '../middleware/authorize';
 
 jest.mock('../models/User', () => ({
@@ -14,6 +15,14 @@ interface MockResponse {
 interface MockRequestWithId {
   id?: string;
   user?: { _id: string; role: string; isActive?: boolean };
+}
+
+/** Cast mock req/res to the types the middleware expects so tests compile with strict types. */
+function asAuthorizedRequest(req: MockRequestWithId): ExpressRequest & { id?: string; user?: { _id: string; role: string; isActive?: boolean } } {
+  return req as ExpressRequest & { id?: string; user?: { _id: string; role: string; isActive?: boolean } };
+}
+function asResponse(res: MockResponse): ExpressResponse {
+  return res as unknown as ExpressResponse;
 }
 
 describe('authorize middleware', () => {
@@ -34,7 +43,7 @@ describe('authorize middleware', () => {
     const next = jest.fn();
     const middleware = authorize('admin');
 
-    await middleware(req, res, next);
+    await middleware(asAuthorizedRequest(req), asResponse(res), next);
 
     expect(res.status).toHaveBeenCalledWith(401);
     expect(User.findById).not.toHaveBeenCalled();
@@ -49,7 +58,7 @@ describe('authorize middleware', () => {
     const next = jest.fn();
     const middleware = authorize('admin');
 
-    await middleware(req, res, next);
+    await middleware(asAuthorizedRequest(req), asResponse(res), next);
 
     expect(User.findById).toHaveBeenCalledWith(req.id);
     expect(res.status).toHaveBeenCalledWith(404);
@@ -64,7 +73,7 @@ describe('authorize middleware', () => {
     const next = jest.fn();
     const middleware = authorize('admin');
 
-    await middleware(req, res, next);
+    await middleware(asAuthorizedRequest(req), asResponse(res), next);
 
     expect(res.status).toHaveBeenCalledWith(401);
     expect(next).not.toHaveBeenCalled();
@@ -78,7 +87,7 @@ describe('authorize middleware', () => {
     const next = jest.fn();
     const middleware = authorize('admin');
 
-    await middleware(req, res, next);
+    await middleware(asAuthorizedRequest(req), asResponse(res), next);
 
     expect(res.status).toHaveBeenCalledWith(403);
     expect(next).not.toHaveBeenCalled();
@@ -93,7 +102,7 @@ describe('authorize middleware', () => {
     const next = jest.fn();
     const middleware = authorize('admin');
 
-    await middleware(req, res, next);
+    await middleware(asAuthorizedRequest(req), asResponse(res), next);
 
     expect(next).toHaveBeenCalled();
     expect(req.user).toEqual(adminUser);
@@ -109,7 +118,7 @@ describe('authorize middleware', () => {
     const next = jest.fn();
     const middleware = authorize('business', 'admin', 'governmentservices');
 
-    await middleware(req, res, next);
+    await middleware(asAuthorizedRequest(req), asResponse(res), next);
 
     expect(next).toHaveBeenCalled();
     expect(req.user).toEqual(businessUser);
@@ -123,7 +132,7 @@ describe('authorize middleware', () => {
     const next = jest.fn();
     const middleware = authorize('admin');
 
-    await middleware(req, res, next);
+    await middleware(asAuthorizedRequest(req), asResponse(res), next);
 
     expect(res.status).toHaveBeenCalledWith(500);
     expect(res.json).toHaveBeenCalledWith(

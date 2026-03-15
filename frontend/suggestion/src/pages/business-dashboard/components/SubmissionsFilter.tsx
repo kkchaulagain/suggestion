@@ -28,7 +28,7 @@ export interface SubmissionsFilterProps {
   onApply: () => void
 }
 
-const FILTERABLE_FIELD_TYPES = ['short_text', 'long_text', 'big_text', 'radio', 'checkbox']
+const FILTERABLE_FIELD_TYPES = ['text', 'textarea', 'short_text', 'long_text', 'big_text', 'radio', 'checkbox']
 
 export default function SubmissionsFilter({
   forms,

@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import '@testing-library/jest-dom'
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { Route, Routes } from 'react-router-dom'
+import { TestRouter } from './test-router'
 import axios from 'axios'
 
 import CreateFormPage from '../pages/business-dashboard/pages/CreateFormPage'
@@ -25,12 +26,12 @@ jest.mock('react-router-dom', () => ({
 
 function renderCreateFormPage(path = '/dashboard/forms/create') {
   return render(
-    <MemoryRouter initialEntries={[path]}>
+    <TestRouter initialEntries={[path]}>
       <Routes>
         <Route path="/dashboard/forms/create" element={<CreateFormPage />} />
         <Route path="/dashboard/forms/:formId/edit" element={<CreateFormPage />} />
       </Routes>
-    </MemoryRouter>,
+    </TestRouter>,
   )
 }
 
@@ -65,11 +66,21 @@ describe('CreateFormPage', () => {
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: /Add new field/i })).toBeInTheDocument()
     })
-    fireEvent.click(screen.getByRole('button', { name: /^Short Text$/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^Text$/i }))
 
     await waitFor(() => {
-      expect(screen.getByDisplayValue('Short answer 4')).toBeInTheDocument()
+      expect(screen.getByDisplayValue('Text field 4')).toBeInTheDocument()
     })
+  })
+
+  test('expands Advanced options to show SEO and show results switch', () => {
+    renderCreateFormPage()
+    goToFormBuilder()
+
+    expect(screen.queryByLabelText(/Page title for search/i)).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /Advanced options/i }))
+    expect(screen.getByLabelText(/Page title for search/i)).toBeInTheDocument()
+    expect(screen.getByRole('switch', { name: /Show results page to respondents/i })).toBeInTheDocument()
   })
 
   test('allows editing fixed field labels', () => {
@@ -127,7 +138,7 @@ describe('CreateFormPage', () => {
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: /Add new field/i })).toBeInTheDocument()
     })
-    fireEvent.click(screen.getByRole('button', { name: /^Short Text$/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^Text$/i }))
     // New field's editor opens with More options still expanded from first field
     fireEvent.change(screen.getByLabelText(/field name/i), {
       target: { value: 'duplicate_name' },
@@ -154,7 +165,81 @@ describe('CreateFormPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /save form/i }))
 
     await waitFor(() => {
-      expect(screen.getByText(/checkbox and radio fields need at least one option/i)).toBeInTheDocument()
+      expect(screen.getByText(/need at least one option/i)).toBeInTheDocument()
+    })
+  })
+
+  test('validates checkbox fields with no valid options before save', async () => {
+    renderCreateFormPage()
+    goToFormBuilder()
+
+    fireEvent.click(screen.getByRole('button', { name: /\+ Add new field/i }))
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /Add new field/i })).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: /^Checkbox$/i }))
+    const checkboxFieldRow = getFieldRow('Checkbox group 4')
+    fireEvent.click(within(checkboxFieldRow).getByRole('button', { name: /remove option 1/i }))
+    fireEvent.click(screen.getByRole('button', { name: /save form/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText(/Checkbox, radio, dropdown, scale, and rating fields need at least one option/i)).toBeInTheDocument()
+    })
+  })
+
+  test('selecting Poll template and saving sends kind poll in POST', async () => {
+    mockedAxios.post.mockResolvedValueOnce({ data: { feedbackForm: { _id: 'new-poll' } } })
+
+    renderCreateFormPage()
+
+    await waitFor(() => {
+      expect(screen.getByText(/Choose a template/i)).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /Quick vote or choice/i }))
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue('Quick Poll')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /save form/i }))
+
+    await waitFor(() => {
+      expect(mockedAxios.post).toHaveBeenCalledWith(
+        feedbackFormsApi,
+        expect.objectContaining({
+          kind: 'poll',
+          title: 'Quick Poll',
+          fields: expect.any(Array),
+        }),
+        expect.any(Object),
+      )
+    })
+  })
+
+  test('selecting Survey template sends kind survey when saving', async () => {
+    mockedAxios.post.mockResolvedValueOnce({ data: { feedbackForm: { _id: 'new-survey' } } })
+
+    renderCreateFormPage()
+
+    await waitFor(() => {
+      expect(screen.getByText(/Choose a template/i)).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /ratings, choices, and open feedback/i }))
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue('Survey')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /save form/i }))
+
+    await waitFor(() => {
+      expect(mockedAxios.post).toHaveBeenCalledWith(
+        feedbackFormsApi,
+        expect.objectContaining({ kind: 'survey' }),
+        expect.any(Object),
+      )
     })
   })
 
@@ -165,9 +250,9 @@ describe('CreateFormPage', () => {
           title: 'Existing form',
           description: 'Loaded description',
           fields: [
-            { name: 'subject', label: 'Subject line', type: 'short_text', required: true },
-            { name: 'description', label: 'Details', type: 'big_text', required: false },
-            { name: 'attachment', label: 'Photo', type: 'image_upload', required: false },
+            { name: 'subject', label: 'Subject line', type: 'text', required: true },
+            { name: 'description', label: 'Details', type: 'textarea', required: false },
+            { name: 'attachment', label: 'Photo', type: 'image', required: false },
           ],
         },
       },
@@ -317,8 +402,8 @@ describe('CreateFormPage', () => {
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: /Add new field/i })).toBeInTheDocument()
     })
-    fireEvent.click(screen.getByRole('button', { name: /^Short Text$/i }))
-    const customFieldRow = getFieldRow('Short answer 4')
+    fireEvent.click(screen.getByRole('button', { name: /^Text$/i }))
+    const customFieldRow = getFieldRow('Text field 4')
     fireEvent.change(within(customFieldRow).getByLabelText(/label/i), {
       target: { value: 'Comment' },
     })
@@ -328,23 +413,25 @@ describe('CreateFormPage', () => {
     await waitFor(() => {
       expect(mockedAxios.post).toHaveBeenCalledWith(
         feedbackFormsApi,
-        {
+        expect.objectContaining({
           title: 'Feedback form',
           description: 'test',
+          kind: 'form',
+          showResultsPublic: false,
           fields: [
             {
               name: 'subject',
               label: 'subject',
-              type: 'short_text',
+              type: 'text',
               required: true,
               placeholder: undefined,
               options: undefined,
-              allowAnonymous: undefined,
+              allowAnonymous: false,
             },
             {
               name: 'description',
               label: 'description',
-              type: 'big_text',
+              type: 'textarea',
               required: false,
               placeholder: undefined,
               options: undefined,
@@ -353,7 +440,7 @@ describe('CreateFormPage', () => {
             {
               name: 'attachment',
               label: 'attachment',
-              type: 'image_upload',
+              type: 'image',
               required: false,
               placeholder: undefined,
               options: undefined,
@@ -362,14 +449,14 @@ describe('CreateFormPage', () => {
             {
               name: 'comment',
               label: 'Comment',
-              type: 'short_text',
+              type: 'text',
               required: false,
               placeholder: undefined,
               options: undefined,
-              allowAnonymous: undefined,
+              allowAnonymous: false,
             },
           ],
-        },
+        }),
         {
           withCredentials: true,
           headers: { Authorization: 'Bearer fake-token' },
@@ -485,9 +572,9 @@ describe('CreateFormPage', () => {
             title: 'Existing form',
             description: 'Desc',
             fields: [
-              { name: 'subject', label: 'Subject', type: 'short_text', required: true },
-              { name: 'description', label: 'Description', type: 'big_text', required: false },
-              { name: 'attachment', label: 'Attachment', type: 'image_upload', required: false },
+              { name: 'subject', label: 'Subject', type: 'text', required: true },
+              { name: 'description', label: 'Description', type: 'textarea', required: false },
+              { name: 'attachment', label: 'Attachment', type: 'image', required: false },
             ],
           },
         },
@@ -513,10 +600,10 @@ describe('CreateFormPage', () => {
       await waitFor(() => {
         expect(screen.getByRole('heading', { name: /Add new field/i })).toBeInTheDocument()
       })
-      fireEvent.click(screen.getByRole('button', { name: /^Name$/i }))
+      fireEvent.click(screen.getByRole('button', { name: /Text \(Name\)/i }))
 
       await waitFor(() => {
-        expect(screen.getByText('Name 4')).toBeInTheDocument()
+        expect(screen.getByText('Text field 4')).toBeInTheDocument()
       })
     })
 
@@ -528,9 +615,9 @@ describe('CreateFormPage', () => {
       await waitFor(() => {
         expect(screen.getByRole('heading', { name: /Add new field/i })).toBeInTheDocument()
       })
-      fireEvent.click(screen.getByRole('button', { name: /^Name$/i }))
+      fireEvent.click(screen.getByRole('button', { name: /Text \(Name\)/i }))
 
-      const nameRow = getFieldRow('Name 4')
+      const nameRow = getFieldRow('Text field 4')
       expect(within(nameRow).getByLabelText(/allow anonymous/i)).toBeInTheDocument()
 
       fireEvent.click(screen.getByRole('button', { name: /\+ Add new field/i }))
@@ -542,7 +629,7 @@ describe('CreateFormPage', () => {
       const emailRow = getFieldRow('Email 5')
       expect(within(emailRow).getByLabelText(/allow anonymous/i)).toBeInTheDocument()
 
-      // Subject row (short_text) should NOT have allow anonymous
+      // Subject row (text) should NOT have allow anonymous
       const subjectRow = getFieldRow('subject')
       fireEvent.click(within(subjectRow).getByRole('button', { name: /edit/i }))
       expect(within(subjectRow).queryByLabelText(/allow anonymous/i)).not.toBeInTheDocument()
@@ -556,9 +643,9 @@ describe('CreateFormPage', () => {
       await waitFor(() => {
         expect(screen.getByRole('heading', { name: /Add new field/i })).toBeInTheDocument()
       })
-      fireEvent.click(screen.getByRole('button', { name: /^Name$/i }))
+      fireEvent.click(screen.getByRole('button', { name: /Text \(Name\)/i }))
 
-      const nameRow = getFieldRow('Name 4')
+      const nameRow = getFieldRow('Text field 4')
       const requiredCheckbox = within(nameRow).getByLabelText(/required field/i)
       const anonymousCheckbox = within(nameRow).getByLabelText(/allow anonymous/i)
 
@@ -588,9 +675,9 @@ describe('CreateFormPage', () => {
       await waitFor(() => {
         expect(screen.getByRole('heading', { name: /Add new field/i })).toBeInTheDocument()
       })
-      fireEvent.click(screen.getByRole('button', { name: /^Name$/i }))
+      fireEvent.click(screen.getByRole('button', { name: /Text \(Name\)/i }))
 
-      const nameRow = getFieldRow('Name 4')
+      const nameRow = getFieldRow('Text field 4')
       fireEvent.click(within(nameRow).getByLabelText(/allow anonymous/i))
 
       fireEvent.click(screen.getByRole('button', { name: /save form/i }))
@@ -601,8 +688,8 @@ describe('CreateFormPage', () => {
           expect.objectContaining({
             fields: expect.arrayContaining([
               expect.objectContaining({
-                name: 'name_4',
-                type: 'name',
+                name: 'text_field_4',
+                type: 'text',
                 allowAnonymous: true,
                 required: false,
               }),
@@ -612,20 +699,66 @@ describe('CreateFormPage', () => {
         )
       })
     })
+  })
 
-    test('saves Email field with allowAnonymous in payload', async () => {
+  describe('Steps (multistep)', () => {
+    test('Add step creates a step and shows Steps & Fields with step title', async () => {
+      renderCreateFormPage()
+      goToFormBuilder()
+
+      expect(screen.getByText(/^Fields$/)).toBeInTheDocument()
+      fireEvent.click(screen.getByRole('button', { name: /add step/i }))
+
+      await waitFor(() => {
+        expect(screen.getByText(/Steps & Fields/i)).toBeInTheDocument()
+      })
+      expect(screen.getByRole('button', { name: /^Step 1$/i })).toBeInTheDocument()
+    })
+
+    test('Remove step removes the step from the list', async () => {
+      renderCreateFormPage()
+      goToFormBuilder()
+
+      fireEvent.click(screen.getByRole('button', { name: /add step/i }))
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /^Step 1$/i })).toBeInTheDocument()
+      })
+
+      fireEvent.click(screen.getByRole('button', { name: /remove step Step 1/i }))
+
+      await waitFor(() => {
+        expect(screen.queryByRole('button', { name: /^Step 1$/i })).not.toBeInTheDocument()
+      })
+      expect(screen.getByText(/^Fields$/)).toBeInTheDocument()
+    })
+
+    test('editing step opens step title and description inputs', async () => {
+      renderCreateFormPage()
+      goToFormBuilder()
+
+      fireEvent.click(screen.getByRole('button', { name: /add step/i }))
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /^Step 1$/i })).toBeInTheDocument()
+      })
+
+      fireEvent.click(screen.getByRole('button', { name: /^Step 1$/i }))
+
+      await waitFor(() => {
+        expect(screen.getByLabelText(/step title/i)).toBeInTheDocument()
+      })
+      fireEvent.change(screen.getByLabelText(/step title/i), { target: { value: 'Contact Info' } })
+      expect(screen.getByDisplayValue('Contact Info')).toBeInTheDocument()
+    })
+
+    test('saving form with steps sends steps and field stepId in payload', async () => {
       mockedAxios.post.mockResolvedValueOnce({ data: {} })
       renderCreateFormPage()
       goToFormBuilder()
 
-      fireEvent.click(screen.getByRole('button', { name: /\+ Add new field/i }))
+      fireEvent.click(screen.getByRole('button', { name: /add step/i }))
       await waitFor(() => {
-        expect(screen.getByRole('heading', { name: /Add new field/i })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: /^Step 1$/i })).toBeInTheDocument()
       })
-      fireEvent.click(screen.getByRole('button', { name: /^Email$/i }))
-
-      const emailRow = getFieldRow('Email 4')
-      fireEvent.click(within(emailRow).getByLabelText(/allow anonymous/i))
 
       fireEvent.click(screen.getByRole('button', { name: /save form/i }))
 
@@ -633,12 +766,18 @@ describe('CreateFormPage', () => {
         expect(mockedAxios.post).toHaveBeenCalledWith(
           feedbackFormsApi,
           expect.objectContaining({
+            steps: expect.arrayContaining([
+              expect.objectContaining({
+                id: expect.any(String),
+                title: 'Step 1',
+                order: 0,
+              }),
+            ]),
             fields: expect.arrayContaining([
               expect.objectContaining({
-                name: 'email_4',
-                type: 'email',
-                allowAnonymous: true,
-                required: false,
+                name: 'subject',
+                stepId: expect.any(String),
+                stepOrder: expect.any(Number),
               }),
             ]),
           }),
@@ -685,6 +824,40 @@ describe('CreateFormPage', () => {
               expect.objectContaining({
                 name: 'email_4',
                 type: 'email',
+                required: false,
+              }),
+            ]),
+          }),
+          expect.any(Object),
+        )
+      })
+    })
+
+    test('saves Email field with allowAnonymous in payload', async () => {
+      mockedAxios.post.mockResolvedValueOnce({ data: {} })
+      renderCreateFormPage()
+      goToFormBuilder()
+
+      fireEvent.click(screen.getByRole('button', { name: /\+ Add new field/i }))
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: /Add new field/i })).toBeInTheDocument()
+      })
+      fireEvent.click(screen.getByRole('button', { name: /^Email$/i }))
+
+      const emailRow = getFieldRow('Email 4')
+      fireEvent.click(within(emailRow).getByLabelText(/allow anonymous/i))
+
+      fireEvent.click(screen.getByRole('button', { name: /save form/i }))
+
+      await waitFor(() => {
+        expect(mockedAxios.post).toHaveBeenCalledWith(
+          feedbackFormsApi,
+          expect.objectContaining({
+            fields: expect.arrayContaining([
+              expect.objectContaining({
+                name: 'email_4',
+                type: 'email',
+                allowAnonymous: true,
                 required: false,
               }),
             ]),
