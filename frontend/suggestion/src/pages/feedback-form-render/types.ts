@@ -11,6 +11,7 @@ export type FeedbackFieldType =
   | 'radio'
   | 'dropdown'
   | 'scale'
+  | 'scale_emoji'
   | 'rating'
   | 'image'
   // Legacy types kept for backward compat during migration

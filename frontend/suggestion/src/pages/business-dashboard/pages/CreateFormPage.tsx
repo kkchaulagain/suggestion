@@ -44,6 +44,7 @@ import {
   Plus,
   Send,
   Settings2,
+  Smile,
   Star,
   Text,
   Trash2,
@@ -71,6 +72,7 @@ type FeedbackFieldType =
   | 'radio'
   | 'dropdown'
   | 'scale'
+  | 'scale_emoji'
   | 'rating'
   | 'image'
 
@@ -118,9 +120,10 @@ interface FeedbackFormResponse {
 }
 
 const OPTION_TYPES: FeedbackFieldType[] = ['checkbox', 'radio', 'dropdown']
-const TYPES_WITH_OPTIONS: FeedbackFieldType[] = ['checkbox', 'radio', 'dropdown', 'scale', 'rating']
+const TYPES_WITH_OPTIONS: FeedbackFieldType[] = ['checkbox', 'radio', 'dropdown', 'scale', 'scale_emoji', 'rating']
 
 const SCALE_1_10_OPTIONS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']
+const EMOJI_SCALE_OPTIONS = ['2', '4', '6', '8', '10']
 const STAR_RATING_OPTIONS = ['★ 1 Star', '★★ 2 Stars', '★★★ 3 Stars', '★★★★ 4 Stars', '★★★★★ 5 Stars']
 
 interface FieldTypeGroup {
@@ -157,6 +160,7 @@ const fieldTypeGroups: FieldTypeGroup[] = [
     types: [
       { value: 'rating', label: 'Star Rating', icon: Star },
       { value: 'scale', label: 'Scale 1–10', icon: BarChart2 },
+      { value: 'scale_emoji', label: 'Emoji scale', icon: Smile },
     ],
   },
   {
@@ -189,6 +193,7 @@ const fieldTypeOptions: Array<{ value: FeedbackFieldType; label: string }> = [
   { value: 'radio', label: 'Radio' },
   { value: 'dropdown', label: 'Dropdown' },
   { value: 'scale', label: 'Scale 1–10' },
+  { value: 'scale_emoji', label: 'Emoji scale' },
   { value: 'rating', label: 'Rating (stars)' },
   { value: 'image', label: 'Image Upload' },
 ]
@@ -232,6 +237,7 @@ function makeDefaultLabel(type: FeedbackFieldType, count: number): string {
     radio: 'Single choice',
     dropdown: 'Dropdown',
     scale: 'Your rating',
+    scale_emoji: 'How was it?',
     rating: 'Rating',
     image: 'Attachment',
   }
@@ -243,11 +249,13 @@ function createField(type: FeedbackFieldType, count: number, stepId?: string): F
   const options =
     type === 'scale'
       ? [...SCALE_1_10_OPTIONS]
-      : type === 'rating'
-        ? [...STAR_RATING_OPTIONS]
-        : OPTION_TYPES.includes(type)
-          ? ['Option 1']
-          : undefined
+      : type === 'scale_emoji'
+        ? [...EMOJI_SCALE_OPTIONS]
+        : type === 'rating'
+          ? [...STAR_RATING_OPTIONS]
+          : OPTION_TYPES.includes(type)
+            ? ['Option 1']
+            : undefined
   return {
     clientId: makeClientId(),
     name: toFieldName(label),
@@ -270,6 +278,7 @@ function normalizeLoadedFields(fields: FeedbackField[] | undefined): FeedbackFie
     ? fields.map((field, index) => {
         const base = { ...field, clientId: field.clientId || `loaded-${index}-${field.name}` }
         if (field.type === 'scale') return { ...base, options: [...SCALE_1_10_OPTIONS] }
+        if (field.type === 'scale_emoji') return { ...base, options: [...EMOJI_SCALE_OPTIONS] }
         if (field.type === 'rating') return { ...base, options: [...STAR_RATING_OPTIONS] }
         return base
       })
@@ -788,11 +797,13 @@ export default function CreateFormPage() {
       const options =
         type === 'scale'
           ? [...SCALE_1_10_OPTIONS]
-          : type === 'rating'
-            ? [...STAR_RATING_OPTIONS]
-            : OPTION_TYPES.includes(type)
-              ? (field.options?.length ? field.options : ['Option 1'])
-              : undefined
+          : type === 'scale_emoji'
+            ? [...EMOJI_SCALE_OPTIONS]
+            : type === 'rating'
+              ? [...STAR_RATING_OPTIONS]
+              : OPTION_TYPES.includes(type)
+                ? (field.options?.length ? field.options : ['Option 1'])
+                : undefined
       return {
         ...field,
         type,

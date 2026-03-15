@@ -6,6 +6,7 @@ module.exports = {
     'src/**/*.{ts,tsx}',
     '!src/__tests__/**',
     '!vite.config.ts',
+    '!src/pages/feedback-form-render/branding.ts',
   ],
   coverageDirectory: 'coverage',
   coverageReporters: [['cobertura', { file: 'cobertura.xml' }], 'text'],

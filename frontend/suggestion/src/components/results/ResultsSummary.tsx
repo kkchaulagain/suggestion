@@ -15,7 +15,7 @@ function isNumericScaleOptions(options: ResultOption[]): boolean {
 function overallSentiment(byField: FormResultsData['byField']): { emoji: string; label: string } | null {
   const scaleFields = Object.values(byField).filter(
     (f): f is ChoiceFieldResult =>
-      (f.type === 'scale' || f.type === 'scale_1_10') && isChoiceFieldResult(f) && isNumericScaleOptions(f.options),
+      (f.type === 'scale' || f.type === 'scale_emoji' || f.type === 'scale_1_10') && isChoiceFieldResult(f) && isNumericScaleOptions(f.options),
   )
   if (scaleFields.length === 0) return null
 

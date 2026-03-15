@@ -8,10 +8,11 @@ import { EmptyState } from '../layout'
 import ChoiceQuestionResults from './ChoiceQuestionResults'
 import EmojiScaleResults from './EmojiScaleResults'
 import RatingQuestionResults from './RatingQuestionResults'
+import ScaleQuestionResults from './ScaleQuestionResults'
 import TextQuestionResults from './TextQuestionResults'
 import ResultsSummary from './ResultsSummary'
 
-const CHOICE_TYPES = ['radio', 'checkbox', 'scale', 'scale_1_10', 'rating']
+const CHOICE_TYPES = ['radio', 'checkbox', 'scale', 'scale_emoji', 'scale_1_10', 'rating']
 const TEXT_TYPES = ['text', 'textarea', 'short_text', 'long_text', 'big_text', 'name', 'image', 'image_upload']
 
 interface FormResultsViewProps {
@@ -127,9 +128,18 @@ export default function FormResultsView({
       />
       <div className="space-y-4">
         {fieldEntries.map(([fieldName, fieldData]) => {
-          if ((fieldData.type === 'scale' || fieldData.type === 'scale_1_10') && isChoiceFieldResult(fieldData)) {
+          if (fieldData.type === 'scale_emoji' && isChoiceFieldResult(fieldData)) {
             return (
               <EmojiScaleResults
+                key={fieldName}
+                fieldName={fieldName}
+                data={fieldData}
+              />
+            )
+          }
+          if ((fieldData.type === 'scale' || fieldData.type === 'scale_1_10') && isChoiceFieldResult(fieldData)) {
+            return (
+              <ScaleQuestionResults
                 key={fieldName}
                 fieldName={fieldName}
                 data={fieldData}

@@ -5,6 +5,7 @@ import {
   isStarRatingOptions,
   StarRatingField,
   Scale1To10Field,
+  ScaleChipsField,
   FieldWrapper,
   ShortTextField,
   BigTextField,
@@ -13,6 +14,12 @@ import {
   ImageUploadField,
   NameField,
   EmailField,
+  PhoneField,
+  DateField,
+  TimeField,
+  NumberField,
+  UrlField,
+  DropdownField,
 } from '../components/forms'
 
 describe('isStarRatingOptions', () => {
@@ -56,9 +63,16 @@ test('field-type components are exported from index', () => {
   expect(RadioField).toBeDefined()
   expect(StarRatingField).toBeDefined()
   expect(Scale1To10Field).toBeDefined()
+  expect(ScaleChipsField).toBeDefined()
   expect(ImageUploadField).toBeDefined()
   expect(NameField).toBeDefined()
   expect(EmailField).toBeDefined()
+  expect(PhoneField).toBeDefined()
+  expect(DateField).toBeDefined()
+  expect(TimeField).toBeDefined()
+  expect(NumberField).toBeDefined()
+  expect(UrlField).toBeDefined()
+  expect(DropdownField).toBeDefined()
 })
 
 describe('FormFieldRenderer', () => {
@@ -451,4 +465,24 @@ test('Scale1To10Field slider responds to keyboard (Arrow and End)', () => {
   onChange.mockClear()
   fireEvent.keyDown(slider, { key: 'End' })
   expect(onChange).toHaveBeenCalledWith('10')
+})
+
+test('Scale1To10Field slider responds to Home and ArrowLeft', () => {
+  const onChange = jest.fn()
+  render(
+    <Scale1To10Field
+      id="score"
+      name="score"
+      label="Score"
+      value="5"
+      onChange={onChange}
+    />,
+  )
+  const slider = screen.getByRole('slider', { name: /score/i })
+  slider.focus()
+  fireEvent.keyDown(slider, { key: 'Home' })
+  expect(onChange).toHaveBeenCalledWith('1')
+  onChange.mockClear()
+  fireEvent.keyDown(slider, { key: 'ArrowLeft' })
+  expect(onChange).toHaveBeenCalledWith('4')
 })

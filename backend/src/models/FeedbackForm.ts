@@ -13,6 +13,7 @@ const FEEDBACK_FIELD_TYPES = [
   'radio',
   'dropdown',
   'scale',
+  'scale_emoji',
   'rating',
   'image',
   // Legacy types kept for backward compat with pre-migration forms

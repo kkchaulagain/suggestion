@@ -32,6 +32,7 @@ export type FormFieldType =
   | 'radio'
   | 'dropdown'
   | 'scale'
+  | 'scale_emoji'
   | 'rating'
   | 'image'
   // Legacy types kept for backward compat during migration
@@ -84,6 +85,7 @@ export default function FormFieldRenderer({
   formVariant = 'default',
   formKind,
 }: FormFieldRendererProps) {
+  void formKind // reserved for future use; scale/scale_1_10 always use slider, scale_emoji uses chips
   const id = `field-${field.name}`
   const isHeroLabel = formVariant === 'sheet'
   const labelNode = (
@@ -251,26 +253,25 @@ export default function FormFieldRenderer({
     )
   }
 
-  if (t === 'scale' || t === 'scale_1_10') {
-    const useChips = (formKind === 'poll' || formKind === 'survey')
+  if (t === 'scale_emoji') {
     const scaleValue = typeof value === 'string' ? value : ''
-    const chipsValue = useChips && scaleValue && !['2', '4', '6', '8', '10'].includes(scaleValue)
-      ? '6'
-      : scaleValue
-    if (useChips) {
-      return (
-        <ScaleChipsField
-          id={id}
-          name={field.name}
-          label={labelNode}
-          value={chipsValue}
-          onChange={(v) => handleChange(v)}
-          disabled={disabled}
-          required={field.required}
-          error={error}
-        />
-      )
-    }
+    const chipsValue = scaleValue && !['2', '4', '6', '8', '10'].includes(scaleValue) ? '6' : scaleValue
+    return (
+      <ScaleChipsField
+        id={id}
+        name={field.name}
+        label={labelNode}
+        value={chipsValue}
+        onChange={(v) => handleChange(v)}
+        disabled={disabled}
+        required={field.required}
+        error={error}
+      />
+    )
+  }
+
+  if (t === 'scale' || t === 'scale_1_10') {
+    const scaleValue = typeof value === 'string' ? value : ''
     return (
       <Scale1To10Field
         id={id}

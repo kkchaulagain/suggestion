@@ -70,7 +70,7 @@ function ResponseDetailModal({
             const value = submission.responses[field.name]
             const isCheckbox = field.type === 'checkbox' && Array.isArray(value)
             const emojiDisplay =
-              typeof value === 'string' && (field.type === 'scale' || field.type === 'scale_1_10')
+              typeof value === 'string' && (field.type === 'scale' || field.type === 'scale_emoji' || field.type === 'scale_1_10')
                 ? getEmojiScaleDisplay(value)
                 : null
             const displayText = emojiDisplay

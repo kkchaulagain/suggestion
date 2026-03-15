@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import '@testing-library/jest-dom'
-import { EmojiScaleResults, isEmojiScaleData } from '../components/results'
+import { EmojiScaleResults, isEmojiScaleData, getEmojiScaleDisplay } from '../components/results'
 
 describe('isEmojiScaleData', () => {
   it('returns true when all options are emoji chip values', () => {
@@ -23,6 +23,13 @@ describe('isEmojiScaleData', () => {
 
   it('returns false for empty options', () => {
     expect(isEmojiScaleData([])).toBe(false)
+  })
+})
+
+describe('getEmojiScaleDisplay', () => {
+  it('returns emoji and label for numeric value 1-10 via bucket', () => {
+    expect(getEmojiScaleDisplay('5')).toEqual({ emoji: '😐', label: 'Neutral' })
+    expect(getEmojiScaleDisplay('3')).toEqual({ emoji: '😕', label: 'Bad' })
   })
 })
 
@@ -86,5 +93,18 @@ describe('EmojiScaleResults', () => {
     render(<EmojiScaleResults fieldName="mood" data={partial} />)
     expect(screen.getByText('5 (100%)')).toBeInTheDocument()
     expect(screen.getAllByText('0 (0%)').length).toBe(4)
+  })
+
+  it('shows Excellent average when scale values are high (avg > 9)', () => {
+    const highData = {
+      ...baseData,
+      options: [
+        { option: '9', count: 2, percentage: 50 },
+        { option: '10', count: 2, percentage: 50 },
+      ],
+    }
+    render(<EmojiScaleResults fieldName="satisfaction" data={highData} />)
+    expect(screen.getByText('Average')).toBeInTheDocument()
+    expect(screen.getAllByText('Excellent').length).toBeGreaterThanOrEqual(1)
   })
 })

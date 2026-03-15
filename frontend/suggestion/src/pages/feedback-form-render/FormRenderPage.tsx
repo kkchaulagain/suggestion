@@ -42,7 +42,7 @@ function getInitialValues(fields: FeedbackFormField[]): FormValues {
   for (const field of fields) {
     if (field.type === 'checkbox') {
       initial[field.name] = []
-    } else if (field.type === 'scale' || field.type === 'scale_1_10') {
+    } else if (field.type === 'scale' || field.type === 'scale_1_10' || field.type === 'scale_emoji') {
       initial[field.name] = '6'
     } else {
       initial[field.name] = ''

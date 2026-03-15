@@ -154,7 +154,7 @@ describe('FormResultsView', () => {
     })
   })
 
-  it('shows scale field with average and distribution', async () => {
+  it('shows scale field (1–10) with average and numeric bars', async () => {
     mockedAxios.get.mockResolvedValueOnce({
       data: {
         formId: 'form-1',
@@ -182,10 +182,46 @@ describe('FormResultsView', () => {
       expect(screen.getByText(/How would you rate?/i)).toBeInTheDocument()
     })
 
-    const emojiResults = screen.getByTestId('emoji-results-score')
+    const scaleResults = screen.getByTestId('results-table-score')
+    expect(scaleResults).toBeInTheDocument()
+    expect(screen.getByText('Average')).toBeInTheDocument()
+    expect(screen.getByText(/out of 10/)).toBeInTheDocument()
+    expect(scaleResults).toHaveTextContent('7')
+    expect(scaleResults).toHaveTextContent('8')
+    expect(scaleResults).toHaveTextContent('9')
+  })
+
+  it('shows scale_emoji field with emoji results', async () => {
+    mockedAxios.get.mockResolvedValueOnce({
+      data: {
+        formId: 'form-1',
+        formTitle: 'Emoji Survey',
+        totalResponses: 3,
+        byField: {
+          mood: {
+            label: 'How was it?',
+            type: 'scale_emoji',
+            options: [
+              { option: '6', count: 1, percentage: 33 },
+              { option: '8', count: 2, percentage: 67 },
+            ],
+          },
+        },
+        responsesOverTime: [],
+      },
+    })
+
+    render(<FormResultsView formId="form-1" />)
+
+    await waitFor(() => {
+      expect(screen.getByText(/Emoji Survey/i)).toBeInTheDocument()
+      expect(screen.getByText(/How was it?/i)).toBeInTheDocument()
+    })
+
+    const emojiResults = screen.getByTestId('emoji-results-mood')
     expect(emojiResults).toBeInTheDocument()
+    expect(emojiResults).toHaveTextContent('Neutral')
     expect(emojiResults).toHaveTextContent('Good')
-    expect(emojiResults).toHaveTextContent('Excellent')
   })
 
   it('shows rating field with stars and distribution', async () => {
