@@ -310,3 +310,23 @@ test('Scale1To10Field is exported and renderable', () => {
   fireEvent.click(screen.getByRole('button', { name: /8 out of 10/i }))
   expect(onChange).toHaveBeenCalledWith('8')
 })
+
+test('Scale1To10Field triggers onChange on Enter and Space key', () => {
+  const onChange = jest.fn()
+  render(
+    <Scale1To10Field
+      id="score"
+      name="score"
+      label="Score"
+      value=""
+      onChange={onChange}
+    />,
+  )
+  const button7 = screen.getByRole('button', { name: /7 out of 10/i })
+  button7.focus()
+  fireEvent.keyDown(button7, { key: 'Enter' })
+  expect(onChange).toHaveBeenCalledWith('7')
+  onChange.mockClear()
+  fireEvent.keyDown(button7, { key: ' ' })
+  expect(onChange).toHaveBeenCalledWith('7')
+})

@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # Run diff-cover for backend and frontend (used by pre-push hook).
 # Expects: coverage already generated (npm run check:coverage), and diff-cover installed.
-# Base ref: origin/main. Set DIFF_COVERAGE_THRESHOLD (default 80).
+# Base ref: origin/main. Set DIFF_COVERAGE_THRESHOLD (default 90).
 # Requires: pip install diff-cover (or use .venv-ci from scripts/run-ci-local.sh).
 
 set -e
 BASE_REF="${DIFF_COVER_BASE_REF:-origin/main}"
-THRESHOLD="${DIFF_COVERAGE_THRESHOLD:-80}"
+THRESHOLD="${DIFF_COVERAGE_THRESHOLD:-90}"
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
 
