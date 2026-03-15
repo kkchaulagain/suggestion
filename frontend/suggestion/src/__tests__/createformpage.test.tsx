@@ -619,8 +619,6 @@ describe('CreateFormPage', () => {
 
       const nameRow = getFieldRow('Text field 4')
       expect(within(nameRow).getByLabelText(/allow anonymous/i)).toBeInTheDocument()
-
-<<<<<<< HEAD
       fireEvent.click(screen.getByRole('button', { name: /\+ Add new field/i }))
       await waitFor(() => {
         expect(screen.getByRole('heading', { name: /Add new field/i })).toBeInTheDocument()
@@ -630,8 +628,7 @@ describe('CreateFormPage', () => {
       const emailRow = getFieldRow('Email 5')
       expect(within(emailRow).getByLabelText(/allow anonymous/i)).toBeInTheDocument()
 
-=======
->>>>>>> main
+
       // Subject row (text) should NOT have allow anonymous
       const subjectRow = getFieldRow('subject')
       fireEvent.click(within(subjectRow).getByRole('button', { name: /edit/i }))

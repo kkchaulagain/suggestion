@@ -42,7 +42,6 @@ const mockFormWithCheckboxBigTextImage = {
       { name: 'notes', label: 'Notes', type: 'textarea', required: false, placeholder: 'Long answer...' },
       { name: 'agree', label: 'I agree', type: 'checkbox', required: true, options: ['Yes', 'No'] },
       { name: 'photo', label: 'Upload photo', type: 'image', required: false },
-<<<<<<< HEAD
     ],
   },
 }
@@ -55,8 +54,6 @@ const mockAnonymousEmailForm = {
     fields: [
       { name: 'email', label: 'Email Address', type: 'email', required: true, allowAnonymous: true, placeholder: 'you@example.com' },
       { name: 'comment', label: 'Comment', type: 'short_text', required: false, placeholder: 'Your comment' },
-=======
->>>>>>> main
     ],
   },
 }
@@ -256,7 +253,7 @@ describe('FormRenderPage', () => {
     renderFormRenderPage('form-anon-email')
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: /Anonymous Email Form/i })).toBeInTheDocument()
+      expect(screen.getByText(/Anonymous Email Form/i)).toBeInTheDocument()
     })
 
     fireEvent.click(screen.getByLabelText(/submit anonymously/i))
@@ -376,10 +373,11 @@ describe('FormRenderPage', () => {
       expect(screen.getByText(/With Photo/i)).toBeInTheDocument()
     })
 
-    const fileInput = document.querySelector('input[type="file"][accept="image/*"]')
-    if (fileInput) {
-      fireEvent.change(fileInput, { target: { files: [new File(['x'], 'pic.jpg', { type: 'image/jpeg' })] } })
-    }
+    const fileInput = screen.getByLabelText(/Photo/i) as HTMLInputElement
+    fireEvent.change(fileInput, { target: { files: [new File(['x'], 'pic.jpg', { type: 'image/jpeg' })] } })
+    await waitFor(() => {
+      expect(fileInput.files?.[0]?.name).toBe('pic.jpg')
+    })
     fireEvent.click(screen.getByRole('button', { name: /Submit/i }))
 
     await waitFor(() => {

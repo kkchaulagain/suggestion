@@ -71,9 +71,12 @@ describe('SubmissionsPage', () => {
         submittedAt: '2024-06-01T12:00:00.000Z',
       },
     ]
-    mockedAxios.get
-      .mockResolvedValueOnce({ data: { feedbackForms: [{ _id: 'f1', title: 'Survey Form' }] } }) // option label ≠ formTitle
-      .mockResolvedValueOnce({ data: { submissions, total: 1 } })
+    mockedAxios.get.mockImplementation((url: string) => {
+      if (typeof url === 'string' && url.includes('/submissions')) {
+        return Promise.resolve({ data: { submissions, total: 1 } })
+      }
+      return Promise.resolve({ data: { feedbackForms: [{ _id: 'f1', title: 'Survey Form' }] } })
+    })
 
     render(
       <TestRouter>
