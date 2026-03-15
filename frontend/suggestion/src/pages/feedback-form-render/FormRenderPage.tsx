@@ -317,84 +317,89 @@ export default function FormRenderPage() {
 
   return (
     <div className="min-h-[40vh] w-full max-w-full overflow-x-hidden px-0 py-2 sm:py-4">
-      <Card className="relative mx-auto w-full max-w-xl overflow-hidden rounded-xl p-4 sm:p-8">
-        <div className="absolute right-4 top-4 sm:right-6 sm:top-6 z-10">
+      <div
+        className="relative mx-auto w-full max-w-xl overflow-hidden rounded-2xl border border-stone-200/80 bg-white p-6 shadow-[0_1px_3px_0_rgba(0,0,0,0.04),0_8px_24px_-8px_rgba(0,0,0,0.08)] dark:border-stone-700/80 dark:bg-stone-900 dark:shadow-[0_1px_3px_0_rgba(0,0,0,0.2),0_8px_24px_-8px_rgba(0,0,0,0.4)] sm:p-10"
+        style={{ paddingTop: '2.5rem' }}
+      >
+        <div className="absolute right-4 top-4 z-10 sm:right-6 sm:top-6">
           <ThemeToggle />
         </div>
         <div className="min-w-0 pr-10 sm:pr-12">
-          <h1 className="break-words text-xl font-bold text-slate-900 dark:text-slate-100 sm:text-2xl">
+          <h1 className="break-words text-2xl font-light tracking-tight text-stone-900 dark:text-stone-50 sm:text-3xl">
             {config.title}
           </h1>
           {config.description ? (
-            <p className="mt-2 break-words text-sm text-slate-600 dark:text-slate-300">{config.description}</p>
+            <p className="mt-2 break-words text-sm leading-relaxed text-stone-500 dark:text-stone-400">
+              {config.description}
+            </p>
           ) : null}
 
         {isMultistep && currentStepData ? (
           <div
-            className="mt-6 min-w-0 rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-4 dark:border-slate-700 dark:bg-slate-800/50"
+            className="mt-8 min-w-0"
             aria-label={`Step ${currentStepIndex + 1} of ${totalSteps}`}
           >
-            <p className="mb-3 text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+            <p className="mb-4 text-[11px] font-medium uppercase tracking-widest text-stone-400 dark:text-stone-500">
               Step {currentStepIndex + 1} of {totalSteps}
             </p>
-            <div className="flex min-w-0 items-center justify-between">
+            <div className="flex min-w-0 items-start justify-between gap-2">
               {stepsWithFields.map(({ step }, i) => {
                 const isCompleted = i < currentStepIndex
                 const isCurrent = i === currentStepIndex
                 return (
-                  <div key={step.id} className="flex min-w-0 flex-1 items-center last:flex-none">
-                    <div className="flex flex-col items-center gap-1.5">
+                  <div key={step.id} className="flex min-w-0 flex-1 flex-col items-center last:flex-none">
+                    <div className="flex w-full items-center">
                       <div
-                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold transition-all ${
+                        className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-medium transition-all duration-200 ${
                           isCompleted
-                            ? 'bg-emerald-500 text-white dark:bg-emerald-400'
+                            ? 'border-2 border-stone-300 bg-stone-50 text-stone-500 dark:border-stone-600 dark:bg-stone-800/80 dark:text-stone-400'
                             : isCurrent
-                              ? 'border-2 border-emerald-500 bg-emerald-500 text-white ring-4 ring-emerald-500/20 dark:border-emerald-400 dark:bg-emerald-400 dark:ring-emerald-400/20'
-                              : 'border-2 border-slate-300 bg-white text-slate-400 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-500'
+                              ? 'border-2 border-stone-900 bg-stone-900 text-white ring-2 ring-stone-900/20 ring-offset-2 ring-offset-white dark:border-stone-100 dark:bg-stone-100 dark:text-stone-900 dark:ring-stone-100/20 dark:ring-offset-stone-900'
+                              : 'border-2 border-stone-200 bg-stone-100 text-stone-400 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-500'
                         }`}
                         aria-current={isCurrent ? 'step' : undefined}
                       >
                         {isCompleted ? (
-                          <Check className="h-4 w-4" strokeWidth={3} aria-hidden />
+                          <Check className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden />
                         ) : (
                           <span>{i + 1}</span>
                         )}
                       </div>
-                      <span
-                        className={`max-w-[4.5rem] truncate text-center text-xs font-medium sm:max-w-[5rem] ${
-                          isCurrent
-                            ? 'text-slate-800 dark:text-slate-200'
-                            : isCompleted
-                              ? 'text-slate-600 dark:text-slate-300'
-                              : 'text-slate-400 dark:text-slate-500'
-                        }`}
-                        title={step.title || `Step ${i + 1}`}
-                      >
-                        {step.title || `Step ${i + 1}`}
-                      </span>
+                      {i < stepsWithFields.length - 1 ? (
+                        <div
+                          className={`ml-1.5 mr-1.5 h-0.5 flex-1 min-w-0 rounded-full transition-colors sm:ml-2 sm:mr-2 ${
+                            isCompleted ? 'bg-stone-300 dark:bg-stone-600' : 'bg-stone-200 dark:bg-stone-700'
+                          }`}
+                          aria-hidden
+                        />
+                      ) : null}
                     </div>
-                    {i < stepsWithFields.length - 1 ? (
-                      <div
-                        className={`mx-1 h-0.5 flex-1 min-w-0 sm:mx-2 ${
-                          isCompleted ? 'bg-emerald-500 dark:bg-emerald-400' : 'bg-slate-200 dark:bg-slate-600'
-                        }`}
-                        aria-hidden
-                      />
-                    ) : null}
+                    <span
+                      className={`mt-2 max-w-[4.5rem] truncate text-center text-[11px] font-medium sm:max-w-[5rem] ${
+                        isCurrent
+                          ? 'text-stone-900 dark:text-stone-100'
+                          : isCompleted
+                            ? 'text-stone-500 dark:text-stone-400'
+                            : 'text-stone-400 dark:text-stone-500'
+                      }`}
+                      title={step.title || `Step ${i + 1}`}
+                    >
+                      {step.title || `Step ${i + 1}`}
+                    </span>
                   </div>
                 )
               })}
             </div>
             {currentStepData.step.description ? (
-              <p className="mt-3 break-words border-t border-slate-200 pt-3 text-xs text-slate-600 dark:border-slate-600 dark:text-slate-400">
+              <p className="mt-4 break-words text-xs leading-relaxed text-stone-500 dark:text-stone-400">
                 {currentStepData.step.description}
               </p>
             ) : null}
           </div>
         ) : null}
 
-        <form onSubmit={handleSubmit} className="mt-6 space-y-5" noValidate>
-          <div className="space-y-5 min-w-0">
+        <form onSubmit={handleSubmit} className="mt-8 space-y-6" noValidate>
+          <div className="space-y-6 min-w-0">
             {fieldsToRender.map((field) => (
               <FormFieldRenderer
                 key={field.name}
@@ -411,13 +416,13 @@ export default function FormRenderPage() {
           ) : null}
 
           {isMultistep ? (
-            <div className="relative z-0 flex min-h-[44px] w-full max-w-full flex-shrink-0 flex-col gap-3 pt-6 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+            <div className="relative z-0 flex min-h-[44px] w-full max-w-full flex-shrink-0 flex-col gap-3 pt-8 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
               {currentStepIndex > 0 ? (
                 <Button
                   type="button"
                   variant="secondary"
                   size="md"
-                  className="w-full min-h-[48px] touch-manipulation shadow-sm sm:min-h-[44px] sm:w-auto sm:min-w-[100px]"
+                  className="w-full min-h-[48px] touch-manipulation rounded-xl border-stone-200 bg-stone-50 text-stone-700 hover:bg-stone-100 dark:border-stone-600 dark:bg-stone-800 dark:text-stone-200 dark:hover:bg-stone-700 sm:min-h-[44px] sm:w-auto sm:min-w-[100px]"
                   onClick={(e) => {
                     e.preventDefault()
                     handleBack()
@@ -435,7 +440,7 @@ export default function FormRenderPage() {
                   variant="primary"
                   size="md"
                   disabled={submitting}
-                  className="w-full min-h-[48px] touch-manipulation shadow-md sm:min-h-[44px] sm:w-auto sm:min-w-[120px]"
+                  className="w-full min-h-[48px] touch-manipulation rounded-xl bg-stone-900 font-medium text-white shadow-none transition hover:bg-stone-800 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-200 sm:min-h-[44px] sm:w-auto sm:min-w-[120px]"
                 >
                   <Send className="h-4 w-4 shrink-0" />
                   {submitting ? 'Submitting...' : 'Submit'}
@@ -445,7 +450,7 @@ export default function FormRenderPage() {
                   type="button"
                   variant="primary"
                   size="md"
-                  className="w-full min-h-[48px] touch-manipulation shadow-md sm:min-h-[44px] sm:w-auto sm:min-w-[100px]"
+                  className="w-full min-h-[48px] touch-manipulation rounded-xl bg-stone-900 font-medium text-white shadow-none transition hover:bg-stone-800 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-200 sm:min-h-[44px] sm:w-auto sm:min-w-[100px]"
                   onClick={(e) => {
                     e.preventDefault()
                     e.stopPropagation()
@@ -458,13 +463,13 @@ export default function FormRenderPage() {
               )}
             </div>
           ) : (
-            <div className="pt-2">
+            <div className="pt-4">
               <Button
                 type="submit"
                 variant="primary"
                 size="md"
                 disabled={submitting}
-                className="w-full min-h-[48px] touch-manipulation shadow-md sm:min-h-[44px]"
+                className="w-full min-h-[48px] touch-manipulation rounded-xl bg-stone-900 font-medium text-white shadow-none transition hover:bg-stone-800 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-200 sm:min-h-[44px]"
               >
                 <Send className="h-4 w-4 shrink-0" />
                 {submitting ? 'Submitting...' : 'Submit'}
@@ -473,7 +478,7 @@ export default function FormRenderPage() {
           )}
         </form>
         </div>
-      </Card>
+      </div>
       <FormRenderFooter />
     </div>
   )
