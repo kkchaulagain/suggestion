@@ -5,6 +5,7 @@ module.exports = {
   collectCoverageFrom: [
     'src/**/*.{ts,tsx}',
     '!src/__tests__/**',
+    '!src/stories/**',
     '!vite.config.ts',
     '!src/pages/feedback-form-render/branding.ts',
   ],

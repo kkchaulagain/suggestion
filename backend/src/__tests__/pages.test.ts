@@ -34,6 +34,24 @@ async function createBusinessAuth() {
   };
 }
 
+async function createAdminAuth() {
+  const suffix = `${Date.now()}_${Math.random().toString(16).slice(2)}`;
+  const email = `admin_pages_${suffix}@example.com`;
+  const password = 'AdminPass123!';
+  const phone = `+97798${String(20000000 + Math.floor(Math.random() * 80000000))}`;
+  await User.create({
+    name: 'Admin User',
+    email,
+    password,
+    phone,
+    role: 'admin',
+    isActive: true,
+  });
+  const loginRes = await request(app).post('/api/auth/login').send({ email, password }).expect(200);
+  const token = loginRes.body?.token || loginRes.body?.data?.token;
+  return { authHeader: { Authorization: `Bearer ${token}` } };
+}
+
 describe('Pages API', () => {
   beforeAll(async () => {
     await connect();
@@ -76,6 +94,13 @@ describe('Pages API', () => {
       expect(res.body.pages).toHaveLength(1);
       expect(res.body.pages[0].slug).toBe('contact-us');
       expect(res.body.pages[0].title).toBe('Contact Us');
+    });
+
+    it('admin can list all pages without business profile', async () => {
+      const { authHeader } = await createAdminAuth();
+      const res = await request(app).get('/api/pages').set(authHeader).expect(200);
+      expect(res.body).toHaveProperty('pages');
+      expect(Array.isArray(res.body.pages)).toBe(true);
     });
   });
 
@@ -136,6 +161,16 @@ describe('Pages API', () => {
         .set(authHeader)
         .send({ title: 'Other', slug: 'taken' })
         .expect(400);
+    });
+
+    it('returns 400 when creating as admin (no business profile)', async () => {
+      const { authHeader } = await createAdminAuth();
+      const res = await request(app)
+        .post('/api/pages')
+        .set(authHeader)
+        .send({ title: 'Admin Page', slug: 'admin-page' })
+        .expect(400);
+      expect(res.body.error).toMatch(/business profile required/i);
     });
   });
 
@@ -209,6 +244,12 @@ describe('Pages API', () => {
       await request(app).get(`/api/pages/${id}`).expect(401);
     });
 
+    it('returns 400 for invalid page id', async () => {
+      const { authHeader } = await createBusinessAuth();
+      const res = await request(app).get('/api/pages/not-a-valid-id').set(authHeader).expect(400);
+      expect(res.body.error).toMatch(/invalid page id/i);
+    });
+
     it('returns 200 with page for owner', async () => {
       const { authHeader, businessId } = await createBusinessAuth();
       const page = await Page.create({
@@ -239,6 +280,40 @@ describe('Pages API', () => {
   });
 
   describe('PUT /api/pages/:id', () => {
+    it('returns 400 for invalid page id', async () => {
+      const { authHeader } = await createBusinessAuth();
+      const res = await request(app)
+        .put('/api/pages/invalid-id')
+        .set(authHeader)
+        .send({ title: 'Updated' })
+        .expect(400);
+      expect(res.body.error).toMatch(/invalid page id/i);
+    });
+
+    it('returns 400 when new slug already exists', async () => {
+      const { authHeader, businessId } = await createBusinessAuth();
+      await Page.create({
+        businessId,
+        slug: 'existing-slug',
+        title: 'Existing',
+        status: 'draft',
+        blocks: [],
+      });
+      const page = await Page.create({
+        businessId,
+        slug: 'my-page',
+        title: 'My Page',
+        status: 'draft',
+        blocks: [],
+      });
+      const res = await request(app)
+        .put(`/api/pages/${page._id}`)
+        .set(authHeader)
+        .send({ slug: 'existing-slug' })
+        .expect(400);
+      expect(res.body.error).toMatch(/slug already exists/i);
+    });
+
     it('updates page title and status', async () => {
       const { authHeader, businessId } = await createBusinessAuth();
       const page = await Page.create({
@@ -281,6 +356,23 @@ describe('Pages API', () => {
       expect(res.body.page.blocks[1].type).toBe('paragraph');
       expect(res.body.page.blocks[2].type).toBe('image');
     });
+
+    it('updates slug when new slug is valid and unique', async () => {
+      const { authHeader, businessId } = await createBusinessAuth();
+      const page = await Page.create({
+        businessId,
+        slug: 'old-slug',
+        title: 'Old Slug',
+        status: 'draft',
+        blocks: [],
+      });
+      const res = await request(app)
+        .put(`/api/pages/${page._id}`)
+        .set(authHeader)
+        .send({ slug: 'new-slug' })
+        .expect(200);
+      expect(res.body.page.slug).toBe('new-slug');
+    });
   });
 
   describe('DELETE /api/pages/:id', () => {
@@ -288,6 +380,12 @@ describe('Pages API', () => {
       const mongoose = require('mongoose');
       const id = new mongoose.Types.ObjectId();
       await request(app).delete(`/api/pages/${id}`).expect(401);
+    });
+
+    it('returns 400 for invalid page id', async () => {
+      const { authHeader } = await createBusinessAuth();
+      const res = await request(app).delete('/api/pages/invalid-id').set(authHeader).expect(400);
+      expect(res.body.error).toMatch(/invalid page id/i);
     });
 
     it('deletes page for owner', async () => {
