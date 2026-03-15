@@ -7,7 +7,7 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from 'recharts'
-import type { FormResultsData, ResponsesOverTimeItem } from '../../types/results'
+import type { FormResultsData } from '../../types/results'
 import { Card } from '../ui'
 
 interface ResultsSummaryProps {

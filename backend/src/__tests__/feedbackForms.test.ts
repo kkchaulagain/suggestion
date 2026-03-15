@@ -393,7 +393,7 @@ describe('Feedback Forms API', () => {
     });
 
     it('returns kind in GET by id and list', async () => {
-      const { authHeader, businessId } = await createBusinessAuth();
+      const { authHeader } = await createBusinessAuth();
       const created = await request(app)
         .post('/api/feedback-forms')
         .set(authHeader)
@@ -428,7 +428,7 @@ describe('Feedback Forms API', () => {
     });
 
     it('returns aggregated results with no submissions (empty)', async () => {
-      const { authHeader, businessId } = await createBusinessAuth();
+      const { authHeader } = await createBusinessAuth();
       const createRes = await request(app)
         .post('/api/feedback-forms')
         .set(authHeader)

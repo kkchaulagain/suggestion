@@ -3,7 +3,6 @@ import '@testing-library/jest-dom'
 import axios from 'axios'
 
 import { FormResultsView } from '../components/results'
-import { feedbackFormsApi } from '../utils/apipath'
 
 jest.mock('axios')
 const mockedAxios = axios as jest.Mocked<typeof axios>
