@@ -39,7 +39,8 @@ export default function HeroSection({
 }: HeroSectionProps) {
   const hasMedia = Boolean(media)
   const variant = variantProp ?? (hasMedia ? 'split' : 'centered')
-  const style = styleProp === 'dark' ? 'default' : styleProp
+  const style: HeroStyleVariant =
+    (styleProp as string) === 'dark' ? 'default' : styleProp
 
   const isCentered = variant === 'centered' || variant === 'centeredWithMediaBelow'
   const isSplit = variant === 'split' || variant === 'splitReversed'
