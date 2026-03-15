@@ -192,4 +192,56 @@ describe('PagesPage', () => {
     expect(windowOpen).toHaveBeenCalledWith('/c/p1/landing', '_blank')
     windowOpen.mockRestore()
   })
+
+  test('delete failure shows API error message', async () => {
+    const pageList = {
+      data: {
+        pages: [
+          { _id: 'p1', slug: 'landing', title: 'Landing', status: 'draft', blocks: [] },
+        ],
+      },
+    }
+    mockedAxios.get.mockResolvedValue(pageList)
+    mockedAxios.delete.mockRejectedValueOnce({
+      response: { data: { error: 'Page is in use' } },
+    })
+
+    renderPagesPage()
+
+    await waitFor(() => {
+      expect(screen.getByText('Landing')).toBeInTheDocument()
+    })
+
+    await userEvent.click(screen.getByRole('button', { name: /Delete Landing/i }))
+    await userEvent.click(screen.getByRole('button', { name: /^Delete$/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText('Page is in use')).toBeInTheDocument()
+    })
+  })
+
+  test('delete failure without API error shows generic message', async () => {
+    const pageList = {
+      data: {
+        pages: [
+          { _id: 'p1', slug: 'landing', title: 'Landing', status: 'draft', blocks: [] },
+        ],
+      },
+    }
+    mockedAxios.get.mockResolvedValue(pageList)
+    mockedAxios.delete.mockRejectedValueOnce(new Error('Network error'))
+
+    renderPagesPage()
+
+    await waitFor(() => {
+      expect(screen.getByText('Landing')).toBeInTheDocument()
+    })
+
+    await userEvent.click(screen.getByRole('button', { name: /Delete Landing/i }))
+    await userEvent.click(screen.getByRole('button', { name: /^Delete$/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText('Failed to delete page.')).toBeInTheDocument()
+    })
+  })
 })

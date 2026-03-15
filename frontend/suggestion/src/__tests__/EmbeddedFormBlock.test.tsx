@@ -117,4 +117,147 @@ describe('EmbeddedFormBlock', () => {
     })
     expect(mockedAxios.post).not.toHaveBeenCalled()
   })
+
+  test('shows required validation error for empty checkbox field', async () => {
+    mockedAxios.get.mockResolvedValueOnce({
+      data: {
+        feedbackForm: {
+          title: 'Form',
+          kind: 'form',
+          fields: [
+            { name: 'agree', label: 'Agree to terms', type: 'checkbox', required: true, options: ['Yes'] },
+          ],
+        },
+      },
+    })
+
+    render(<EmbeddedFormBlock formId="form-1" />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Submit/i })).toBeInTheDocument()
+    })
+
+    await userEvent.click(screen.getByRole('button', { name: /Submit/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText(/Agree to terms is required/)).toBeInTheDocument()
+    })
+    expect(mockedAxios.post).not.toHaveBeenCalled()
+  })
+
+  test('shows poll submit label when kind is poll', async () => {
+    mockedAxios.get.mockResolvedValueOnce({
+      data: {
+        feedbackForm: {
+          title: 'Poll',
+          kind: 'poll',
+          fields: [
+            { name: 'choice', label: 'Your choice', type: 'radio', required: true, options: ['A', 'B'] },
+          ],
+          thankYouHeadline: 'Thanks',
+          thankYouMessage: 'Vote recorded.',
+        },
+      },
+    })
+
+    render(<EmbeddedFormBlock formId="form-1" />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Cast Vote/i })).toBeInTheDocument()
+    })
+  })
+
+  test('shows survey submit label when kind is survey', async () => {
+    mockedAxios.get.mockResolvedValueOnce({
+      data: {
+        feedbackForm: {
+          title: 'Survey',
+          kind: 'survey',
+          fields: [
+            { name: 'q1', label: 'Q1', type: 'text', required: false },
+          ],
+          thankYouHeadline: 'Thanks',
+          thankYouMessage: 'Done.',
+        },
+      },
+    })
+
+    render(<EmbeddedFormBlock formId="form-1" />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Submit Vote/i })).toBeInTheDocument()
+    })
+  })
+
+  test('renders form title when present', async () => {
+    mockedAxios.get.mockResolvedValueOnce({
+      data: {
+        feedbackForm: {
+          title: 'My Form Title',
+          kind: 'form',
+          fields: [{ name: 'q1', label: 'Q1', type: 'text', required: false }],
+        },
+      },
+    })
+
+    render(<EmbeddedFormBlock formId="form-1" />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'My Form Title', level: 3 })).toBeInTheDocument()
+    })
+  })
+
+  test('submit failure shows API error message', async () => {
+    mockedAxios.get.mockResolvedValueOnce({
+      data: {
+        feedbackForm: {
+          title: 'Form',
+          kind: 'form',
+          fields: [{ name: 'q1', label: 'Q1', type: 'text', required: false }],
+          thankYouHeadline: 'Thanks',
+          thankYouMessage: 'Done.',
+        },
+      },
+    })
+    mockedAxios.post.mockRejectedValueOnce({
+      response: { data: { error: 'Submission rate limit exceeded' } },
+    })
+
+    render(<EmbeddedFormBlock formId="form-1" />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Submit/i })).toBeInTheDocument()
+    })
+
+    await userEvent.click(screen.getByRole('button', { name: /Submit/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText('Submission rate limit exceeded')).toBeInTheDocument()
+    })
+  })
+
+  test('submit failure without API error shows generic message', async () => {
+    mockedAxios.get.mockResolvedValueOnce({
+      data: {
+        feedbackForm: {
+          title: 'Form',
+          kind: 'form',
+          fields: [{ name: 'q1', label: 'Q1', type: 'text', required: false }],
+        },
+      },
+    })
+    mockedAxios.post.mockRejectedValueOnce(new Error('Network error'))
+
+    render(<EmbeddedFormBlock formId="form-1" />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Submit/i })).toBeInTheDocument()
+    })
+
+    await userEvent.click(screen.getByRole('button', { name: /Submit/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText(/Failed to submit/)).toBeInTheDocument()
+    })
+  })
 })

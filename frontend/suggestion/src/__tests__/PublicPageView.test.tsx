@@ -207,4 +207,194 @@ describe('PublicPageView', () => {
 
     document.title = originalTitle
   })
+
+  test('renders form block with EmbeddedFormBlock', async () => {
+    mockedAxios.get
+      .mockResolvedValueOnce({
+        data: {
+          page: {
+            _id: 'page-1',
+            slug: 'landing',
+            title: 'Landing',
+            status: 'published',
+            blocks: [{ type: 'form', payload: { formId: 'form-123' } }],
+          },
+        },
+      })
+      .mockResolvedValueOnce({
+        data: {
+          feedbackForm: {
+            title: 'Embedded Form',
+            kind: 'form',
+            fields: [{ name: 'q1', label: 'Question', type: 'text', required: false }],
+            thankYouHeadline: 'Thanks',
+            thankYouMessage: 'Done.',
+          },
+        },
+      })
+
+    renderPublicPageView()
+
+    await waitFor(() => {
+      expect(screen.getByText('Embedded Form')).toBeInTheDocument()
+    })
+  })
+
+  test('renders hero block with image media', async () => {
+    mockedAxios.get.mockResolvedValueOnce({
+      data: {
+        page: {
+          _id: 'page-1',
+          slug: 'landing',
+          title: 'Landing',
+          status: 'published',
+          blocks: [
+            {
+              type: 'hero',
+              payload: {
+                headline: 'Hero',
+                subheadline: 'Sub',
+                mediaType: 'image',
+                imageUrl: 'https://example.com/hero.jpg',
+                imageAlt: 'Hero image',
+              },
+            },
+          ],
+        },
+      },
+    })
+
+    renderPublicPageView()
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /Hero/i })).toBeInTheDocument()
+    })
+    const img = screen.getByAltText('Hero image')
+    expect(img).toHaveAttribute('src', expect.stringContaining('hero.jpg'))
+  })
+
+  test('renders hero block with icon media', async () => {
+    mockedAxios.get.mockResolvedValueOnce({
+      data: {
+        page: {
+          _id: 'page-1',
+          slug: 'landing',
+          title: 'Landing',
+          status: 'published',
+          blocks: [
+            {
+              type: 'hero',
+              payload: {
+                headline: 'Hero',
+                subheadline: 'Sub',
+                mediaType: 'icon',
+                icon: 'sparkles',
+              },
+            },
+          ],
+        },
+      },
+    })
+
+    renderPublicPageView()
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /Hero/i })).toBeInTheDocument()
+    })
+  })
+
+  test('renders hero block with primary and secondary CTAs', async () => {
+    mockedAxios.get.mockResolvedValueOnce({
+      data: {
+        page: {
+          _id: 'page-1',
+          slug: 'landing',
+          title: 'Landing',
+          status: 'published',
+          blocks: [
+            {
+              type: 'hero',
+              payload: {
+                headline: 'Hero',
+                subheadline: 'Sub',
+                primaryCta: { label: 'Sign up', href: '/signup' },
+                secondaryCta: { label: 'Learn more', href: '/about' },
+              },
+            },
+          ],
+        },
+      },
+    })
+
+    renderPublicPageView()
+
+    await waitFor(() => {
+      expect(screen.getByRole('link', { name: /Sign up/i })).toHaveAttribute('href', '/signup')
+      expect(screen.getByRole('link', { name: /Learn more/i })).toHaveAttribute('href', '/about')
+    })
+  })
+
+  test('renders feature_grid block with 2 columns', async () => {
+    mockedAxios.get.mockResolvedValueOnce({
+      data: {
+        page: {
+          _id: 'page-1',
+          slug: 'landing',
+          title: 'Landing',
+          status: 'published',
+          blocks: [
+            {
+              type: 'feature_grid',
+              payload: {
+                columns: 2,
+                items: [
+                  { icon: 'file-text', title: 'Item 1', description: 'Desc 1' },
+                  { icon: 'share2', title: 'Item 2', description: 'Desc 2' },
+                ],
+              },
+            },
+          ],
+        },
+      },
+    })
+
+    renderPublicPageView()
+
+    await waitFor(() => {
+      expect(screen.getByText('Item 1')).toBeInTheDocument()
+      expect(screen.getByText('Item 2')).toBeInTheDocument()
+      expect(screen.getByText('Desc 1')).toBeInTheDocument()
+      expect(screen.getByText('Desc 2')).toBeInTheDocument()
+    })
+  })
+
+  test('renders image block with caption', async () => {
+    mockedAxios.get.mockResolvedValueOnce({
+      data: {
+        page: {
+          _id: 'page-1',
+          slug: 'landing',
+          title: 'Landing',
+          status: 'published',
+          blocks: [
+            {
+              type: 'image',
+              payload: {
+                imageUrl: 'https://example.com/pic.jpg',
+                alt: 'Photo',
+                caption: 'A nice photo.',
+              },
+            },
+          ],
+        },
+      },
+    })
+
+    renderPublicPageView()
+
+    await waitFor(() => {
+      expect(screen.getByAltText('Photo')).toBeInTheDocument()
+    })
+    expect(screen.getByText('A nice photo.')).toBeInTheDocument()
+  })
 })
