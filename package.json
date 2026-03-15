@@ -3,7 +3,14 @@
   "private": true,
   "description": "Suggestion app – backend API + frontend",
   "scripts": {
+    "check": "npm run check:backend && npm run check:frontend",
+    "check:backend": "cd backend && npm run lint && npm test -- --passWithNoTests",
+    "check:frontend": "cd frontend/suggestion && npm run lint && npm run build && npm test -- --passWithNoTests",
+    "prepare": "husky",
     "deploy:backend": "fly deploy ./backend",
     "deploy:frontend": "fly deploy ./frontend/suggestion"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7"
   }
 }
