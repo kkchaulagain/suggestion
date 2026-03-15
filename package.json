@@ -3,6 +3,9 @@
   "private": true,
   "description": "Suggestion app – backend API + frontend",
   "scripts": {
+    "lint": "npm run lint:backend && npm run lint:frontend",
+    "lint:backend": "cd backend && npm run lint",
+    "lint:frontend": "cd frontend/suggestion && npm run lint && npm run typecheck",
     "check": "npm run check:backend && npm run check:frontend",
     "check:backend": "cd backend && npm run lint && npm test -- --passWithNoTests",
     "check:frontend": "cd frontend/suggestion && npm run lint && npm run build && npm test -- --passWithNoTests",

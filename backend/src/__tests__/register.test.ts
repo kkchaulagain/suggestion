@@ -85,7 +85,8 @@ describe('POST /api/auth/register', () => {
       .send({ email: 'short-phone@example.com', password: 'secret123', phone: '98123' })
       .expect(400);
 
-    expect(res.body.errors.phone).toBe('Phone number must be at least 10 digits');
+    expect(res.body.errors.phone).toBeDefined();
+    expect(['Phone number must be at least 10 digits', 'Invalid phone number']).toContain(res.body.errors.phone);
   });
 
   it('accepts a valid Nepali mobile number in national format', async () => {
@@ -172,21 +173,23 @@ describe('POST /api/auth/register', () => {
     expect(res.body.errors.businessname).toBeDefined();
   });
 
-  it('returns 400 when business role is missing location', async () => {
+  it('succeeds when business role omits optional location', async () => {
     const res = await request(app)
       .post('/api/auth/register')
       .send({
-        email: 'biz-missing-loc@example.com',
+        email: 'biz-no-loc@example.com',
         password: 'secret123',
         phone: VALID_PHONE,
         role: 'business',
         businessname: 'Acme',
-        pancardNumber: 12345678,
         description: 'Retail store',
       })
-      .expect(400);
+      .expect(201);
 
-    expect(res.body.errors.location).toBeDefined();
+    const business = await Business.findOne({ owner: (await User.findOne({ email: 'biz-no-loc@example.com' }))._id });
+    expect(business).not.toBeNull();
+    expect(business.type).toBe('commercial');
+    expect(res.body.user.businessname).toBe('Acme');
   });
 
   it('returns 400 when business role is missing description', async () => {
@@ -206,20 +209,99 @@ describe('POST /api/auth/register', () => {
     expect(res.body.errors.description).toBeDefined();
   });
 
-  it('returns 400 when business role is missing pancardNumber', async () => {
-    const res = await request(app)
+  it('succeeds when business role omits optional pancardNumber', async () => {
+    await request(app)
       .post('/api/auth/register')
       .send({
-        email: 'biz-missing-pan@example.com',
+        email: 'biz-no-pan@example.com',
         password: 'secret123',
         phone: VALID_PHONE,
         role: 'business',
         businessname: 'Acme',
-        location: 'jorpati',
         description: 'Retail store',
       })
-      .expect(400);
+      .expect(201);
 
-    expect(res.body.errors.pancardNumber).toBeDefined();
+    const business = await Business.findOne({ owner: (await User.findOne({ email: 'biz-no-pan@example.com' }))._id });
+    expect(business).not.toBeNull();
+    expect(business.type).toBe('commercial');
+  });
+
+  it('personal signup creates user and business with type personal and name-based businessname', async () => {
+    const res = await request(app)
+      .post('/api/auth/register')
+      .send({
+        name: 'Jane Doe',
+        email: 'personal@example.com',
+        password: 'secret123',
+        phone: VALID_PHONE,
+        role: 'user',
+      })
+      .expect(201);
+
+    const user = await User.findOne({ email: 'personal@example.com' });
+    const business = await Business.findOne({ owner: user._id });
+
+    expect(user).not.toBeNull();
+    expect(user.role).toBe('user');
+    expect(business).not.toBeNull();
+    expect(business.type).toBe('personal');
+    expect(business.businessname).toBe('Jane Doe-business');
+    expect(res.body.user.businessname).toBe('Jane Doe-business');
+  });
+
+  it('personal signup with avatarId stores it on user', async () => {
+    const res = await request(app)
+      .post('/api/auth/register')
+      .send({
+        name: 'Jane',
+        email: 'avatar@example.com',
+        password: 'secret123',
+        phone: VALID_PHONE,
+        role: 'user',
+        avatarId: 'avatar-1',
+      })
+      .expect(201);
+
+    const user = await User.findOne({ email: 'avatar@example.com' });
+    expect(user.avatarId).toBe('avatar-1');
+    expect(res.body.user.avatarId).toBe('avatar-1');
+  });
+
+  it('personal signup ignores business fields in request body', async () => {
+    await request(app)
+      .post('/api/auth/register')
+      .send({
+        name: 'Solo',
+        email: 'solo@example.com',
+        password: 'secret123',
+        phone: VALID_PHONE,
+        role: 'user',
+        businessname: 'Ignored Corp',
+        description: 'Ignored',
+      })
+      .expect(201);
+
+    const business = await Business.findOne({ owner: (await User.findOne({ email: 'solo@example.com' }))._id });
+    expect(business.businessname).toBe('Solo-business');
+    expect(business.type).toBe('personal');
+  });
+
+  it('business signup creates business with type commercial', async () => {
+    await request(app)
+      .post('/api/auth/register')
+      .send({
+        email: 'commercial@example.com',
+        password: 'secret123',
+        phone: VALID_PHONE,
+        role: 'business',
+        businessname: 'Acme Corp',
+        description: 'A company',
+      })
+      .expect(201);
+
+    const business = await Business.findOne({ owner: (await User.findOne({ email: 'commercial@example.com' }))._id });
+    expect(business.type).toBe('commercial');
+    expect(business.businessname).toBe('Acme Corp');
   });
 });

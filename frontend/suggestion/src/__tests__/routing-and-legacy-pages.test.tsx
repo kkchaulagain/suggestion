@@ -155,7 +155,7 @@ describe('App routing', () => {
     expect(screen.getByText('Login Page')).toBeInTheDocument()
   })
 
-  test('renders protected dashboard when logged in', async () => {
+  test('renders protected dashboard when logged in (all users see business layout and forms)', async () => {
     localStorage.setItem('auth_token', 'fake-token')
     mockedAxios.get.mockResolvedValue({
       data: { success: true, data: { _id: '1', name: 'Test', email: 't@t.com', role: 'user' } },
@@ -164,7 +164,8 @@ describe('App routing', () => {
     render(<App />)
 
     await waitFor(() => {
-      expect(screen.getByText('User Dashboard Page')).toBeInTheDocument()
+      expect(screen.getByText('Business Layout')).toBeInTheDocument()
+      expect(screen.getByText('Forms Listing Page')).toBeInTheDocument()
     })
   })
 

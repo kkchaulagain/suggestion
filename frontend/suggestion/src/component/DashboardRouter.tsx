@@ -1,34 +1,18 @@
-import { Navigate, Outlet } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
-import Dashboard from '../pages/Dashboard'
+import { Navigate } from 'react-router-dom'
 import BusinessDashboardLayout from '../pages/business-dashboard/layout/BusinessDashboardLayout'
 
 /**
- * Renders the correct dashboard for the current user role.
- * Business / governmentservices → business dashboard (forms only); layout renders child routes via its own Outlet.
- * User → profile dashboard.
+ * Renders the business dashboard layout for all authenticated users.
+ * Sidebar filters items by role (personal users see Forms, Submissions, Profile; admin sees all).
  */
 export default function DashboardRouter() {
-  const { user } = useAuth()
-  const role = user?.role ? String(user.role).toLowerCase() : 'user'
-  const isBusinessRole = role === 'business' || role === 'governmentservices' || role === 'admin'
-
-  if (isBusinessRole) {
-    return <BusinessDashboardLayout />
-  }
-
-  return <Outlet />
+  return <BusinessDashboardLayout />
 }
 
 /**
- * Handles /dashboard index: redirect business to forms, show Dashboard for user.
+ * Handles /dashboard index: redirect to forms for all users.
  */
 export function DashboardIndex() {
-  const { user } = useAuth()
-  const role = user?.role ? String(user.role).toLowerCase() : 'user'
-  const isBusinessRole = role === 'business' || role === 'governmentservices' || role === 'admin'
-  if (isBusinessRole) {
-    return <Navigate to="/dashboard/forms" replace />
-  }
-  return <Dashboard />
+  return <Navigate to="/dashboard/forms" replace />
 }
+

@@ -44,6 +44,11 @@ const userSchema = new mongoose.Schema({
     select: false,
     default: null,
   },
+  avatarId: {
+    type: String,
+    trim: true,
+    required: false,
+  },
 }, { timestamps: true });
 
 interface UserDoc {

@@ -79,21 +79,21 @@ describe('logger', () => {
     logger.debug('debug-msg', { d: 2 });
 
     expect(stderrWrite).toHaveBeenCalledTimes(2);
-    const errLine = JSON.parse(stderrWrite.mock.calls[0][0] as string);
+    const errLine = JSON.parse((stderrWrite.mock.calls[0] ?? [])[0] as string);
     expect(errLine.level).toBe('error');
     expect(errLine.message).toBe('failed');
     expect(errLine.err).toEqual(expect.objectContaining({ name: 'Error', message: 'db failed' }));
     expect(errLine.timestamp).toBeDefined();
 
-    const warnLine = JSON.parse(stderrWrite.mock.calls[1][0] as string);
+    const warnLine = JSON.parse((stderrWrite.mock.calls[1] ?? [])[0] as string);
     expect(warnLine.level).toBe('warn');
     expect(warnLine.meta).toEqual({ x: 1 });
 
     expect(stdoutWrite).toHaveBeenCalledTimes(2);
-    const infoLine = JSON.parse(stdoutWrite.mock.calls[0][0] as string);
+    const infoLine = JSON.parse((stdoutWrite.mock.calls[0] ?? [])[0] as string);
     expect(infoLine.level).toBe('info');
     expect(infoLine.meta).toEqual({ port: 3000 });
-    const debugLine = JSON.parse(stdoutWrite.mock.calls[1][0] as string);
+    const debugLine = JSON.parse((stdoutWrite.mock.calls[1] ?? [])[0] as string);
     expect(debugLine.level).toBe('debug');
     expect(debugLine.meta).toEqual({ d: 2 });
 
@@ -113,7 +113,7 @@ describe('logger', () => {
     errWithCode.code = 'ECONNREFUSED';
     logger.error('conn failed', errWithCode);
 
-    const line = JSON.parse(stderrWrite.mock.calls[0][0] as string);
+    const line = JSON.parse((stderrWrite.mock.calls[0] ?? [])[0] as string);
     expect(line.err).toEqual(expect.objectContaining({ name: 'Error', message: 'ECONNREFUSED', code: 'ECONNREFUSED' }));
     stderrWrite.mockRestore();
   });
@@ -128,7 +128,7 @@ describe('logger', () => {
     const { logger } = require('../logger');
     logger.error('oops', 'string error');
 
-    const line = JSON.parse(stderrWrite.mock.calls[0][0] as string);
+    const line = JSON.parse((stderrWrite.mock.calls[0] ?? [])[0] as string);
     expect(line.err).toEqual({ value: 'string error' });
     stderrWrite.mockRestore();
   });

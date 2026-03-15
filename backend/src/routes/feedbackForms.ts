@@ -252,7 +252,7 @@ async function optionalAuthAndBusiness(req: AuthenticatedRequest, res: Response,
   }
 }
 
-router.post('/', isAuthenticated, authorize('business', 'admin', 'governmentservices'), resolveBusinessProfile, async (req: AuthenticatedRequest, res: Response) => {
+router.post('/', isAuthenticated, authorize('business', 'admin', 'governmentservices', 'user'), resolveBusinessProfile, async (req: AuthenticatedRequest, res: Response) => {
   try {
     if (!req.businessProfile) {
       return res.status(400).json({ error: 'Business profile required to create forms' });
@@ -273,7 +273,7 @@ router.post('/', isAuthenticated, authorize('business', 'admin', 'governmentserv
   }
 });
 
-router.get('/', isAuthenticated, authorize('business', 'admin', 'governmentservices'), resolveBusinessProfile, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/', isAuthenticated, authorize('business', 'admin', 'governmentservices', 'user'), resolveBusinessProfile, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const filter = req.businessProfile
       ? { businessId: req.businessProfile._id }
@@ -285,7 +285,7 @@ router.get('/', isAuthenticated, authorize('business', 'admin', 'governmentservi
   }
 });
 
-router.get('/submissions', isAuthenticated, authorize('business', 'admin', 'governmentservices'), resolveBusinessProfile, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/submissions', isAuthenticated, authorize('business', 'admin', 'governmentservices', 'user'), resolveBusinessProfile, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const query: Record<string, unknown> = {};
     if (req.businessProfile) {
@@ -349,7 +349,7 @@ router.get('/submissions', isAuthenticated, authorize('business', 'admin', 'gove
   }
 });
 
-router.get('/:id/submissions', isAuthenticated, authorize('business', 'admin', 'governmentservices'), resolveBusinessProfile, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/:id/submissions', isAuthenticated, authorize('business', 'admin', 'governmentservices', 'user'), resolveBusinessProfile, async (req: AuthenticatedRequest, res: Response) => {
   const id = req.params.id;
   if (!mongoose.Types.ObjectId.isValid(id)) {
     return res.status(400).json({ error: 'Invalid feedback form id' });
@@ -525,7 +525,7 @@ router.get('/:id', async (req: Request, res: Response) => {
   }
 });
 
-router.post('/:id/qr', isAuthenticated, authorize('business', 'admin', 'governmentservices'), resolveBusinessProfile, async (req: AuthenticatedRequest, res: Response) => {
+router.post('/:id/qr', isAuthenticated, authorize('business', 'admin', 'governmentservices', 'user'), resolveBusinessProfile, async (req: AuthenticatedRequest, res: Response) => {
   if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
     return res.status(400).json({ error: 'Invalid feedback form id' });
   }
@@ -566,7 +566,7 @@ router.post('/:id/qr', isAuthenticated, authorize('business', 'admin', 'governme
   }
 });
 
-router.put('/:id', isAuthenticated, authorize('business', 'admin', 'governmentservices'), resolveBusinessProfile, async (req: AuthenticatedRequest, res: Response) => {
+router.put('/:id', isAuthenticated, authorize('business', 'admin', 'governmentservices', 'user'), resolveBusinessProfile, async (req: AuthenticatedRequest, res: Response) => {
   if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
     return res.status(400).json({ error: 'Invalid feedback form id' });
   }
@@ -603,7 +603,7 @@ router.put('/:id', isAuthenticated, authorize('business', 'admin', 'governmentse
   }
 });
 
-router.delete('/:id', isAuthenticated, authorize('business', 'admin', 'governmentservices'), resolveBusinessProfile, async (req: AuthenticatedRequest, res: Response) => {
+router.delete('/:id', isAuthenticated, authorize('business', 'admin', 'governmentservices', 'user'), resolveBusinessProfile, async (req: AuthenticatedRequest, res: Response) => {
   if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
     return res.status(400).json({ error: 'Invalid feedback form id' });
   }
