@@ -62,7 +62,19 @@ describe('FormsPage', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/dashboard/forms/create')
   })
 
-  interface FormsListApiResponse { data: { feedbackForms: Array<{ _id: string; title?: string; description?: string; businessId?: string; fields?: Array<{ name: string; label: string; type: string; required?: boolean }> }> } }
+  interface FormsListApiResponse {
+    data: {
+      feedbackForms: Array<{
+        _id: string
+        title?: string
+        description?: string
+        businessId?: string
+        kind?: string
+        showResultsPublic?: boolean
+        fields?: Array<{ name: string; label: string; type: string; required?: boolean; options?: string[] }>
+      }>
+    }
+  }
 
   test('generates and shows QR code for a form', async () => {
     mockedAxios.get.mockResolvedValueOnce({
