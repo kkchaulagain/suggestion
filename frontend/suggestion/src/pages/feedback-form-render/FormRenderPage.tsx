@@ -70,15 +70,7 @@ function buildSubmitPayload(
   return payload
 }
 
-const currentYear = new Date().getFullYear()
-
-function FormRenderFooter() {
-  return (
-    <footer className="mt-8 text-center text-xs text-slate-500 dark:text-slate-400" role="contentinfo">
-      © {currentYear} Suggestion Platform
-    </footer>
-  )
-}
+import FormRenderFooter from './FormRenderFooter'
 
 export default function FormRenderPage() {
   const { formId } = useParams<{ formId: string }>()
@@ -209,6 +201,7 @@ export default function FormRenderPage() {
   }
 
   if (submitted) {
+    const isPollOrSurvey = config?.kind === 'poll' || config?.kind === 'survey'
     return (
       <div className="relative">
         <div className="absolute right-0 top-0 p-2">
@@ -216,7 +209,20 @@ export default function FormRenderPage() {
         </div>
         <Card padding="lg" className="rounded-xl text-center">
           <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Thank you</h2>
-          <p className="mt-2 text-slate-600 dark:text-slate-300">Your response has been recorded.</p>
+          <p className="mt-2 text-slate-600 dark:text-slate-300">
+            {isPollOrSurvey ? 'Thanks for voting!' : 'Your response has been recorded.'}
+          </p>
+          {formId ? (
+            <div className="mt-4">
+              <Link
+                to={`/feedback-forms/${formId}/results`}
+                className="inline-flex items-center gap-1.5 rounded-md bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600"
+                data-testid="see-results-link"
+              >
+                See results
+              </Link>
+            </div>
+          ) : null}
         </Card>
         <FormRenderFooter />
       </div>

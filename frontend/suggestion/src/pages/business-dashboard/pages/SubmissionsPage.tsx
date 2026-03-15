@@ -6,6 +6,7 @@ import { useAuth } from '../../../context/AuthContext'
 import { feedbackFormsApi, feedbackFormSubmissionsApi } from '../../../utils/apipath'
 import { Button, ErrorMessage, Modal } from '../../../components/ui'
 import { DataTable, EmptyState, PageHeader, Pagination } from '../../../components/layout'
+import { FormResultsView } from '../../../components/results'
 import SubmissionsFilter from '../components/SubmissionsFilter'
 
 interface FormSnapshotField {
@@ -117,9 +118,13 @@ function ResponseDetailModal({
   )
 }
 
+type SubmissionsTab = 'responses' | 'results'
+
 export default function SubmissionsPage() {
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const formIdFromUrl = searchParams.get('formId') ?? ''
+  const tabParam = searchParams.get('tab') ?? 'responses'
+  const activeTab: SubmissionsTab = tabParam === 'results' ? 'results' : 'responses'
 
   const [forms, setForms] = useState<FeedbackForm[]>([])
   const [submissions, setSubmissions] = useState<Submission[]>([])
@@ -184,6 +189,18 @@ export default function SubmissionsPage() {
   )
   const authHeadersRef = useRef(authHeaders)
   authHeadersRef.current = authHeaders
+
+  const setTab = useCallback(
+    (tab: SubmissionsTab) => {
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev)
+        next.set('tab', tab)
+        return next
+      })
+    },
+    [setSearchParams],
+  )
+  const selectedForm = formIdApplied ? forms.find((f) => f._id === formIdApplied) : null
 
   const loadForms = useCallback(async () => {
     const headers = authHeadersRef.current
@@ -289,10 +306,44 @@ export default function SubmissionsPage() {
     },
   ]
 
+  const showTabs = Boolean(formIdFromUrl && formIdFromUrl.trim())
+
   return (
     <section className="space-y-6" aria-label="Submissions">
       <PageHeader title="Submissions" />
 
+      {showTabs ? (
+        <div className="flex gap-2 border-b border-slate-200 dark:border-slate-700" role="tablist">
+          <button
+            type="button"
+            onClick={() => setTab('responses')}
+            className={`border-b-2 px-3 py-2 text-sm font-medium ${activeTab === 'responses' ? 'border-emerald-600 text-emerald-600 dark:border-emerald-400 dark:text-emerald-400' : 'border-transparent text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100'}`}
+            aria-selected={activeTab === 'responses'}
+            role="tab"
+          >
+            Responses
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab('results')}
+            className={`border-b-2 px-3 py-2 text-sm font-medium ${activeTab === 'results' ? 'border-emerald-600 text-emerald-600 dark:border-emerald-400 dark:text-emerald-400' : 'border-transparent text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100'}`}
+            aria-selected={activeTab === 'results'}
+            role="tab"
+          >
+            Results
+          </button>
+        </div>
+      ) : null}
+
+      {activeTab === 'results' && formIdApplied ? (
+        <FormResultsView
+          formId={formIdApplied}
+          authHeaders={authHeaders}
+          showDateFilter
+          titleOverride={selectedForm?.title}
+        />
+      ) : (
+        <>
       <div>
         <SubmissionsFilter
           forms={forms}
@@ -370,6 +421,8 @@ export default function SubmissionsPage() {
       {viewSubmission ? (
         <ResponseDetailModal submission={viewSubmission} onClose={() => setViewSubmission(null)} />
       ) : null}
+        </>
+      )}
     </section>
   )
 }

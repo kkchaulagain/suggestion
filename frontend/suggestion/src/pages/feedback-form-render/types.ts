@@ -18,11 +18,14 @@ export interface FeedbackFormField {
   allowAnonymous?: boolean
 }
 
+export type FormKind = 'form' | 'poll' | 'survey'
+
 export interface FeedbackFormConfig {
   _id: string
   title: string
   description?: string
   fields: FeedbackFormField[]
+  kind?: FormKind
 }
 
 export interface FeedbackFormApiResponse {

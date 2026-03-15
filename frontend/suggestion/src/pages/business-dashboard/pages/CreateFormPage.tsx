@@ -23,6 +23,7 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import {
   ArrowLeft,
+  BarChart2,
   Briefcase,
   Bug,
   Calendar,
@@ -61,11 +62,14 @@ interface FeedbackField {
   allowAnonymous?: boolean
 }
 
+export type FormKind = 'form' | 'poll' | 'survey'
+
 interface FeedbackFormResponse {
   feedbackForm: {
     title: string
     description?: string
     fields: FeedbackField[]
+    kind?: FormKind
   }
 }
 
@@ -73,10 +77,11 @@ export interface FormTemplate {
   id: string
   label: string
   description: string
-  iconName: 'MessageSquare' | 'Calendar' | 'Bug' | 'Briefcase' | 'Star' | 'Mail' | 'CalendarClock' | 'Users'
+  iconName: 'MessageSquare' | 'Calendar' | 'Bug' | 'Briefcase' | 'Star' | 'Mail' | 'CalendarClock' | 'Users' | 'BarChart2' | 'ListChecks'
   title: string
   formDescription: string
   fields: Omit<FeedbackField, 'clientId'>[]
+  kind?: FormKind
 }
 
 const OPTION_TYPES: FeedbackFieldType[] = ['checkbox', 'radio']
@@ -101,6 +106,32 @@ const defaultFields: FeedbackField[] = [
 const STAR_RATING_OPTIONS = ['★ 1 Star', '★★ 2 Stars', '★★★ 3 Stars', '★★★★ 4 Stars', '★★★★★ 5 Stars']
 
 const FORM_TEMPLATES: FormTemplate[] = [
+  {
+    id: 'poll',
+    label: 'Poll',
+    description: 'Single question with predefined options. Quick vote or choice.',
+    iconName: 'BarChart2',
+    title: 'Quick Poll',
+    formDescription: 'Cast your vote.',
+    kind: 'poll',
+    fields: [
+      { name: 'vote', label: "What's your choice?", type: 'radio', required: true, options: ['Option A', 'Option B', 'Option C'] },
+    ],
+  },
+  {
+    id: 'survey',
+    label: 'Survey',
+    description: 'Multiple questions: ratings, choices, and open feedback.',
+    iconName: 'ListChecks',
+    title: 'Survey',
+    formDescription: 'We value your feedback. Please answer the following questions.',
+    kind: 'survey',
+    fields: [
+      { name: 'rating', label: 'Overall rating', type: 'radio', required: true, options: ['Poor', 'Fair', 'Good', 'Excellent'] },
+      { name: 'category', label: 'Category', type: 'radio', required: false, options: ['Quality', 'Service', 'Value', 'Other'] },
+      { name: 'comments', label: 'Additional comments', type: 'short_text', required: false, placeholder: '' },
+    ],
+  },
   {
     id: 'customer-feedback',
     label: 'Customer Feedback',
@@ -340,6 +371,8 @@ const TEMPLATE_ICONS: Record<FormTemplate['iconName'], React.ComponentType<{ cla
   Mail,
   CalendarClock,
   Users,
+  BarChart2,
+  ListChecks,
 }
 
 function getFieldClientId(field: FeedbackField, index: number): string {
@@ -592,6 +625,7 @@ export default function CreateFormPage() {
   const [error, setError] = useState('')
   const [draggingFieldId, setDraggingFieldId] = useState<string | null>(null)
   const [overFieldId, setOverFieldId] = useState<string | null>(null)
+  const [formKind, setFormKind] = useState<FormKind>('form')
 
   const initialSnapshotRef = useRef<{ title: string; description: string; fieldsKey: string } | null>(null)
   const initialFieldOrderRef = useRef<string[]>(defaultFields.map((field, index) => getFieldClientId(field, index)))
@@ -611,6 +645,7 @@ export default function CreateFormPage() {
       setTitle(template.title)
       setDescription(template.formDescription)
       setFields(nextFields)
+      setFormKind(template.kind ?? 'form')
       initialFieldOrderRef.current = nextFields.map((field, index) => getFieldClientId(field, index))
       initialSnapshotRef.current = {
         title: template.title,
@@ -621,6 +656,7 @@ export default function CreateFormPage() {
       setTitle('Feedback form')
       setDescription('test')
       setFields(defaultFields)
+      setFormKind('form')
       initialFieldOrderRef.current = defaultFields.map((field, index) => getFieldClientId(field, index))
       initialSnapshotRef.current = {
         title: 'Feedback form',
@@ -651,9 +687,11 @@ export default function CreateFormPage() {
         const loadedTitle = data.feedbackForm.title || 'Feedback form'
         const loadedDescription = data.feedbackForm.description ?? ''
         const loadedFields = normalizeLoadedFields(data.feedbackForm.fields)
+        const loadedKind = data.feedbackForm.kind ?? 'form'
         setTitle(loadedTitle)
         setDescription(loadedDescription)
         setFields(loadedFields)
+        setFormKind(loadedKind)
         initialFieldOrderRef.current = loadedFields.map((field, index) => getFieldClientId(field, index))
         setEditingFieldId(null)
         initialSnapshotRef.current = {
@@ -905,6 +943,7 @@ export default function CreateFormPage() {
     const payload = {
       title: title.trim(),
       description: description.trim(),
+      kind: formKind,
       fields: fields.map((field) => ({
         name: toFieldName(field.name || field.label),
         label: field.label.trim(),

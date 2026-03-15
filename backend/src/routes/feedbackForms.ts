@@ -44,10 +44,14 @@ function normalizeFields(fields: FeedbackFieldInput[] | null | undefined): Feedb
   });
 }
 
+const FORM_KINDS = ['form', 'poll', 'survey'] as const;
+type FormKind = (typeof FORM_KINDS)[number];
+
 interface FeedbackFormPayload {
   title?: string;
   description?: string;
   fields?: FeedbackFieldInput[];
+  kind?: FormKind;
   businessId?: Types.ObjectId;
 }
 
@@ -55,6 +59,7 @@ interface RequestBody {
   title?: string;
   description?: string;
   fields?: FeedbackFieldInput[];
+  kind?: string;
 }
 
 function buildPayload(body: RequestBody): FeedbackFormPayload {
@@ -68,6 +73,12 @@ function buildPayload(body: RequestBody): FeedbackFormPayload {
   }
   if (Object.prototype.hasOwnProperty.call(body, 'fields')) {
     payload.fields = normalizeFields(body.fields);
+  }
+  if (Object.prototype.hasOwnProperty.call(body, 'kind') && typeof body.kind === 'string') {
+    const k = body.kind.toLowerCase().trim();
+    if (FORM_KINDS.includes(k as FormKind)) {
+      payload.kind = k as FormKind;
+    }
   }
 
   return payload;
@@ -351,6 +362,95 @@ router.post('/:id/submit', async (req: Request, res: Response) => {
     return res.status(201).json({ message: 'Submission received', submissionId: doc._id });
   } catch (_err) {
     return res.status(500).json({ error: 'Failed to save submission' });
+  }
+});
+
+router.get('/:id/results', async (req: Request, res: Response) => {
+  const id = req.params.id;
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ error: 'Invalid feedback form id' });
+  }
+  try {
+    const form = await FeedbackForm.findById(id).lean();
+    if (!form) {
+      return res.status(404).json({ error: 'Feedback form not found' });
+    }
+    const formDoc = form as { _id: unknown; title?: string; fields?: Array<{ name: string; label: string; type: string; options?: string[] }> };
+    const query: Record<string, unknown> = { formId: new mongoose.Types.ObjectId(id) };
+    const dateFromRaw = req.query.dateFrom;
+    const dateToRaw = req.query.dateTo;
+    const dateFrom = dateFromRaw && typeof dateFromRaw === 'string' ? new Date(dateFromRaw) : null;
+    const dateTo = dateToRaw && typeof dateToRaw === 'string' ? new Date(dateToRaw) : null;
+    const submittedAtFilter: Record<string, Date> = {};
+    if (dateFrom && !Number.isNaN(dateFrom.getTime())) submittedAtFilter.$gte = dateFrom;
+    if (dateTo && !Number.isNaN(dateTo.getTime())) submittedAtFilter.$lte = dateTo;
+    if (Object.keys(submittedAtFilter).length > 0) {
+      query.submittedAt = submittedAtFilter;
+    }
+    const submissions = await FeedbackSubmission.find(query).select('responses submittedAt').lean();
+    const totalResponses = submissions.length;
+    const byField: Record<string, { label: string; type: string; options?: { option: string; count: number; percentage: number }[]; responseCount?: number; sampleAnswers?: string[] }> = {};
+    const choiceTypes = ['radio', 'checkbox'];
+    const textTypes = ['short_text', 'long_text', 'big_text', 'name', 'image_upload'];
+    const fields = formDoc.fields || [];
+    for (const field of fields) {
+      const fname = field.name;
+      const label = field.label || fname;
+      const ftype = field.type;
+      if (choiceTypes.includes(ftype)) {
+        const counts: Record<string, number> = {};
+        const optionsList = Array.isArray(field.options) ? field.options : [];
+        optionsList.forEach((opt) => { counts[opt] = 0; });
+        for (const sub of submissions as { responses?: Record<string, unknown> }[]) {
+          const val = sub.responses?.[fname];
+          if (ftype === 'radio' && typeof val === 'string' && val.trim() !== '') {
+            counts[val] = (counts[val] ?? 0) + 1;
+          } else if (ftype === 'checkbox' && Array.isArray(val)) {
+            for (const v of val) {
+              if (typeof v === 'string' && v.trim() !== '') {
+                counts[v] = (counts[v] ?? 0) + 1;
+              }
+            }
+          }
+        }
+        const total = totalResponses;
+        const allOptions = [...new Set([...optionsList, ...Object.keys(counts).filter((k) => (counts[k] ?? 0) > 0)])];
+        const options = allOptions.map((option) => {
+          const count = counts[option] ?? 0;
+          const percentage = total > 0 ? Math.round((100 * count) / total) : 0;
+          return { option, count, percentage };
+        });
+        byField[fname] = { label, type: ftype, options };
+      } else if (textTypes.includes(ftype)) {
+        const sampleAnswers: string[] = [];
+        for (const sub of submissions as { responses?: Record<string, unknown> }[]) {
+          const val = sub.responses?.[fname];
+          const s = typeof val === 'string' ? val.trim() : '';
+          if (s !== '' && sampleAnswers.length < 20) sampleAnswers.push(s);
+        }
+        byField[fname] = { label, type: ftype, responseCount: totalResponses, sampleAnswers };
+      }
+    }
+    const dayCounts: Record<string, number> = {};
+    for (const sub of submissions as { submittedAt?: Date }[]) {
+      const d = sub.submittedAt;
+      if (d) {
+        const key = new Date(d).toISOString().slice(0, 10);
+        dayCounts[key] = (dayCounts[key] ?? 0) + 1;
+      }
+    }
+    const responsesOverTime = Object.entries(dayCounts)
+      .map(([date, count]) => ({ date, count }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+    return res.status(200).json({
+      formId: id,
+      formTitle: formDoc.title ?? '',
+      totalResponses,
+      byField,
+      responsesOverTime,
+    });
+  } catch (_err) {
+    return res.status(500).json({ error: 'Failed to fetch results' });
   }
 });
 

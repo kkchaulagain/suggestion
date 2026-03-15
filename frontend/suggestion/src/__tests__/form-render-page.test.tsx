@@ -128,6 +128,57 @@ describe('FormRenderPage', () => {
     })
   })
 
+  test('after submit shows See results link that points to results page', async () => {
+    mockedAxios.get.mockResolvedValueOnce({ data: mockFormConfig })
+    mockedAxios.post.mockResolvedValueOnce({ data: { message: 'Submission received' } })
+
+    renderFormRenderPage('form-1')
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /Customer Feedback/i })).toBeInTheDocument()
+    })
+
+    fireEvent.change(screen.getByPlaceholderText(/Your comment/i), { target: { value: 'Great' } })
+    fireEvent.click(screen.getByRole('radio', { name: /Good/i }))
+    fireEvent.click(screen.getByRole('button', { name: /Submit/i }))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('see-results-link')).toBeInTheDocument()
+    })
+    const seeResultsLink = screen.getByTestId('see-results-link')
+    expect(seeResultsLink).toHaveAttribute('href', '/feedback-forms/form-1/results')
+  })
+
+  test('after submit for poll shows Thanks for voting and See results', async () => {
+    const pollConfig = {
+      feedbackForm: {
+        _id: 'poll-1',
+        title: 'Quick Poll',
+        description: 'Vote now.',
+        kind: 'poll',
+        fields: [
+          { name: 'vote', label: 'Your vote', type: 'radio', required: true, options: ['Yes', 'No'] },
+        ],
+      },
+    }
+    mockedAxios.get.mockResolvedValueOnce({ data: pollConfig })
+    mockedAxios.post.mockResolvedValueOnce({ data: { message: 'Submission received' } })
+
+    renderFormRenderPage('poll-1')
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /Quick Poll/i })).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('radio', { name: /Yes/i }))
+    fireEvent.click(screen.getByRole('button', { name: /Submit/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText(/Thanks for voting!/i)).toBeInTheDocument()
+      expect(screen.getByTestId('see-results-link')).toBeInTheDocument()
+    })
+  })
+
   test('submit without required field shows validation error and highlights invalid field', async () => {
     mockedAxios.get.mockResolvedValueOnce({ data: mockFormConfig })
 

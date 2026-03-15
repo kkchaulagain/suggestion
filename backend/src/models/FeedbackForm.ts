@@ -56,8 +56,15 @@ const feedbackFieldSchema = new mongoose.Schema(
   { _id: false },
 );
 
+const FORM_KINDS = ['form', 'poll', 'survey'] as const;
+
 const feedbackFormSchema = new mongoose.Schema(
   {
+    kind: {
+      type: String,
+      enum: { values: FORM_KINDS, message: 'Kind must be form, poll, or survey' },
+      default: 'form',
+    },
     businessId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Business',
@@ -103,4 +110,4 @@ const feedbackFormSchema = new mongoose.Schema(
 
 const FeedbackForm = mongoose.model('FeedbackForm', feedbackFormSchema);
 
-module.exports = { FeedbackForm, FEEDBACK_FIELD_TYPES };
+module.exports = { FeedbackForm, FEEDBACK_FIELD_TYPES, FORM_KINDS };

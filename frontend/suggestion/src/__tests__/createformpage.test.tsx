@@ -158,6 +158,62 @@ describe('CreateFormPage', () => {
     })
   })
 
+  test('selecting Poll template and saving sends kind poll in POST', async () => {
+    mockedAxios.post.mockResolvedValueOnce({ data: { feedbackForm: { _id: 'new-poll' } } })
+
+    renderCreateFormPage()
+
+    await waitFor(() => {
+      expect(screen.getByText(/Choose a template/i)).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /Quick vote or choice/i }))
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue('Quick Poll')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /save form/i }))
+
+    await waitFor(() => {
+      expect(mockedAxios.post).toHaveBeenCalledWith(
+        feedbackFormsApi,
+        expect.objectContaining({
+          kind: 'poll',
+          title: 'Quick Poll',
+          fields: expect.any(Array),
+        }),
+        expect.any(Object),
+      )
+    })
+  })
+
+  test('selecting Survey template sends kind survey when saving', async () => {
+    mockedAxios.post.mockResolvedValueOnce({ data: { feedbackForm: { _id: 'new-survey' } } })
+
+    renderCreateFormPage()
+
+    await waitFor(() => {
+      expect(screen.getByText(/Choose a template/i)).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /ratings, choices, and open feedback/i }))
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue('Survey')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /save form/i }))
+
+    await waitFor(() => {
+      expect(mockedAxios.post).toHaveBeenCalledWith(
+        feedbackFormsApi,
+        expect.objectContaining({ kind: 'survey' }),
+        expect.any(Object),
+      )
+    })
+  })
+
   test('loads an existing form in edit mode and updates it', async () => {
     mockedAxios.get.mockResolvedValueOnce({
       data: {
@@ -331,6 +387,7 @@ describe('CreateFormPage', () => {
         {
           title: 'Feedback form',
           description: 'test',
+          kind: 'form',
           fields: [
             {
               name: 'subject',

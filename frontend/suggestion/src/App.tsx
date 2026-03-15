@@ -17,6 +17,7 @@ import SubmissionsPage from './pages/business-dashboard/pages/SubmissionsPage'
 import BusinessesPage from './pages/business-dashboard/pages/BusinessesPage'
 import FormRenderLayout from './pages/feedback-form-render/FormRenderLayout'
 import FormRenderPage from './pages/feedback-form-render/FormRenderPage'
+import FormResultsPage from './pages/feedback-form-render/FormResultsPage'
 import ProfilePage from './pages/business-dashboard/pages/ProfilePage'
 import UsersPage from './pages/business-dashboard/pages/UsersPage'
 
@@ -84,6 +85,7 @@ function App() {
           {/* Public form render: no auth, minimal layout */}
           <Route path="/feedback-forms" element={<FormRenderLayout />}>
             <Route path=":formId" element={<FormRenderPage />} />
+            <Route path=":formId/results" element={<FormResultsPage />} />
           </Route>
         </Routes>
         </AuthProvider>
