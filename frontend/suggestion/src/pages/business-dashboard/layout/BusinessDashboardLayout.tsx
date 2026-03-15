@@ -9,6 +9,8 @@ import { sidebarItems } from '../types/navigation'
 const pageTitles: Record<string, string> = {
   '/dashboard/forms': 'Forms',
   '/dashboard/forms/create': 'Create Form',
+  '/dashboard/pages': 'Pages',
+  '/dashboard/pages/create': 'Create Page',
   '/dashboard/submissions': 'Submissions',
   '/dashboard/businesses': 'Businesses',
   '/dashboard/users': 'Users',
@@ -29,6 +31,9 @@ export default function BusinessDashboardLayout() {
   const pageTitle = useMemo(() => {
     if (/^\/dashboard\/forms\/[^/]+\/edit$/.test(location.pathname)) {
       return 'Edit Form'
+    }
+    if (/^\/dashboard\/pages\/[^/]+\/edit$/.test(location.pathname)) {
+      return 'Edit Page'
     }
     return pageTitles[location.pathname] ?? 'Business Dashboard'
   }, [location.pathname])

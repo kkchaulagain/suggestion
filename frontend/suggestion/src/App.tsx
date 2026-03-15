@@ -1,6 +1,7 @@
 import './App.css'
 import Signup from './auth/Signup'
 import Login from './auth/login'
+import LandingPage from './pages/landing/LandingPage'
 import SuggestionForm from './pages/business/suggestionform'
 
 import ProtectedRoute from './component/ProtectedRoutes'
@@ -13,7 +14,10 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 
 import FormsPage from './pages/business-dashboard/pages/FormsPage'
 import CreateFormPage from './pages/business-dashboard/pages/CreateFormPage'
+import PagesPage from './pages/business-dashboard/pages/PagesPage'
+import CreatePagePage from './pages/business-dashboard/pages/CreatePagePage'
 import SubmissionsPage from './pages/business-dashboard/pages/SubmissionsPage'
+import PublicPageView from './pages/cms-public/PublicPageView'
 import BusinessesPage from './pages/business-dashboard/pages/BusinessesPage'
 import FormRenderLayout from './pages/feedback-form-render/FormRenderLayout'
 import FormRenderPage from './pages/feedback-form-render/FormRenderPage'
@@ -36,7 +40,7 @@ function App() {
             path="/"
             element={
               <GuestRoute>
-                <Signup />
+                <LandingPage />
               </GuestRoute>
             }
           />
@@ -69,6 +73,9 @@ function App() {
             <Route path="forms" element={<FormsPage />} />
             <Route path="forms/create" element={<CreateFormPage />} />
             <Route path="forms/:formId/edit" element={<CreateFormPage />} />
+            <Route path="pages" element={<PagesPage />} />
+            <Route path="pages/create" element={<CreatePagePage />} />
+            <Route path="pages/:pageId/edit" element={<CreatePagePage />} />
             <Route path="submissions" element={<SubmissionsPage />} />
             <Route path="businesses" element={<RoleGuard roles={['admin']}><BusinessesPage /></RoleGuard>} />
             <Route path="users" element={<RoleGuard roles={['admin']}><UsersPage /></RoleGuard>} />
@@ -92,6 +99,8 @@ function App() {
             <Route path=":formId" element={<FormRenderPage />} />
             <Route path=":formId/results" element={<FormResultsPage />} />
           </Route>
+          {/* Public CMS page: /c/:id/:slug (id = page ID, slug = page slug) */}
+          <Route path="/c/:id/:slug" element={<PublicPageView />} />
         </Routes>
         </AuthProvider>
       </ThemeProvider>

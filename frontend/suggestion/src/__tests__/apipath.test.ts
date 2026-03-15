@@ -8,6 +8,7 @@ import {
   businessmeapi,
   feedbackFormsApi,
   feedbackFormSubmissionsApi,
+  pagesApi,
   uploadApi,
   businessesListApi,
   usersApi,
@@ -50,6 +51,10 @@ describe('apipath', () => {
 
   it('exports feedbackFormSubmissionsApi with correct path', () => {
     expect(feedbackFormSubmissionsApi).toBe(`${base}/api/feedback-forms/submissions`)
+  })
+
+  it('exports pagesApi with correct path', () => {
+    expect(pagesApi).toBe(`${base}/api/pages`)
   })
 
   it('exports uploadApi with correct path', () => {
