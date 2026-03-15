@@ -210,7 +210,7 @@ describe('POST /api/auth/register', () => {
   });
 
   it('succeeds when business role omits optional pancardNumber', async () => {
-    const res = await request(app)
+    await request(app)
       .post('/api/auth/register')
       .send({
         email: 'biz-no-pan@example.com',

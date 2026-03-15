@@ -4,12 +4,13 @@ const app = require('../app');
 const User = require('../models/User');
 const Business = require('../models/Business');
 const jwt = require('jsonwebtoken');
+import type { Types } from 'mongoose';
 
 describe('Auth Profile Endpoints', () => {
-  let userToken;
-  let businessToken;
-  let userId;
-  let businessUserId;
+  let userToken: string;
+  let businessToken: string;
+  let userId: Types.ObjectId;
+  let businessUserId: Types.ObjectId;
 
   beforeAll(async () => {
     await connect();

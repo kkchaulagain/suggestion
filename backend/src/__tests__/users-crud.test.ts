@@ -7,9 +7,9 @@ const jwt = require('jsonwebtoken');
 const JWT_SECRET = process.env.JWT_SECRET || 'default_secret_key';
 
 describe('Users CRUD API', () => {
-  let adminToken;
-  let adminId;
-  let regularUserId;
+  let adminToken: string;
+  let adminId: string;
+  let regularUserId: string;
 
   beforeAll(async () => {
     await connect();
@@ -45,7 +45,7 @@ describe('Users CRUD API', () => {
     regularUserId = regular._id.toString();
   });
 
-  const withAuth = (token, method, path) =>
+  const withAuth = (token: string, method: string, path: string) =>
     request(app)[method](path).set('Authorization', `Bearer ${token}`);
 
   describe('GET /api/users', () => {

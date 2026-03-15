@@ -143,9 +143,9 @@ describe('Feedback Forms API', () => {
     expect(getRes.body.feedbackForm.title).toBe('Survey with options');
     const fields = getRes.body.feedbackForm.fields;
     expect(fields).toHaveLength(2);
-    const radioField = fields.find((f) => f.type === 'radio');
+    const radioField = fields.find((f: { type?: string; options?: string[] }) => f.type === 'radio');
     expect(radioField?.options).toEqual(['Yes', 'No', 'Maybe']);
-    const checkboxField = fields.find((f) => f.type === 'checkbox');
+    const checkboxField = fields.find((f: { type?: string; options?: string[] }) => f.type === 'checkbox');
     expect(checkboxField?.options).toEqual(['Tag A', 'Tag B']);
   });
 
@@ -432,7 +432,7 @@ describe('Feedback Forms API', () => {
       const getRes = await request(app).get(`/api/feedback-forms/${formId}`).expect(200);
       expect(getRes.body.feedbackForm.kind).toBe('poll');
       const listRes = await request(app).get('/api/feedback-forms').set(authHeader).expect(200);
-      const found = listRes.body.feedbackForms.find((f) => f._id === formId);
+      const found = listRes.body.feedbackForms.find((f: { _id: string }) => f._id === formId);
       expect(found).toBeTruthy();
       expect(found.kind).toBe('poll');
     });
@@ -632,7 +632,7 @@ describe('Feedback Forms API', () => {
           { name: 'stars', label: 'Stars', type: 'rating', options: starOptions },
         ],
       });
-      const formSnapshot = form.fields.map((f) => ({ name: f.name, label: f.label, type: f.type, options: f.options }));
+      const formSnapshot = form.fields.map((f: { name: string; label: string; type: string; options?: string[] }) => ({ name: f.name, label: f.label, type: f.type, options: f.options }));
       await FeedbackSubmission.create([
         { formId: form._id, businessId, formSnapshot, responses: { score: '7', stars: '★★★ 3 Stars' }, submittedAt: new Date() },
         { formId: form._id, businessId, formSnapshot, responses: { score: '7', stars: '★★★★★ 5 Stars' }, submittedAt: new Date() },

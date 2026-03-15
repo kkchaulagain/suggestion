@@ -152,7 +152,7 @@ describe('POST /api/auth/login', () => {
       .send({ email: 'refresh@example.com', password: 'secret123' })
       .expect(200);
 
-    const refreshCookie = loginRes.headers['set-cookie'].find((cookie) =>
+    const refreshCookie = loginRes.headers['set-cookie'].find((cookie: string) =>
       cookie.startsWith('refreshToken='),
     );
 
@@ -187,7 +187,7 @@ describe('POST /api/auth/login', () => {
       .send({ email: 'logout@example.com', password: 'secret123' })
       .expect(200);
 
-    const refreshCookie = loginRes.headers['set-cookie'].find((cookie) =>
+    const refreshCookie = loginRes.headers['set-cookie'].find((cookie: string) =>
       cookie.startsWith('refreshToken='),
     );
 

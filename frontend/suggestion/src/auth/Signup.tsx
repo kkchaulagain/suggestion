@@ -217,7 +217,7 @@ export default function Signup(): JSX.Element {
               </div>
 
               <div className="space-y-2">
-                <Label>Account Type</Label>
+                <Label htmlFor="account-type">Account Type</Label>
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"

@@ -226,7 +226,8 @@ describe('Signup Component', () => {
       expect(mockedAxios.post).toHaveBeenCalled()
     })
 
-    const payload = mockedAxios.post.mock.calls[0][1]
+    type SignupPayload = { role?: string; businessname?: string; description?: string }
+    const payload = mockedAxios.post.mock.calls[0][1] as SignupPayload
     expect(payload.role).toBe('user')
     expect(payload.businessname).toBeUndefined()
     expect(payload.description).toBeUndefined()
