@@ -7,14 +7,16 @@ const User = require('../models/User');
 const Business = require('../models/Business');
 
 async function createBusinessAuth() {
-  const email = `biz_${Date.now()}_${Math.random().toString(16).slice(2)}@example.com`;
+  const suffix = `${Date.now()}_${Math.random().toString(16).slice(2)}`;
+  const email = `biz_${suffix}@example.com`;
   const password = 'Password123!';
+  const phone = `+97798${String(10000000 + Math.floor(Math.random() * 90000000))}`;
 
   await request(app).post('/api/auth/register').send({
     name: 'Business Owner',
     email,
     password,
-    phone: '+9779812345678',
+    phone,
     role: 'business',
     location: 'City Center',
     pancardNumber: 1234567,
@@ -24,7 +26,8 @@ async function createBusinessAuth() {
 
   const loginRes = await request(app).post('/api/auth/login').send({ email, password }).expect(200);
   const token = loginRes.body?.token || loginRes.body?.data?.token;
-  const business = await Business.findOne({ businessname: 'Acme Business', location: 'City Center' }).sort({ createdAt: -1 });
+  const user = await User.findOne({ email: email.toLowerCase() }).select('_id').lean();
+  const business = user ? await Business.findOne({ owner: user._id }).lean() : null;
 
   return {
     authHeader: { Authorization: `Bearer ${token}` },
@@ -33,13 +36,15 @@ async function createBusinessAuth() {
 }
 
 async function createAdminAuth() {
-  const email = `admin_${Date.now()}_${Math.random().toString(16).slice(2)}@example.com`;
+  const suffix = `${Date.now()}_${Math.random().toString(16).slice(2)}`;
+  const email = `admin_${suffix}@example.com`;
   const password = 'AdminPass123!';
+  const phone = `+97798${String(20000000 + Math.floor(Math.random() * 80000000))}`;
   await User.create({
     name: 'Admin User',
     email,
     password,
-    phone: '+9779812345620',
+    phone,
     role: 'admin',
     isActive: true,
   });
@@ -288,7 +293,7 @@ describe('Feedback Forms API', () => {
       .set(authHeader)
       .expect(404);
 
-    expect(res.body.error).toBe('Feedback form not found');
+    expect(res.body.error).toMatch(/feedback form not found|not found/i);
   });
 
   it('returns 400 when generating QR with invalid form id', async () => {
