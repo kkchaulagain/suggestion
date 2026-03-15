@@ -2,25 +2,31 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import axios from 'axios'
 import type { LucideIcon } from 'lucide-react'
+import type { ReactNode } from 'react'
 import {
+  BarChart3,
   ChevronDown,
   ChevronUp,
   FileText,
   Grid3X3,
   Heading1,
+  Image,
   Layout,
   LayoutGrid,
-  Image,
   Megaphone,
+  Pencil,
   Plus,
+  Share2,
   Sparkles,
   Trash2,
   Type,
 } from 'lucide-react'
 import { useAuth } from '../../../context/AuthContext'
 import { feedbackFormsApi, pagesApi } from '../../../utils/apipath'
-import { Button, Card, ErrorMessage, Input, Select, Textarea } from '../../../components/ui'
+import { Button, Card, ErrorMessage, Input, Modal, Select, Textarea } from '../../../components/ui'
+import { HeroSection, FeatureCard, CTASection } from '../../../components/landing'
 import ImageUploadCropDialog from '../../../components/media/ImageUploadCropDialog'
+import EmbeddedFormBlock from '../../feedback-form-render/EmbeddedFormBlock'
 
 type BlockType = 'heading' | 'paragraph' | 'form' | 'hero' | 'feature_card' | 'feature_grid' | 'image' | 'cta'
 
@@ -158,6 +164,19 @@ const BLOCK_OPTIONS: BlockOption[] = [
   { type: 'cta', label: 'CTA Banner', description: 'Call-to-action section', icon: Megaphone },
 ]
 
+const FEATURE_ICON_MAP: Record<string, ReactNode> = {
+  'file-text': <FileText className="h-6 w-6" />,
+  share2: <Share2 className="h-6 w-6" />,
+  'bar-chart3': <BarChart3 className="h-6 w-6" />,
+}
+
+const HERO_ICON_MAP: Record<string, ReactNode> = {
+  sparkles: <Sparkles className="h-16 w-16" />,
+  'file-text': <FileText className="h-16 w-16" />,
+  share2: <Share2 className="h-16 w-16" />,
+  'bar-chart3': <BarChart3 className="h-16 w-16" />,
+}
+
 let blockCounter = 0
 
 function createClientId() {
@@ -268,6 +287,115 @@ function getBlockSummary(block: Block): string {
   }
 }
 
+function renderBlockPreview(block: Block): ReactNode {
+  if (block.type === 'heading') {
+    const payload = block.payload as HeadingPayload
+    const text = payload?.text?.trim()
+    if (!text) return <p className="text-sm text-stone-400 dark:text-stone-500">Heading</p>
+    const Tag = payload?.level === 1 ? 'h1' : payload?.level === 3 ? 'h3' : 'h2'
+    return (
+      <Tag className={Tag === 'h1' ? 'text-2xl font-bold sm:text-3xl' : Tag === 'h2' ? 'text-xl font-semibold sm:text-2xl' : 'text-lg font-semibold sm:text-xl'}>
+        {text}
+      </Tag>
+    )
+  }
+  if (block.type === 'paragraph') {
+    const text = (block.payload as ParagraphPayload)?.text?.trim()
+    if (!text) return <p className="text-sm text-stone-400 dark:text-stone-500">Paragraph</p>
+    return <p className="leading-relaxed text-stone-700 dark:text-stone-300">{text}</p>
+  }
+  if (block.type === 'form') {
+    const formId = (block.payload as FormBlockPayload)?.formId
+    if (!formId) return <p className="text-sm text-stone-400 dark:text-stone-500">Select a form</p>
+    return (
+      <div className="rounded-xl border border-dashed border-stone-200 p-4 dark:border-stone-600">
+        <EmbeddedFormBlock formId={formId} />
+      </div>
+    )
+  }
+  if (block.type === 'hero') {
+    const p = block.payload as HeroPayload
+    const headline = p?.headline?.trim()
+    const subheadline = p?.subheadline?.trim()
+    const mediaType = p?.mediaType ?? 'none'
+    const media = mediaType === 'image' && p?.imageUrl?.trim()
+      ? (
+        <img src={p.imageUrl!.trim()} alt={p.imageAlt?.trim() || 'Hero'} className="w-full rounded-xl object-cover" />
+      )
+      : mediaType === 'icon'
+        ? (
+          <div className="flex min-h-40 items-center justify-center text-emerald-600 dark:text-emerald-400">
+            {HERO_ICON_MAP[(p?.icon ?? '').toLowerCase()] ?? HERO_ICON_MAP.sparkles}
+          </div>
+        )
+        : undefined
+    const effectiveVariant = p?.variant ?? (media ? 'split' : 'centered')
+    const effectiveStyle = p?.style ?? 'default'
+    return (
+      <HeroSection
+        headline={headline || 'Headline'}
+        subheadline={subheadline || 'Subheadline'}
+        media={media}
+        variant={effectiveVariant}
+        style={effectiveStyle}
+        primaryCta={p?.primaryCta?.label && p?.primaryCta?.href ? { label: p.primaryCta.label, href: p.primaryCta.href } : undefined}
+        secondaryCta={p?.secondaryCta?.label && p?.secondaryCta?.href ? { label: p.secondaryCta.label, href: p.secondaryCta.href } : undefined}
+      />
+    )
+  }
+  if (block.type === 'feature_card') {
+    const p = block.payload as FeatureCardPayload
+    const title = p?.title?.trim()
+    const description = p?.description?.trim()
+    const icon = FEATURE_ICON_MAP[(p?.icon ?? '').toLowerCase()] ?? FEATURE_ICON_MAP['file-text']
+    return <FeatureCard icon={icon} title={title || 'Title'} description={description || 'Description'} />
+  }
+  if (block.type === 'feature_grid') {
+    const p = block.payload as FeatureGridPayload
+    const items = p?.items ?? []
+    const columns = p?.columns ?? 3
+    if (items.length === 0) return <p className="text-sm text-stone-400 dark:text-stone-500">Add items to the grid</p>
+    const gridClass = columns === 2 ? 'grid gap-6 sm:grid-cols-2' : 'grid gap-6 sm:grid-cols-2 lg:grid-cols-3'
+    return (
+      <div className={gridClass}>
+        {items.map((item, i) => {
+          const icon = FEATURE_ICON_MAP[(item?.icon ?? '').toLowerCase()] ?? FEATURE_ICON_MAP['file-text']
+          return (
+            <FeatureCard
+              key={i}
+              icon={icon}
+              title={item?.title ?? ''}
+              description={item?.description ?? ''}
+            />
+          )
+        })}
+      </div>
+    )
+  }
+  if (block.type === 'cta') {
+    const p = block.payload as CTAPayload
+    return (
+      <CTASection
+        text={p?.text?.trim() || 'CTA text'}
+        ctaLabel={p?.ctaLabel?.trim() || 'Button'}
+        ctaHref={p?.ctaHref?.trim() || '#'}
+      />
+    )
+  }
+  if (block.type === 'image') {
+    const p = block.payload as ImagePayload
+    const imageUrl = p?.imageUrl?.trim()
+    if (!imageUrl) return <p className="text-sm text-stone-400 dark:text-stone-500">Add an image URL</p>
+    return (
+      <figure className="space-y-2">
+        <img src={imageUrl} alt={p.alt?.trim() || 'Image'} className="w-full rounded-2xl border border-stone-200 object-cover dark:border-stone-700" />
+        {p.caption?.trim() ? <figcaption className="text-sm text-stone-500 dark:text-stone-400">{p.caption}</figcaption> : null}
+      </figure>
+    )
+  }
+  return null
+}
+
 export default function CreatePagePage() {
   const { pageId } = useParams<{ pageId?: string }>()
   const id = pageId
@@ -285,9 +413,9 @@ export default function CreatePagePage() {
   const [loading, setLoading] = useState(isEdit)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
-  const [collapsedBlockIds, setCollapsedBlockIds] = useState<Record<string, boolean>>({})
   const [activeInsertIndex, setActiveInsertIndex] = useState<number | null>(null)
   const [uploadTarget, setUploadTarget] = useState<UploadTarget | null>(null)
+  const [editingBlockIndex, setEditingBlockIndex] = useState<number | null>(null)
 
   const pageStatusLabel = status === 'published' ? 'Published' : 'Draft'
   const pageLabel = isEdit ? 'Edit Page' : 'Create Page'
@@ -346,7 +474,6 @@ export default function CreatePagePage() {
       next.splice(insertAt, 0, nextBlock)
       return next
     })
-    setCollapsedBlockIds((prev) => ({ ...prev, [nextBlock.clientId]: false }))
     setActiveInsertIndex(null)
   }, [blocks.length])
 
@@ -359,32 +486,26 @@ export default function CreatePagePage() {
   }, [])
 
   const moveBlock = useCallback((index: number, direction: 'up' | 'down') => {
+    const target = direction === 'up' ? index - 1 : index + 1
+    if (target < 0 || target >= blocks.length) return
+    setEditingBlockIndex((prev) => {
+      if (prev == null) return null
+      if (prev === index) return target
+      if (direction === 'up' && prev === target) return prev + 1
+      if (direction === 'down' && prev === target) return prev - 1
+      return prev
+    })
     setBlocks((prev) => {
       const next = [...prev]
-      const target = direction === 'up' ? index - 1 : index + 1
-      if (target < 0 || target >= next.length) return prev
       ;[next[index], next[target]] = [next[target], next[index]]
       return next
     })
-  }, [])
+  }, [blocks.length])
 
   const removeBlock = useCallback((index: number) => {
-    setBlocks((prev) => {
-      const block = prev[index]
-      if (block) {
-        setCollapsedBlockIds((current) => {
-          const next = { ...current }
-          delete next[block.clientId]
-          return next
-        })
-      }
-      return prev.filter((_, blockIndex) => blockIndex !== index)
-    })
+    setEditingBlockIndex((current) => (current === index ? null : current != null && current > index ? current - 1 : current))
+    setBlocks((prev) => prev.filter((_, i) => i !== index))
     setActiveInsertIndex(null)
-  }, [])
-
-  const toggleBlockCollapsed = useCallback((clientId: string) => {
-    setCollapsedBlockIds((prev) => ({ ...prev, [clientId]: !prev[clientId] }))
   }, [])
 
   const handleSave = useCallback(async () => {
@@ -1047,33 +1168,31 @@ export default function CreatePagePage() {
                 {blocks.map((block, index) => {
                   const option = getBlockOption(block.type)
                   const Icon = option.icon
-                  const isCollapsed = collapsedBlockIds[block.clientId] === true
 
                   return (
                     <div key={block.clientId} className="space-y-1">
-                      <Card className="rounded-[28px] border-stone-200/80 bg-white/95 shadow-[0_30px_60px_-40px_rgba(15,23,42,0.4)] dark:border-stone-800 dark:bg-stone-900/80">
-                        <div className="space-y-5">
-                          <div className="flex items-start gap-3">
-                            <button
-                              type="button"
-                              onClick={() => toggleBlockCollapsed(block.clientId)}
-                              className="flex min-w-0 flex-1 items-start gap-3 text-left"
-                              aria-label={`${isCollapsed ? 'Expand' : 'Collapse'} ${option.label} block`}
-                              aria-expanded={!isCollapsed}
-                            >
-                              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-300">
+                      <Card className="rounded-[28px] border-stone-200/80 bg-white/95 shadow-[0_30px_60px_-40px_rgba(15,23,42,0.4)] dark:border-stone-800 dark:bg-stone-900/80" padding="md">
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex min-w-0 items-center gap-3">
+                              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-300">
                                 <Icon className="h-5 w-5" />
                               </span>
-                              <span className="min-w-0">
-                                <span className="block text-lg font-semibold text-stone-950 dark:text-stone-50">
-                                  {option.label}
-                                </span>
-                                <span className="mt-1 block truncate text-sm text-stone-500 dark:text-stone-400">
-                                  {getBlockSummary(block)}
-                                </span>
+                              <span className="truncate text-sm font-medium text-stone-500 dark:text-stone-400">
+                                {getBlockSummary(block)}
                               </span>
-                            </button>
+                            </div>
                             <div className="flex shrink-0 items-center gap-1">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-9 w-9 rounded-full p-0 text-stone-500 hover:bg-stone-100 hover:text-stone-700 dark:hover:bg-stone-800 dark:hover:text-stone-200"
+                                onClick={() => setEditingBlockIndex(index)}
+                                aria-label={`Edit ${option.label} block`}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
                               <Button
                                 type="button"
                                 variant="ghost"
@@ -1108,12 +1227,9 @@ export default function CreatePagePage() {
                               </Button>
                             </div>
                           </div>
-
-                          {isCollapsed ? null : (
-                            <div className="border-t border-stone-100 pt-5 dark:border-stone-800">
-                              {renderBlockFields(block, index)}
-                            </div>
-                          )}
+                          <div className="rounded-xl border border-stone-100 bg-stone-50/50 p-4 dark:border-stone-800 dark:bg-stone-800/30">
+                            {renderBlockPreview(block)}
+                          </div>
                         </div>
                       </Card>
                       {renderInsertControl(index + 1)}
@@ -1237,6 +1353,24 @@ export default function CreatePagePage() {
           setUploadTarget(null)
         }}
       />
+
+      {editingBlockIndex !== null && blocks[editingBlockIndex] && (
+        <Modal
+          isOpen
+          onClose={() => setEditingBlockIndex(null)}
+          title={`Edit ${getBlockOption(blocks[editingBlockIndex].type).label} block`}
+          size="xl"
+        >
+          <div className="max-h-[70vh] overflow-y-auto pr-1">
+            {renderBlockFields(blocks[editingBlockIndex], editingBlockIndex)}
+          </div>
+          <div className="mt-4 flex justify-end border-t border-stone-200 pt-4 dark:border-stone-700">
+            <Button type="button" variant="primary" onClick={() => setEditingBlockIndex(null)}>
+              Close
+            </Button>
+          </div>
+        </Modal>
+      )}
     </div>
   )
 }

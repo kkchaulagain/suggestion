@@ -65,19 +65,17 @@ describe('CreatePagePage', () => {
     })
   })
 
-  test('adds a hero block from the insert control and supports collapse and expand', async () => {
+  test('adds a hero block and edit form opens in dialog', async () => {
     await renderCreatePageAndFlush()
 
     fireEvent.click(screen.getByRole('button', { name: /insert block at position 1/i }))
     fireEvent.click(screen.getByRole('button', { name: /add hero block/i }))
 
+    fireEvent.click(screen.getByRole('button', { name: /edit hero block/i }))
     expect(screen.getByLabelText(/^Headline$/i)).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: /collapse hero block/i }))
+    fireEvent.click(screen.getByRole('button', { name: /close/i }))
     expect(screen.queryByLabelText(/^Headline$/i)).not.toBeInTheDocument()
-
-    fireEvent.click(screen.getByRole('button', { name: /expand hero block/i }))
-    expect(screen.getByLabelText(/^Headline$/i)).toBeInTheDocument()
   })
 
   test('hero block supports image and icon media options', async () => {
@@ -85,6 +83,7 @@ describe('CreatePagePage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /insert block at position 1/i }))
     fireEvent.click(screen.getByRole('button', { name: /add hero block/i }))
+    fireEvent.click(screen.getByRole('button', { name: /edit hero block/i }))
 
     fireEvent.change(screen.getByLabelText(/hero media/i), { target: { value: 'image' } })
     expect(screen.getByLabelText(/hero image url/i)).toBeInTheDocument()
@@ -99,6 +98,7 @@ describe('CreatePagePage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /insert block at position 1/i }))
     fireEvent.click(screen.getByRole('button', { name: /add hero block/i }))
+    fireEvent.click(screen.getByRole('button', { name: /edit hero block/i }))
 
     expect(screen.getByLabelText(/^Layout$/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/^Style$/i)).toBeInTheDocument()
@@ -124,9 +124,9 @@ describe('CreatePagePage', () => {
     fireEvent.click(screen.getByRole('button', { name: /insert block at position 2/i }))
     fireEvent.click(screen.getByRole('button', { name: /add paragraph block/i }))
 
-    expect(screen.getByRole('button', { name: /collapse heading block/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /collapse paragraph block/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /collapse cta banner block/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /edit heading block/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /edit paragraph block/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /edit cta banner block/i })).toBeInTheDocument()
   })
 
   test('adds an image block with image URL, alt text, and caption inputs', async () => {
@@ -134,6 +134,7 @@ describe('CreatePagePage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /insert block at position 1/i }))
     fireEvent.click(screen.getByRole('button', { name: /add image block/i }))
+    fireEvent.click(screen.getByRole('button', { name: /edit image block/i }))
 
     expect(screen.getByLabelText(/image url/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/alt text/i)).toBeInTheDocument()
