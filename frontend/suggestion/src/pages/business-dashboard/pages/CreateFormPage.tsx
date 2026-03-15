@@ -55,7 +55,7 @@ import { useAuth } from '../../../context/AuthContext'
 import { feedbackFormsApi } from '../../../utils/apipath'
 import { Button, Card, ErrorMessage, Input, Modal, Select, Textarea } from '../../../components/ui'
 import { EmptyState } from '../../../components/layout'
-import { type FormKind, type FormTemplate, FORM_TEMPLATES } from './formTemplates'
+import { type FormKind, type FormTemplate, type TemplateCategory, FORM_TEMPLATES } from './formTemplates'
 
 export type { FormKind, FormTemplate }
 
@@ -1192,29 +1192,47 @@ export default function CreateFormPage() {
           <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
             Start with a pre-built form or configure your own from scratch.
           </p>
-          <div className="mt-6 grid gap-3 sm:grid-cols-2">
-            {FORM_TEMPLATES.map((template) => {
-              const Icon = TEMPLATE_ICONS[template.iconName]
-              return (
-                <button
-                  key={template.id}
-                  type="button"
-                  onClick={() => handleSelectTemplate(template)}
-                  className="flex items-start gap-3 rounded-xl border border-slate-200 p-4 text-left transition hover:border-emerald-300 hover:bg-emerald-50/50 dark:border-slate-700 dark:hover:border-emerald-600 dark:hover:bg-emerald-900/20"
-                >
-                  <Icon className="h-5 w-5 shrink-0 text-slate-500 dark:text-slate-400" />
-                  <div className="min-w-0 flex-1">
-                    <span className="font-medium text-slate-900 dark:text-slate-100">{template.label}</span>
-                    <p className="mt-0.5 text-xs text-slate-600 dark:text-slate-400">{template.description}</p>
-                    <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
-                      {template.fields.length} field{template.fields.length !== 1 ? 's' : ''}
-                      {template.fields.length > 0 ? ` · ${template.fields.slice(0, 2).map((f) => f.label).join(', ')}${template.fields.length > 2 ? '...' : ''}` : ''}
-                    </p>
-                  </div>
-                </button>
-              )
-            })}
-          </div>
+          {(['simple', 'advanced'] as TemplateCategory[]).map((category) => {
+            const templates = FORM_TEMPLATES.filter((t) => t.category === category)
+            if (templates.length === 0) return null
+            const categoryLabel = category === 'simple' ? 'Simple' : 'Advanced'
+            const categoryDescription = category === 'simple'
+              ? 'Quick polls, short surveys, and contact forms.'
+              : 'Multi-step forms, detailed feedback, and registrations.'
+            return (
+              <div key={category} className="mt-6">
+                <h3 className="text-sm font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  {categoryLabel}
+                </h3>
+                <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{categoryDescription}</p>
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  {templates.map((template) => {
+                    const Icon = TEMPLATE_ICONS[template.iconName]
+                    const stepCount = template.steps?.length ?? 0
+                    return (
+                      <button
+                        key={template.id}
+                        type="button"
+                        onClick={() => handleSelectTemplate(template)}
+                        className="flex items-start gap-3 rounded-xl border border-slate-200 p-4 text-left transition hover:border-emerald-300 hover:bg-emerald-50/50 dark:border-slate-700 dark:hover:border-emerald-600 dark:hover:bg-emerald-900/20"
+                      >
+                        <Icon className="h-5 w-5 shrink-0 text-slate-500 dark:text-slate-400" />
+                        <div className="min-w-0 flex-1">
+                          <span className="font-medium text-slate-900 dark:text-slate-100">{template.label}</span>
+                          <p className="mt-0.5 text-xs text-slate-600 dark:text-slate-400">{template.description}</p>
+                          <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
+                            {stepCount > 0 ? `${stepCount} step${stepCount !== 1 ? 's' : ''} · ` : ''}
+                            {template.fields.length} field{template.fields.length !== 1 ? 's' : ''}
+                            {template.fields.length > 0 ? ` · ${template.fields.slice(0, 2).map((f) => f.label).join(', ')}${template.fields.length > 2 ? '...' : ''}` : ''}
+                          </p>
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )
+          })}
           <div className="mt-6 border-t border-slate-200 pt-6 dark:border-slate-700">
             <Button
               type="button"
