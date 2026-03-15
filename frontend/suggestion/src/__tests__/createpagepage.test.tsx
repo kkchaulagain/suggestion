@@ -38,6 +38,12 @@ async function renderCreatePageAndFlush(path = '/dashboard/pages/create') {
   })
 }
 
+/** In create mode, advance from template selection to the page builder (same as clicking "Start from scratch"). */
+function goToBuildStep() {
+  const startFromScratch = screen.getByRole('button', { name: /start from scratch/i })
+  fireEvent.click(startFromScratch)
+}
+
 describe('CreatePagePage', () => {
   beforeEach(() => {
     jest.clearAllMocks()
@@ -46,8 +52,24 @@ describe('CreatePagePage', () => {
     mockedAxios.put.mockResolvedValue({ data: {} })
   })
 
-  test('renders modern editor shell with sticky actions and page details sidebar', async () => {
+  test('shows template selection when creating a new page', async () => {
     await renderCreatePageAndFlush()
+    expect(screen.getByRole('heading', { name: /choose a template/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /start from scratch/i })).toBeInTheDocument()
+  })
+
+  test('selecting a template pre-fills blocks and advances to build step', async () => {
+    await renderCreatePageAndFlush()
+    fireEvent.click(screen.getByRole('button', { name: /form-builder marketing/i }))
+    expect(screen.getByRole('heading', { name: /create page/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /edit hero block/i })).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: /edit heading block/i }).length).toBeGreaterThanOrEqual(1)
+    expect(screen.getByRole('button', { name: /edit cta banner block/i })).toBeInTheDocument()
+  })
+
+  test('renders modern editor shell with sticky actions and page details sidebar after choosing template', async () => {
+    await renderCreatePageAndFlush()
+    goToBuildStep()
 
     expect(screen.getByRole('heading', { name: /create page/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /save changes/i })).toBeInTheDocument()
@@ -67,6 +89,7 @@ describe('CreatePagePage', () => {
 
   test('adds a hero block and edit form opens in dialog', async () => {
     await renderCreatePageAndFlush()
+    goToBuildStep()
 
     fireEvent.click(screen.getByRole('button', { name: /insert block at position 1/i }))
     fireEvent.click(screen.getByRole('button', { name: /add hero block/i }))
@@ -80,6 +103,7 @@ describe('CreatePagePage', () => {
 
   test('hero block supports image and icon media options', async () => {
     await renderCreatePageAndFlush()
+    goToBuildStep()
 
     fireEvent.click(screen.getByRole('button', { name: /insert block at position 1/i }))
     fireEvent.click(screen.getByRole('button', { name: /add hero block/i }))
@@ -95,6 +119,7 @@ describe('CreatePagePage', () => {
 
   test('hero block shows Layout and Style selects and stores variant', async () => {
     await renderCreatePageAndFlush()
+    goToBuildStep()
 
     fireEvent.click(screen.getByRole('button', { name: /insert block at position 1/i }))
     fireEvent.click(screen.getByRole('button', { name: /add hero block/i }))
@@ -114,6 +139,7 @@ describe('CreatePagePage', () => {
 
   test('inserts a paragraph block between existing blocks', async () => {
     await renderCreatePageAndFlush()
+    goToBuildStep()
 
     fireEvent.click(screen.getByRole('button', { name: /insert block at position 1/i }))
     fireEvent.click(screen.getByRole('button', { name: /add heading block/i }))
@@ -131,6 +157,7 @@ describe('CreatePagePage', () => {
 
   test('adds an image block with image URL, alt text, and caption inputs', async () => {
     await renderCreatePageAndFlush()
+    goToBuildStep()
 
     fireEvent.click(screen.getByRole('button', { name: /insert block at position 1/i }))
     fireEvent.click(screen.getByRole('button', { name: /add image block/i }))

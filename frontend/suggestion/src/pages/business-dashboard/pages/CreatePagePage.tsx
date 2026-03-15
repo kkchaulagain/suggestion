@@ -4,6 +4,7 @@ import axios from 'axios'
 import type { LucideIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 import {
+  ArrowLeft,
   BarChart3,
   ChevronDown,
   ChevronUp,
@@ -27,6 +28,12 @@ import { Button, Card, ErrorMessage, Input, Modal, Select, Textarea } from '../.
 import { HeroSection, FeatureCard, CTASection } from '../../../components/landing'
 import ImageUploadCropDialog from '../../../components/media/ImageUploadCropDialog'
 import EmbeddedFormBlock from '../../feedback-form-render/EmbeddedFormBlock'
+import {
+  PAGE_TEMPLATES,
+  PAGE_TEMPLATE_CATEGORIES,
+  type PageTemplate,
+  type PageTemplateIconName,
+} from './pageTemplates'
 
 type BlockType = 'heading' | 'paragraph' | 'form' | 'hero' | 'feature_card' | 'feature_grid' | 'image' | 'cta'
 
@@ -177,6 +184,13 @@ const HERO_ICON_MAP: Record<string, ReactNode> = {
   'bar-chart3': <BarChart3 className="h-16 w-16" />,
 }
 
+const PAGE_TEMPLATE_ICONS: Record<PageTemplateIconName, LucideIcon> = {
+  Layout,
+  Megaphone,
+  FileText,
+  Sparkles,
+}
+
 let blockCounter = 0
 
 function createClientId() {
@@ -232,6 +246,14 @@ function hydrateBlocks(blocks: ApiBlock[] | undefined): Block[] {
         clientId: block._id ?? createClientId(),
       }))
     : []
+}
+
+function blocksFromTemplate(template: PageTemplate): Block[] {
+  return template.blocks.map((b) => ({
+    clientId: createClientId(),
+    type: b.type as BlockType,
+    payload: b.payload as unknown as BlockPayload,
+  }))
 }
 
 function serializeBlocks(blocks: Block[]): ApiBlock[] {
@@ -403,6 +425,7 @@ export default function CreatePagePage() {
   const isEdit = Boolean(id)
   const { getAuthHeaders } = useAuth()
 
+  const [step, setStep] = useState<'select' | 'build'>(isEdit ? 'build' : 'select')
   const [title, setTitle] = useState('')
   const [slug, setSlug] = useState('')
   const [metaTitle, setMetaTitle] = useState('')
@@ -416,6 +439,24 @@ export default function CreatePagePage() {
   const [activeInsertIndex, setActiveInsertIndex] = useState<number | null>(null)
   const [uploadTarget, setUploadTarget] = useState<UploadTarget | null>(null)
   const [editingBlockIndex, setEditingBlockIndex] = useState<number | null>(null)
+
+  const handleSelectPageTemplate = useCallback((template: PageTemplate | null) => {
+    if (template) {
+      setBlocks(blocksFromTemplate(template))
+      setTitle(template.defaultTitle ?? '')
+      setSlug(
+        (template.defaultTitle ?? '')
+          .toLowerCase()
+          .replace(/\s+/g, '-')
+          .replace(/[^a-z0-9-]/g, '') || '',
+      )
+    } else {
+      setBlocks([])
+      setTitle('')
+      setSlug('')
+    }
+    setStep('build')
+  }, [])
 
   const pageStatusLabel = status === 'published' ? 'Published' : 'Draft'
   const pageLabel = isEdit ? 'Edit Page' : 'Create Page'
@@ -1081,6 +1122,77 @@ export default function CreatePagePage() {
     return null
   }
 
+  if (step === 'select') {
+    return (
+      <section className="mx-auto max-w-4xl" aria-label="Choose page template">
+        <div className="mb-4 flex justify-start">
+          <Link
+            to="/dashboard/pages"
+            className="inline-flex items-center gap-1 rounded border border-stone-200 bg-transparent px-2 py-1 text-xs font-medium text-stone-600 transition hover:bg-stone-100 hover:text-stone-900 dark:border-stone-600 dark:text-stone-400 dark:hover:bg-stone-700 dark:hover:text-stone-200"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            Back to Pages
+          </Link>
+        </div>
+        <Card className="rounded-xl sm:p-8">
+          <h2 className="text-lg font-semibold text-stone-900 dark:text-stone-100">Choose a template</h2>
+          <p className="mt-1 text-sm text-stone-600 dark:text-stone-400">
+            Start with a pre-built landing page or build your own from scratch.
+          </p>
+          {PAGE_TEMPLATE_CATEGORIES.map((category) => {
+            const templates = PAGE_TEMPLATES.filter((t) => t.category === category.value)
+            if (templates.length === 0) return null
+            return (
+              <div key={category.value} className="mt-6">
+                <h3 className="text-sm font-medium uppercase tracking-wider text-stone-500 dark:text-stone-400">
+                  {category.label}
+                </h3>
+                <p className="mt-0.5 text-xs text-stone-500 dark:text-stone-400">{category.description}</p>
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  {templates.map((template) => {
+                    const Icon = PAGE_TEMPLATE_ICONS[template.iconName]
+                    return (
+                      <button
+                        key={template.id}
+                        type="button"
+                        onClick={() => handleSelectPageTemplate(template)}
+                        className="flex items-start gap-3 rounded-xl border border-stone-200 p-4 text-left transition hover:border-emerald-300 hover:bg-emerald-50/50 dark:border-stone-700 dark:hover:border-emerald-600 dark:hover:bg-emerald-900/20"
+                      >
+                        <Icon className="h-5 w-5 shrink-0 text-stone-500 dark:text-stone-400" />
+                        <div className="min-w-0 flex-1">
+                          <span className="font-medium text-stone-900 dark:text-stone-100">{template.label}</span>
+                          <p className="mt-0.5 text-xs text-stone-600 dark:text-stone-400">{template.description}</p>
+                          <p className="mt-1 text-xs text-stone-400 dark:text-stone-500">
+                            {template.blocks.length} block{template.blocks.length !== 1 ? 's' : ''}
+                            {template.blocks.length > 0
+                              ? ` · ${template.blocks.slice(0, 2).map((b) => b.type).join(', ')}${template.blocks.length > 2 ? '…' : ''}`
+                              : ''}
+                          </p>
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )
+          })}
+          <div className="mt-6 border-t border-stone-200 pt-6 dark:border-stone-700">
+            <Button
+              type="button"
+              variant="secondary"
+              size="md"
+              onClick={() => handleSelectPageTemplate(null)}
+              className="w-full sm:w-auto"
+            >
+              <Layout className="h-4 w-4" />
+              Start from scratch
+            </Button>
+          </div>
+        </Card>
+      </section>
+    )
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -1094,13 +1206,24 @@ export default function CreatePagePage() {
       <div className="sticky top-0 z-20 -mx-4 border-b border-stone-200/80 bg-stone-50/95 px-4 py-4 backdrop-blur dark:border-stone-800 dark:bg-stone-950/90 sm:-mx-6 sm:px-6">
         <div className="mx-auto flex max-w-7xl flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="space-y-2">
-            <Link
-              to="/dashboard/pages"
-              className="inline-flex items-center gap-2 text-sm text-stone-500 transition hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-100"
-            >
-              <ChevronDown className="h-4 w-4 rotate-90" />
-              Back to Pages
-            </Link>
+            {!isEdit ? (
+              <button
+                type="button"
+                onClick={() => setStep('select')}
+                className="inline-flex items-center gap-2 text-sm text-stone-500 transition hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-100"
+              >
+                <ChevronDown className="h-4 w-4 rotate-90" />
+                Back to templates
+              </button>
+            ) : (
+              <Link
+                to="/dashboard/pages"
+                className="inline-flex items-center gap-2 text-sm text-stone-500 transition hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-100"
+              >
+                <ChevronDown className="h-4 w-4 rotate-90" />
+                Back to Pages
+              </Link>
+            )}
             <div className="flex flex-wrap items-center gap-3">
               <h1 className="text-2xl font-semibold tracking-tight text-stone-950 dark:text-stone-50">
                 {pageLabel}
@@ -1312,9 +1435,29 @@ export default function CreatePagePage() {
         </div>
       </div>
 
+      {editingBlockIndex !== null && blocks[editingBlockIndex] && (
+        <Modal
+          isOpen
+          onClose={() => setEditingBlockIndex(null)}
+          title={`Edit ${getBlockOption(blocks[editingBlockIndex].type).label} block`}
+          size="xl"
+        >
+          <div className="max-h-[70vh] overflow-y-auto pr-1">
+            {renderBlockFields(blocks[editingBlockIndex], editingBlockIndex)}
+          </div>
+          <div className="mt-4 flex justify-end border-t border-stone-200 pt-4 dark:border-stone-700">
+            <Button type="button" variant="primary" onClick={() => setEditingBlockIndex(null)}>
+              Close
+            </Button>
+          </div>
+        </Modal>
+      )}
+
+      {/* Rendered after block-edit Modal; elevated so it appears on top when opened from block edit dialog */}
       <ImageUploadCropDialog
         isOpen={Boolean(uploadTarget)}
         onClose={() => setUploadTarget(null)}
+        elevated
         title={
           uploadTarget?.type === 'hero_image'
             ? 'Upload and crop hero image'
@@ -1353,24 +1496,6 @@ export default function CreatePagePage() {
           setUploadTarget(null)
         }}
       />
-
-      {editingBlockIndex !== null && blocks[editingBlockIndex] && (
-        <Modal
-          isOpen
-          onClose={() => setEditingBlockIndex(null)}
-          title={`Edit ${getBlockOption(blocks[editingBlockIndex].type).label} block`}
-          size="xl"
-        >
-          <div className="max-h-[70vh] overflow-y-auto pr-1">
-            {renderBlockFields(blocks[editingBlockIndex], editingBlockIndex)}
-          </div>
-          <div className="mt-4 flex justify-end border-t border-stone-200 pt-4 dark:border-stone-700">
-            <Button type="button" variant="primary" onClick={() => setEditingBlockIndex(null)}>
-              Close
-            </Button>
-          </div>
-        </Modal>
-      )}
     </div>
   )
 }

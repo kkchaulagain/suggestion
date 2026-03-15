@@ -12,6 +12,8 @@ interface ImageUploadCropDialogProps {
   onUploaded: (url: string) => void
   title?: string
   aspect?: number
+  /** Use a higher z-index so this dialog appears above another open modal (e.g. when opened from block edit). */
+  elevated?: boolean
 }
 
 function createImage(url: string): Promise<HTMLImageElement> {
@@ -65,6 +67,7 @@ export default function ImageUploadCropDialog({
   onUploaded,
   title = 'Upload and crop image',
   aspect = 16 / 9,
+  elevated = false,
 }: ImageUploadCropDialogProps) {
   const [fileName, setFileName] = useState('')
   const [imageSrc, setImageSrc] = useState<string | null>(null)
@@ -139,7 +142,13 @@ export default function ImageUploadCropDialog({
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={title} size="lg">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={title}
+      size="lg"
+      overlayZIndex={elevated ? 60 : undefined}
+    >
       <div className="space-y-4">
         <div className="space-y-2">
           <label className="block text-sm font-medium text-stone-700 dark:text-stone-300" htmlFor="cms-image-upload-input">
