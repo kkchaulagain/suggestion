@@ -8,6 +8,13 @@ const router = express.Router();
 const { isAuthenticated } = require('../middleware/isauthenticated');
 const { isBusinessRole } = require('../middleware/isbusiness');
 import { parsePhoneNumberFromString } from 'libphonenumber-js';
+import {
+  validateCommonFields,
+  validateBusinessFields,
+  checkExistingEmailAndPhone,
+  createUserAndBusiness,
+  type RegisterInput,
+} from '../services/registerService';
 
 
 interface RegisterBody {
@@ -16,6 +23,7 @@ interface RegisterBody {
   password: string;
   phone?: string;
   role?: 'business' | 'user' | 'governmentservices';
+  avatarId?: string;
   location?: string;
   pancardNumber?: number | string;
   description?: string;
@@ -105,57 +113,46 @@ router.post('/register', async (req: Request, res: Response) => {
     const email = typeof data.email === 'string' ? data.email.trim() : '';
     const password = typeof data.password === 'string' ? data.password : '';
     const phone = typeof data.phone === 'string' ? data.phone.trim() : '';
-    // Only business and governmentservices allowed; admin cannot be set via register
     const role =
       data.role === 'business' || data.role === 'governmentservices' ? data.role : 'user';
-    const location = typeof data.location === 'string' ? data.location.trim() : '';
-    const description = typeof data.description === 'string' ? data.description.trim() : '';
+    const avatarId = typeof data.avatarId === 'string' ? data.avatarId.trim() : undefined;
+    const location = typeof data.location === 'string' ? data.location.trim() : undefined;
+    const description = typeof data.description === 'string' ? data.description.trim() : undefined;
+    const businessname = typeof data.businessname === 'string' ? data.businessname.trim() : undefined;
     const pancardNumber =
       typeof data.pancardNumber === 'number'
-        ? data.pancardNumber
+        ? String(data.pancardNumber)
         : typeof data.pancardNumber === 'string' && data.pancardNumber.trim()
-          ? Number(data.pancardNumber)
+          ? data.pancardNumber.trim()
           : undefined;
-    const businessname = typeof data.businessname === 'string' ? data.businessname.trim() : '';
-    const phoneDigits = phone.replace(/\D/g, '');
+
     const phonenumber = parseSupportedPhoneNumber(phone);
-
-    const errors: Record<string, string> = {};
-
-    if (!email) {
-      errors.email = 'Email is required';
-    } else if (!EMAIL_REGEX.test(email)) {
-      errors.email = 'Invalid email format';
+    const normalizedPhone = phonenumber?.number ?? normalizePhoneInput(phone);
+    if (phone && (!phonenumber || !phonenumber.isValid())) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: { phone: 'Invalid phone number' },
+        error: 'Validation failed',
+      });
     }
 
-    if (!password) {
-      errors.password = 'Password is required';
-    } else if (password.length < 6) {
-      errors.password = 'Password must be at least 6 characters';
-    }
-    if (!phone) {
-      errors.phone = 'Phone number is required';
-    } else if (phoneDigits.length < 10) {
-      errors.phone = 'Phone number must be at least 10 digits';
-    } else if (!phonenumber || !phonenumber.isValid()) {
-      errors.phone = 'Invalid phone number';
-    }
-    
-    if (role !== 'user') {
-      if (!location) {
-        errors.location = 'Location is required';
-      }
-      if (!description) {
-        errors.description = 'Description is required';
-      }
-      if (typeof pancardNumber !== 'number' || Number.isNaN(pancardNumber) || pancardNumber <= 0) {
-        errors.pancardNumber = 'Valid PAN card number is required';
-      }
-      if (!businessname) {
-        errors.businessname = 'Business name is required';
-      }
-    }
+    const input: RegisterInput = {
+      name,
+      email,
+      password,
+      phone: normalizedPhone,
+      role,
+      ...(avatarId ? { avatarId } : {}),
+      ...(businessname !== undefined && businessname !== '' ? { businessname } : {}),
+      ...(description !== undefined && description !== '' ? { description } : {}),
+      ...(location !== undefined && location !== '' ? { location } : {}),
+      ...(pancardNumber !== undefined && pancardNumber !== '' ? { pancardNumber } : {}),
+    };
 
+    const commonErrors = validateCommonFields(input);
+    const businessErrors = validateBusinessFields(input);
+    const errors = { ...commonErrors, ...businessErrors };
     if (Object.keys(errors).length > 0) {
       return res.status(400).json({
         success: false,
@@ -165,75 +162,41 @@ router.post('/register', async (req: Request, res: Response) => {
       });
     }
 
-    const existing = await User.findOne({
-      email: email.toLowerCase().trim(),
-    });
-
-    if (existing) {
+    const conflict = await checkExistingEmailAndPhone(input.email, input.phone);
+    if (conflict) {
+      const field = conflict.conflict === 'email' ? 'email' : 'phone';
+      const message = conflict.conflict === 'email' ? 'Email already registered' : 'Phone number already registered';
       return res.status(409).json({
         success: false,
         message: 'Validation failed',
-        errors: {
-          email: 'Email already registered',
-        },
-        error: 'Email already registered',
+        errors: { [field]: message },
+        error: message,
       });
     }
 
-    const existingPhone = await User.findOne({
-      phone: phonenumber?.number ?? normalizePhoneInput(phone),
-    });
-
-    if (existingPhone) {
-      return res.status(409).json({
-        success: false,
-        message: 'Validation failed',
-        errors: {
-          phone: 'Phone number already registered',
-        },
-        error: 'Phone number already registered',
-      });
-    }
-
-    const user = await User.create({
-      name: name || 'User',
-      email: email.toLowerCase().trim(),
-      password,
-      phone: phonenumber?.number ?? normalizePhoneInput(phone),
-      role,
-    });
-
-    if (role !== 'user') {
-      await Business.create({
-        owner: user._id,
-        location,
-        pancardNumber,
-        description,
-        businessname,
-      });
-    }
-
-    const userObj = user.toObject();
-    delete userObj.password;
+    const result = await createUserAndBusiness(input);
+    const businessnameForResponse = result.business?.businessname ?? null;
 
     return res.status(201).json({
       success: true,
       message: 'User registered successfully',
       data: {
-        _id: userObj._id,
-        name:userObj.name,
-        email: userObj.email,
-        role: userObj.role,
-        businessname: userObj.businessname || null,
-        phone:userObj.phone || null,
+        _id: result.user._id,
+        name: result.user.name,
+        email: result.user.email,
+        role: result.user.role,
+        businessname: businessnameForResponse,
+        phone: result.user.phone,
+        avatarId: result.user.avatarId ?? null,
       },
       user: {
-        _id: userObj._id,
-        name:userObj.name,
-        email:userObj.email,
-        role:userObj.role,
-        businessname:businessname || null,
-        phone:userObj.phone || null,
+        _id: result.user._id,
+        name: result.user.name,
+        email: result.user.email,
+        role: result.user.role,
+        businessname: businessnameForResponse,
+        phone: result.user.phone,
+        avatarId: result.user.avatarId ?? null,
       },
     });
   } catch (_err) {
@@ -430,6 +393,7 @@ router.get('/me', isAuthenticated, async (req: AuthenticatedRequest, res: Respon
     email: user.email,
     role: user.role,
     isActive: user.isActive !== false,
+    avatarId: user.avatarId ?? null,
   };
     return res.status(200).json({
       success: true,
@@ -475,16 +439,28 @@ router.put('/me', isAuthenticated, async (req: AuthenticatedRequest, res: Respon
       return res.status(401).json({ success: false, message: 'Unauthorized access' })
     }
 
-    const data = (req.body ?? {}) as { name?: string }
+    const data = (req.body ?? {}) as { name?: string; avatarId?: string | null }
     const name = typeof data.name === 'string' ? data.name.trim() : ''
+    const avatarIdSentAsNull = data.avatarId === null
+    const avatarIdValue =
+      typeof data.avatarId === 'string' && data.avatarId.trim()
+        ? data.avatarId.trim()
+        : undefined
 
     if (!name) {
       return res.status(400).json({ success: false, message: 'Name is required' })
     }
 
+    const updatePayload: Record<string, unknown> = { $set: { name } }
+    if (avatarIdSentAsNull) {
+      (updatePayload.$unset as Record<string, number>) = { avatarId: 1 }
+    } else if (avatarIdValue) {
+      (updatePayload.$set as Record<string, unknown>).avatarId = avatarIdValue
+    }
+
     const user = await User.findByIdAndUpdate(
       id,
-      { name },
+      updatePayload,
       { new: true, select: '-password' }
     )
 
@@ -495,7 +471,13 @@ router.put('/me', isAuthenticated, async (req: AuthenticatedRequest, res: Respon
     return res.status(200).json({
       success: true,
       message: 'Profile updated successfully',
-      data: { _id: user._id, name: user.name, email: user.email, role: user.role },
+      data: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        avatarId: user.avatarId ?? null,
+      },
     })
   } catch (_error) {
     return res.status(500).json({ success: false, message: 'Something went wrong' })

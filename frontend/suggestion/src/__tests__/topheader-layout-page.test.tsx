@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom'
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { Route, Routes } from 'react-router-dom'
+import { TestRouter } from './test-router'
 import axios from 'axios'
 
 import TopHeader from '../pages/business-dashboard/components/TopHeader'
@@ -51,7 +52,7 @@ describe('BusinessDashboardLayout and page', () => {
     } as MeApiResponse)
 
     render(
-      <MemoryRouter initialEntries={['/dashboard/unknown']}>
+      <TestRouter initialEntries={['/dashboard/unknown']}>
         <ThemeProvider>
           <AuthProvider>
             <Routes>
@@ -61,7 +62,7 @@ describe('BusinessDashboardLayout and page', () => {
             </Routes>
           </AuthProvider>
         </ThemeProvider>
-      </MemoryRouter>,
+      </TestRouter>,
     )
 
     await waitFor(() => {
@@ -78,7 +79,7 @@ describe('BusinessDashboardLayout and page', () => {
     })
 
     render(
-      <MemoryRouter initialEntries={['/dashboard/submissions']}>
+      <TestRouter initialEntries={['/dashboard/submissions']}>
         <ThemeProvider>
           <AuthProvider>
             <Routes>
@@ -88,7 +89,7 @@ describe('BusinessDashboardLayout and page', () => {
             </Routes>
           </AuthProvider>
         </ThemeProvider>
-      </MemoryRouter>,
+      </TestRouter>,
     )
 
     await waitFor(() => {
@@ -106,11 +107,11 @@ describe('BusinessDashboardLayout and page', () => {
     mockedAxios.get.mockResolvedValueOnce({ data: { feedbackForms: [] } } as FormsListResponse)
 
     render(
-      <MemoryRouter>
+      <TestRouter>
         <AuthProvider>
           <FormsPage />
         </AuthProvider>
-      </MemoryRouter>,
+      </TestRouter>,
     )
 
     await waitFor(() => {

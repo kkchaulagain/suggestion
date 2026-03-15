@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom'
-import { MemoryRouter } from 'react-router-dom'
+import { TestRouter } from './test-router'
 import axios from 'axios'
 
 import SubmissionsPage from '../pages/business-dashboard/pages/SubmissionsPage'
@@ -24,9 +24,9 @@ describe('SubmissionsPage', () => {
       .mockResolvedValueOnce({ data: { submissions: [], total: 0 } })
 
     render(
-      <MemoryRouter>
+      <TestRouter>
         <SubmissionsPage />
-      </MemoryRouter>,
+      </TestRouter>,
     )
 
     expect(screen.getByText(/Loading submissions/i)).toBeInTheDocument()
@@ -47,9 +47,9 @@ describe('SubmissionsPage', () => {
       .mockRejectedValueOnce(new Error('Network error'))
 
     render(
-      <MemoryRouter>
+      <TestRouter>
         <SubmissionsPage />
-      </MemoryRouter>,
+      </TestRouter>,
     )
 
     await waitFor(() => {
@@ -66,7 +66,7 @@ describe('SubmissionsPage', () => {
         _id: 's1',
         formId: 'f1',
         formTitle: 'My Survey',   // shown in table cell
-        formSnapshot: [{ name: 'q', label: 'Question', type: 'short_text' }],
+        formSnapshot: [{ name: 'q', label: 'Question', type: 'text' }],
         responses: { q: 'The Answer' },
         submittedAt: '2024-06-01T12:00:00.000Z',
       },
@@ -76,9 +76,9 @@ describe('SubmissionsPage', () => {
       .mockResolvedValueOnce({ data: { submissions, total: 1 } })
 
     render(
-      <MemoryRouter>
+      <TestRouter>
         <SubmissionsPage />
-      </MemoryRouter>,
+      </TestRouter>,
     )
 
     await waitFor(() => {
@@ -102,15 +102,15 @@ describe('SubmissionsPage', () => {
     })
   })
 
-  it('renders image in modal when submission has image_upload field with URL', async () => {
+  it('renders image in modal when submission has image field with URL', async () => {
     const submissions = [
       {
         _id: 's-img',
         formId: 'f1',
         formTitle: 'Form With Image',
         formSnapshot: [
-          { name: 'photo', label: 'Photo', type: 'image_upload' },
-          { name: 'note', label: 'Note', type: 'short_text' },
+          { name: 'photo', label: 'Photo', type: 'image' },
+          { name: 'note', label: 'Note', type: 'text' },
         ],
         responses: {
           photo: 'https://example.r2.dev/uploads/abc.jpg',
@@ -124,9 +124,9 @@ describe('SubmissionsPage', () => {
       .mockResolvedValueOnce({ data: { submissions, total: 1 } })
 
     render(
-      <MemoryRouter>
+      <TestRouter>
         <SubmissionsPage />
-      </MemoryRouter>,
+      </TestRouter>,
     )
 
     await waitFor(() => {
@@ -147,7 +147,7 @@ describe('SubmissionsPage', () => {
         _id: 's-url',
         formId: 'f1',
         formTitle: 'Form With URL',
-        formSnapshot: [{ name: 'screenshot', label: 'Screenshot', type: 'short_text' }],
+        formSnapshot: [{ name: 'screenshot', label: 'Screenshot', type: 'text' }],
         responses: { screenshot: 'https://r2.dev/uploads/photo.png' },
         submittedAt: '2024-06-01T12:00:00.000Z',
       },
@@ -157,9 +157,9 @@ describe('SubmissionsPage', () => {
       .mockResolvedValueOnce({ data: { submissions, total: 1 } })
 
     render(
-      <MemoryRouter>
+      <TestRouter>
         <SubmissionsPage />
-      </MemoryRouter>,
+      </TestRouter>,
     )
 
     await waitFor(() => {
@@ -189,9 +189,9 @@ describe('SubmissionsPage', () => {
       .mockResolvedValueOnce({ data: { submissions, total: 1 } })
 
     render(
-      <MemoryRouter>
+      <TestRouter>
         <SubmissionsPage />
-      </MemoryRouter>,
+      </TestRouter>,
     )
 
     await waitFor(() => {
@@ -211,6 +211,54 @@ describe('SubmissionsPage', () => {
     })
   })
 
+  it('when formId and tab=results in URL shows Results tab and fetches results', async () => {
+    const resultsData = {
+      formId: 'f-results',
+      formTitle: 'Poll Form',
+      totalResponses: 1,
+      byField: {
+        vote: {
+          label: 'Vote',
+          type: 'radio',
+          options: [
+            { option: 'A', count: 1, percentage: 100 },
+            { option: 'B', count: 0, percentage: 0 },
+          ],
+        },
+      },
+      responsesOverTime: [],
+    }
+    mockedAxios.get.mockImplementation((url: string) => {
+      if (typeof url === 'string' && url.endsWith('/f-results/results')) {
+        return Promise.resolve({ data: resultsData })
+      }
+      if (typeof url === 'string' && url.includes('/f-results') && !url.endsWith('/results')) {
+        return Promise.resolve({ data: { feedbackForm: { _id: 'f-results', title: 'Poll Form', fields: [] } } })
+      }
+      if (typeof url === 'string' && url.includes('/submissions')) {
+        return Promise.resolve({ data: { submissions: [], total: 0 } })
+      }
+      return Promise.resolve({ data: { feedbackForms: [{ _id: 'f-results', title: 'Poll Form' }] } })
+    })
+
+    render(
+      <TestRouter initialEntries={['/dashboard/submissions?formId=f-results&tab=results']}>
+        <SubmissionsPage />
+      </TestRouter>,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText('Vote')).toBeInTheDocument()
+      expect(screen.getByText('A')).toBeInTheDocument()
+    })
+
+    expect(screen.getByText(/Poll Form/i)).toBeInTheDocument()
+    expect(mockedAxios.get).toHaveBeenCalledWith(
+      expect.stringMatching(/\/f-results\/results$/),
+      expect.any(Object),
+    )
+  })
+
   it('Apply filters re-fetches submissions with applied state', async () => {
     mockedAxios.get
       .mockResolvedValueOnce({ data: { feedbackForms: [{ _id: 'f1', title: 'F1' }] } })
@@ -218,9 +266,9 @@ describe('SubmissionsPage', () => {
       .mockResolvedValueOnce({ data: { submissions: [], total: 0 } })
 
     render(
-      <MemoryRouter>
+      <TestRouter>
         <SubmissionsPage />
-      </MemoryRouter>,
+      </TestRouter>,
     )
 
     // Wait for initial load
@@ -251,9 +299,9 @@ describe('SubmissionsPage', () => {
       .mockResolvedValueOnce({ data: { submissions: [], total: 0 } })
 
     render(
-      <MemoryRouter>
+      <TestRouter>
         <SubmissionsPage />
-      </MemoryRouter>,
+      </TestRouter>,
     )
 
     await waitFor(() => {
@@ -290,9 +338,9 @@ describe('SubmissionsPage', () => {
       .mockRejectedValueOnce(new Error('Form not found'))
 
     render(
-      <MemoryRouter>
+      <TestRouter>
         <SubmissionsPage />
-      </MemoryRouter>,
+      </TestRouter>,
     )
 
     await waitFor(() => {
@@ -317,9 +365,9 @@ describe('SubmissionsPage', () => {
       .mockResolvedValueOnce({ data: { submissions: [], total: 0 } })
 
     render(
-      <MemoryRouter>
+      <TestRouter>
         <SubmissionsPage />
-      </MemoryRouter>,
+      </TestRouter>,
     )
 
     await waitFor(() => {
@@ -348,13 +396,13 @@ describe('SubmissionsPage', () => {
     mockedAxios.get
       .mockResolvedValueOnce({ data: { feedbackForms: [{ _id: 'f1', title: 'Survey' }] } })
       .mockResolvedValueOnce({ data: { submissions: [], total: 0 } })
-      .mockResolvedValueOnce({ data: { feedbackForm: { fields: [{ name: 'comment', label: 'Comment', type: 'short_text' }] } } })
+      .mockResolvedValueOnce({ data: { feedbackForm: { fields: [{ name: 'comment', label: 'Comment', type: 'text' }] } } })
       .mockResolvedValueOnce({ data: { submissions: [], total: 0 } })
 
     render(
-      <MemoryRouter>
+      <TestRouter>
         <SubmissionsPage />
-      </MemoryRouter>,
+      </TestRouter>,
     )
 
     await waitFor(() => {
@@ -383,13 +431,13 @@ describe('SubmissionsPage', () => {
   it('applies formId from URL and fetches submissions for that form', async () => {
     mockedAxios.get
       .mockResolvedValueOnce({ data: { feedbackForms: [{ _id: 'f-from-url', title: 'Form From URL' }] } })
-      .mockResolvedValueOnce({ data: { feedbackForm: { fields: [{ name: 'q', label: 'Question', type: 'short_text' }] } } })
+      .mockResolvedValueOnce({ data: { feedbackForm: { fields: [{ name: 'q', label: 'Question', type: 'text' }] } } })
       .mockResolvedValueOnce({ data: { submissions: [], total: 0 } })
 
     render(
-      <MemoryRouter initialEntries={['/dashboard/submissions?formId=f-from-url']}>
+      <TestRouter initialEntries={['/dashboard/submissions?formId=f-from-url']}>
         <SubmissionsPage />
-      </MemoryRouter>,
+      </TestRouter>,
     )
 
     await waitFor(() => {
@@ -400,6 +448,97 @@ describe('SubmissionsPage', () => {
     const submissionsCall = mockedAxios.get.mock.calls.find((call) => String(call[0]).includes('submissions'))
     expect(submissionsCall).toBeDefined()
     expect(submissionsCall![0]).toMatch(/\?.*formId=f-from-url/)
+  })
+
+  it('renders submission cards with key answer, submitter, relative time, and questions truncation', async () => {
+    const tenDaysAgo = new Date(Date.now() - 10 * 86400000).toISOString()
+    const oneHourAgo = new Date(Date.now() - 3600000).toISOString()
+    const sixFields = [
+      { name: 'a', label: 'A', type: 'text' },
+      { name: 'b', label: 'B', type: 'text' },
+      { name: 'c', label: 'C', type: 'text' },
+      { name: 'd', label: 'D', type: 'text' },
+      { name: 'e', label: 'E', type: 'text' },
+      { name: 'f', label: 'F', type: 'text' },
+    ]
+    const submissions = [
+      {
+        _id: 's-old',
+        formId: 'f1',
+        formTitle: 'Old Submission',
+        formSnapshot: [{ name: 'q', label: 'Q', type: 'text' }],
+        responses: { q: 'Answer' },
+        submittedAt: tenDaysAgo,
+      },
+      {
+        _id: 's-recent',
+        formId: 'f1',
+        formTitle: 'Recent Form',
+        formSnapshot: [{ name: 'x', label: 'X', type: 'text' }],
+        responses: { x: 'Data' },
+        submittedAt: oneHourAgo,
+      },
+      {
+        _id: 's-six',
+        formId: 'f1',
+        formTitle: 'Six Fields Form',
+        formSnapshot: sixFields,
+        responses: { a: '1', b: '2', c: '3', d: '4', e: '5', f: '6' },
+        submittedAt: tenDaysAgo,
+      },
+      {
+        _id: 's-radio',
+        formId: 'f1',
+        formTitle: 'Poll',
+        formSnapshot: [{ name: 'choice', label: 'Pick one', type: 'radio', options: ['Option A', 'Option B'] }],
+        responses: { choice: 'Option A' },
+        submittedAt: tenDaysAgo,
+      },
+      {
+        _id: 's-scale',
+        formId: 'f1',
+        formTitle: 'Scale Form',
+        formSnapshot: [{ name: 'rating', label: 'Rate', type: 'scale_emoji' }],
+        responses: { rating: '8' },
+        submittedAt: tenDaysAgo,
+      },
+      {
+        _id: 's-name',
+        formId: 'f1',
+        formTitle: 'With Name',
+        formSnapshot: [
+          { name: 'your_name', label: 'Your name', type: 'text' },
+          { name: 'comment', label: 'Comment', type: 'text' },
+        ],
+        responses: { your_name: 'Jane Doe', comment: 'Hello' },
+        submittedAt: tenDaysAgo,
+      },
+    ]
+    mockedAxios.get
+      .mockResolvedValueOnce({ data: { feedbackForms: [{ _id: 'f1', title: 'Form 1' }] } })
+      .mockResolvedValueOnce({ data: { submissions, total: submissions.length } })
+
+    render(
+      <TestRouter>
+        <SubmissionsPage />
+      </TestRouter>,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText(/Old Submission/i)).toBeInTheDocument()
+    })
+
+    expect(screen.getByText(/Recent Form/i)).toBeInTheDocument()
+    expect(screen.getByText(/New/)).toBeInTheDocument()
+    expect(screen.getByText(/Six Fields Form/i)).toBeInTheDocument()
+    expect(screen.getByText(/\+1 more/)).toBeInTheDocument()
+    expect(screen.getByText(/Poll/i)).toBeInTheDocument()
+    expect(screen.getAllByText(/Option A/).length).toBeGreaterThanOrEqual(1)
+    expect(screen.getByText(/Scale Form/i)).toBeInTheDocument()
+    expect(screen.getByText(/Good/)).toBeInTheDocument()
+    expect(screen.getByText(/With Name/i)).toBeInTheDocument()
+    expect(screen.getByText(/From:/)).toBeInTheDocument()
+    expect(screen.getAllByText(/Jane Doe/).length).toBeGreaterThanOrEqual(1)
   })
 
   it('Previous/Next pagination buttons work', async () => {
@@ -438,9 +577,9 @@ describe('SubmissionsPage', () => {
     })
 
     render(
-      <MemoryRouter>
+      <TestRouter>
         <SubmissionsPage />
-      </MemoryRouter>,
+      </TestRouter>,
     )
 
     await waitFor(() => {

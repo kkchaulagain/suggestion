@@ -1,7 +1,7 @@
 import request from 'supertest';
 import type { Application, NextFunction, Request, Response } from 'express';
-import { connect, disconnect } from '../db';
-import User from '../models/User';
+const { connect, disconnect } = require('../db');
+const User = require('../models/User');
 
 // Mock the middleware BEFORE importing the app/routes
 // We need to use jest.mock before any imports that use the module

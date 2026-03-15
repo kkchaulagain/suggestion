@@ -11,7 +11,7 @@ describe('Card', () => {
   test('applies base card styles', () => {
     const { container } = render(<Card>Content</Card>)
     const card = container.firstChild as HTMLElement
-    expect(card).toHaveClass('rounded-2xl', 'border', 'border-slate-200', 'bg-white', 'shadow-sm')
+    expect(card).toHaveClass('rounded-2xl', 'border', 'border-stone-200', 'bg-white', 'shadow-sm', 'dark:border-stone-700', 'dark:bg-stone-900')
   })
 
   test('applies default padding (md)', () => {

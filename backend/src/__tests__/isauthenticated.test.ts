@@ -3,6 +3,7 @@ const { connect, disconnect } = require('../db');
 const _app = require('../app');
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
+import type { Request as ExpressRequest, Response as ExpressResponse } from 'express';
 import { isAuthenticated } from '../middleware/isauthenticated';
 
 interface MockResponse {
@@ -13,6 +14,13 @@ interface MockResponse {
 interface MockRequestWithCookies {
   cookies?: Record<string, string>;
   id?: string;
+}
+
+function asRequest(req: MockRequestWithCookies): ExpressRequest {
+  return req as unknown as ExpressRequest;
+}
+function asResponse(res: MockResponse): ExpressResponse {
+  return res as unknown as ExpressResponse;
 }
 
 describe('isAuthenticated Middleware', () => {
@@ -39,7 +47,7 @@ describe('isAuthenticated Middleware', () => {
     const res = mockResponse();
     const next = jest.fn();
 
-    await isAuthenticated(req, res, next);
+    await isAuthenticated(asRequest(req), asResponse(res), next);
 
     expect(res.status).toHaveBeenCalledWith(401);
     expect(next).not.toHaveBeenCalled();
@@ -50,7 +58,7 @@ describe('isAuthenticated Middleware', () => {
     const res = mockResponse();
     const next = jest.fn();
 
-    await isAuthenticated(req, res, next);
+    await isAuthenticated(asRequest(req), asResponse(res), next);
 
     expect(next).toHaveBeenCalled();
     expect(req.id).toBe('12345');

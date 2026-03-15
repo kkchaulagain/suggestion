@@ -1,6 +1,6 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import '@testing-library/jest-dom'
-import { MemoryRouter } from 'react-router-dom'
+import { TestRouter } from './test-router'
 import axios from 'axios'
 
 import UsersPage from '../pages/business-dashboard/pages/UsersPage'
@@ -15,6 +15,46 @@ jest.mock('../context/AuthContext', () => ({
   }),
 }))
 
+type UsersGetResponse = { data: { success: boolean; data: { users: unknown[]; pagination: { total: number } } } }
+
+function deferred<T>() {
+  let resolve!: (value: T) => void
+  let reject!: (reason?: unknown) => void
+  const promise = new Promise<T>((r, rej) => {
+    resolve = r
+    reject = rej
+  })
+  return { promise, resolve, reject }
+}
+
+/** Tracks one deferred per axios.get() call so refetches (e.g. after save) can be resolved inside act(). */
+let getDeferreds: Array<ReturnType<typeof deferred<UsersGetResponse>>>
+
+function setupGetMock() {
+  getDeferreds = []
+  mockedAxios.get.mockImplementation(() => {
+    const d = deferred<UsersGetResponse>()
+    getDeferreds.push(d)
+    return d.promise
+  })
+}
+
+async function flushInitialLoadInAct(response: UsersGetResponse) {
+  await act(async () => {
+    getDeferreds[0].resolve(response)
+    await Promise.resolve()
+    await Promise.resolve()
+  })
+}
+
+async function flushInitialRejectInAct(err: unknown) {
+  await act(async () => {
+    getDeferreds[0].reject(err)
+    await Promise.resolve()
+    await Promise.resolve()
+  })
+}
+
 describe('UsersPage', () => {
   beforeEach(() => {
     jest.clearAllMocks()
@@ -22,17 +62,16 @@ describe('UsersPage', () => {
   })
 
   it('shows loading then empty state', async () => {
-    mockedAxios.get.mockResolvedValue({
-      data: { success: true, data: { users: [], pagination: { total: 0 } } },
-    })
-
+    setupGetMock()
     render(
-      <MemoryRouter>
+      <TestRouter>
         <UsersPage />
-      </MemoryRouter>,
+      </TestRouter>,
     )
 
     expect(screen.getByText(/Loading users/i)).toBeInTheDocument()
+
+    await flushInitialLoadInAct({ data: { success: true, data: { users: [], pagination: { total: 0 } } } })
 
     await waitFor(() => {
       expect(screen.getByText(/No users found/i)).toBeInTheDocument()
@@ -43,13 +82,14 @@ describe('UsersPage', () => {
   })
 
   it('shows error when fetch fails', async () => {
-    mockedAxios.get.mockRejectedValue(new Error('Network error'))
-
+    setupGetMock()
     render(
-      <MemoryRouter>
+      <TestRouter>
         <UsersPage />
-      </MemoryRouter>,
+      </TestRouter>,
     )
+
+    await flushInitialRejectInAct(new Error('Network error'))
 
     await waitFor(() => {
       expect(screen.getByText(/Failed to load users/i)).toBeInTheDocument()
@@ -60,15 +100,14 @@ describe('UsersPage', () => {
     const users = [
       { _id: 'u1', name: 'Jane', email: 'jane@example.com', role: 'user', isActive: true },
     ]
-    mockedAxios.get.mockResolvedValue({
-      data: { success: true, data: { users, pagination: { total: 1 } } },
-    })
-
+    setupGetMock()
     render(
-      <MemoryRouter>
+      <TestRouter>
         <UsersPage />
-      </MemoryRouter>,
+      </TestRouter>,
     )
+
+    await flushInitialLoadInAct({ data: { success: true, data: { users, pagination: { total: 1 } } } })
 
     await waitFor(() => {
       expect(screen.getAllByText('Jane').length).toBeGreaterThanOrEqual(1)
@@ -97,15 +136,14 @@ describe('UsersPage', () => {
     const users = [
       { _id: 'u2', name: 'Bob', email: 'bob@example.com', role: 'business', isActive: true },
     ]
-    mockedAxios.get.mockResolvedValue({
-      data: { success: true, data: { users, pagination: { total: 1 } } },
-    })
-
+    setupGetMock()
     render(
-      <MemoryRouter>
+      <TestRouter>
         <UsersPage />
-      </MemoryRouter>,
+      </TestRouter>,
     )
+
+    await flushInitialLoadInAct({ data: { success: true, data: { users, pagination: { total: 1 } } } })
 
     await waitFor(() => {
       expect(screen.getAllByText('Bob').length).toBeGreaterThanOrEqual(1)
@@ -128,15 +166,14 @@ describe('UsersPage', () => {
   })
 
   it('has filter inputs and Apply button', async () => {
-    mockedAxios.get.mockResolvedValue({
-      data: { success: true, data: { users: [], pagination: { total: 0 } } },
-    })
-
+    setupGetMock()
     render(
-      <MemoryRouter>
+      <TestRouter>
         <UsersPage />
-      </MemoryRouter>,
+      </TestRouter>,
     )
+
+    await flushInitialLoadInAct({ data: { success: true, data: { users: [], pagination: { total: 0 } } } })
 
     await waitFor(() => {
       expect(screen.getByText(/No users found/i)).toBeInTheDocument()
@@ -155,18 +192,17 @@ describe('UsersPage', () => {
     const users = [
       { _id: 'u1', name: 'Jane', email: 'jane@example.com', role: 'user', isActive: true },
     ]
-    mockedAxios.get.mockResolvedValue({
-      data: { success: true, data: { users, pagination: { total: 1 } } },
-    })
+    setupGetMock()
+    render(
+      <TestRouter>
+        <UsersPage />
+      </TestRouter>,
+    )
+
+    await flushInitialLoadInAct({ data: { success: true, data: { users, pagination: { total: 1 } } } })
     mockedAxios.put.mockResolvedValue({
       data: { success: true, data: { _id: 'u1', name: 'Jane Updated', email: 'jane@example.com', role: 'business' } },
     })
-
-    render(
-      <MemoryRouter>
-        <UsersPage />
-      </MemoryRouter>,
-    )
 
     await waitFor(() => {
       expect(screen.getAllByText('Jane').length).toBeGreaterThanOrEqual(1)
@@ -190,6 +226,13 @@ describe('UsersPage', () => {
         expect.any(Object),
       )
     })
+    await act(async () => {
+      getDeferreds[1].resolve({
+        data: { success: true, data: { users: [{ _id: 'u1', name: 'Jane Updated', email: 'jane@example.com', role: 'business', isActive: true }], pagination: { total: 1 } } },
+      })
+      await Promise.resolve()
+      await Promise.resolve()
+    })
     await waitFor(() => {
       expect(screen.queryByRole('dialog', { name: /Edit user/i })).not.toBeInTheDocument()
     })
@@ -199,18 +242,18 @@ describe('UsersPage', () => {
     const users = [
       { _id: 'u1', name: 'Jane', email: 'jane@example.com', role: 'user', isActive: true },
     ]
-    mockedAxios.get.mockResolvedValue({
-      data: { success: true, data: { users, pagination: { total: 1 } } },
-    })
+    setupGetMock()
     const axiosError = { response: { data: { message: 'Email already in use' } } }
     const isAxiosErrorSpy = jest.spyOn(axios, 'isAxiosError').mockReturnValue(true)
     mockedAxios.put.mockRejectedValue(axiosError)
 
     render(
-      <MemoryRouter>
+      <TestRouter>
         <UsersPage />
-      </MemoryRouter>,
+      </TestRouter>,
     )
+
+    await flushInitialLoadInAct({ data: { success: true, data: { users, pagination: { total: 1 } } } })
 
     await waitFor(() => {
       expect(screen.getAllByText('Jane').length).toBeGreaterThanOrEqual(1)
@@ -234,16 +277,16 @@ describe('UsersPage', () => {
     const users = [
       { _id: 'u2', name: 'Bob', email: 'bob@example.com', role: 'business', isActive: true },
     ]
-    mockedAxios.get.mockResolvedValue({
-      data: { success: true, data: { users, pagination: { total: 1 } } },
-    })
+    setupGetMock()
     mockedAxios.patch.mockResolvedValue({ data: { success: true } })
 
     render(
-      <MemoryRouter>
+      <TestRouter>
         <UsersPage />
-      </MemoryRouter>,
+      </TestRouter>,
     )
+
+    await flushInitialLoadInAct({ data: { success: true, data: { users, pagination: { total: 1 } } } })
 
     await waitFor(() => {
       expect(screen.getAllByText('Bob').length).toBeGreaterThanOrEqual(1)
@@ -265,6 +308,11 @@ describe('UsersPage', () => {
         expect.any(Object),
       )
     })
+    await act(async () => {
+      getDeferreds[1].resolve({ data: { success: true, data: { users: [], pagination: { total: 0 } } } })
+      await Promise.resolve()
+      await Promise.resolve()
+    })
     await waitFor(() => {
       expect(screen.queryByRole('dialog', { name: /Deactivate user/i })).not.toBeInTheDocument()
     })
@@ -274,16 +322,16 @@ describe('UsersPage', () => {
     const users = [
       { _id: 'u3', name: 'Inactive', email: 'inactive@example.com', role: 'user', isActive: false },
     ]
-    mockedAxios.get.mockResolvedValue({
-      data: { success: true, data: { users, pagination: { total: 1 } } },
-    })
+    setupGetMock()
     mockedAxios.patch.mockResolvedValue({ data: { success: true } })
 
     render(
-      <MemoryRouter>
+      <TestRouter>
         <UsersPage />
-      </MemoryRouter>,
+      </TestRouter>,
     )
+
+    await flushInitialLoadInAct({ data: { success: true, data: { users, pagination: { total: 1 } } } })
 
     await waitFor(
       () => {
@@ -305,22 +353,29 @@ describe('UsersPage', () => {
         expect.any(Object),
       )
     })
+    await act(async () => {
+      getDeferreds[1].resolve({
+        data: { success: true, data: { users: [{ _id: 'u3', name: 'Inactive', email: 'inactive@example.com', role: 'user', isActive: true }], pagination: { total: 1 } } },
+      })
+      await Promise.resolve()
+      await Promise.resolve()
+    })
   })
 
   it('activate failure shows error message', async () => {
     const users = [
       { _id: 'u4', name: 'Inactive2', email: 'inactive2@example.com', role: 'user', isActive: false },
     ]
-    mockedAxios.get.mockResolvedValue({
-      data: { success: true, data: { users, pagination: { total: 1 } } },
-    })
+    setupGetMock()
     mockedAxios.patch.mockRejectedValue(new Error('Network error'))
 
     render(
-      <MemoryRouter>
+      <TestRouter>
         <UsersPage />
-      </MemoryRouter>,
+      </TestRouter>,
     )
+
+    await flushInitialLoadInAct({ data: { success: true, data: { users, pagination: { total: 1 } } } })
 
     await waitFor(() => {
       expect(screen.getAllByText('Inactive2').length).toBeGreaterThanOrEqual(1)

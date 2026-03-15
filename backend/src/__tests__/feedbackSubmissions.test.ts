@@ -60,7 +60,7 @@ describe('Feedback Submissions API', () => {
         title: 'Survey',
         fields: [
           { name: 'rating', label: 'Rating', type: 'radio', options: ['1', '2', '3'] },
-          { name: 'comment', label: 'Comment', type: 'short_text', required: true },
+          { name: 'comment', label: 'Comment', type: 'text', required: true },
         ],
       });
 
@@ -107,7 +107,7 @@ describe('Feedback Submissions API', () => {
         businessId,
         title: 'Required field',
         fields: [
-          { name: 'comment', label: 'Comment', type: 'short_text', required: true },
+          { name: 'comment', label: 'Comment', type: 'text', required: true },
         ],
       });
 
@@ -143,7 +143,7 @@ describe('Feedback Submissions API', () => {
       const form = await FeedbackForm.create({
         businessId,
         title: 'Survey',
-        fields: [{ name: 'comment', label: 'Comment', type: 'short_text' }],
+        fields: [{ name: 'comment', label: 'Comment', type: 'text' }],
       });
 
       const res = await request(app)
@@ -170,12 +170,12 @@ describe('Feedback Submissions API', () => {
       expect(res.body.error).toMatch(/required/);
     });
 
-    it('returns 400 when required short_text is empty string', async () => {
+    it('returns 400 when required text is empty string', async () => {
       const { businessId } = await createBusinessAuth();
       const form = await FeedbackForm.create({
         businessId,
         title: 'Text required',
-        fields: [{ name: 'comment', label: 'Comment', type: 'short_text', required: true }],
+        fields: [{ name: 'comment', label: 'Comment', type: 'text', required: true }],
       });
 
       const res = await request(app)
@@ -192,8 +192,8 @@ describe('Feedback Submissions API', () => {
         businessId,
         title: 'Anonymous form',
         fields: [
-          { name: 'fullName', label: 'Your Name', type: 'name', required: true, allowAnonymous: true },
-          { name: 'comment', label: 'Comment', type: 'short_text', required: false },
+          { name: 'fullName', label: 'Your Name', type: 'text', required: true, allowAnonymous: true },
+          { name: 'comment', label: 'Comment', type: 'text', required: false },
         ],
       });
 
@@ -213,7 +213,7 @@ describe('Feedback Submissions API', () => {
         businessId,
         title: 'Anonymous form',
         fields: [
-          { name: 'fullName', label: 'Your Name', type: 'name', required: true, allowAnonymous: true },
+          { name: 'fullName', label: 'Your Name', type: 'text', required: true, allowAnonymous: true },
         ],
       });
 
@@ -272,7 +272,7 @@ describe('Feedback Submissions API', () => {
         businessId,
         title: 'Required name form',
         fields: [
-          { name: 'fullName', label: 'Your Name', type: 'name', required: true, allowAnonymous: false },
+          { name: 'fullName', label: 'Your Name', type: 'text', required: true, allowAnonymous: false },
         ],
       });
 
@@ -306,7 +306,7 @@ describe('Feedback Submissions API', () => {
       const form = await FeedbackForm.create({
         businessId,
         title: 'Optional comment',
-        fields: [{ name: 'comment', label: 'Comment', type: 'short_text', required: false }],
+        fields: [{ name: 'comment', label: 'Comment', type: 'text', required: false }],
       });
 
       const res = await request(app)
@@ -341,7 +341,7 @@ describe('Feedback Submissions API', () => {
         title: 'Optional defaults',
         fields: [
           { name: 'tags', label: 'Tags', type: 'checkbox', options: ['A'], required: false },
-          { name: 'note', label: 'Note', type: 'short_text', required: false },
+          { name: 'note', label: 'Note', type: 'text', required: false },
         ],
       });
 
@@ -360,7 +360,7 @@ describe('Feedback Submissions API', () => {
       const form = await FeedbackForm.create({
         businessId,
         title: 'Survey',
-        fields: [{ name: 'comment', label: 'Comment', type: 'short_text' }],
+        fields: [{ name: 'comment', label: 'Comment', type: 'text' }],
       });
 
       const createSpy = jest.spyOn(FeedbackSubmission, 'create').mockRejectedValueOnce(new Error('DB error'));
@@ -381,21 +381,21 @@ describe('Feedback Submissions API', () => {
       const form = await FeedbackForm.create({
         businessId,
         title: 'Survey',
-        fields: [{ name: 'comment', label: 'Comment', type: 'short_text' }],
+        fields: [{ name: 'comment', label: 'Comment', type: 'text' }],
       });
       const older = new Date(Date.now() - 10000);
       const newer = new Date(Date.now() - 1000);
       await FeedbackSubmission.create({
         formId: form._id,
         businessId,
-        formSnapshot: [{ name: 'comment', label: 'Comment', type: 'short_text' }],
+        formSnapshot: [{ name: 'comment', label: 'Comment', type: 'text' }],
         responses: { comment: 'First' },
         submittedAt: older,
       });
       await FeedbackSubmission.create({
         formId: form._id,
         businessId,
-        formSnapshot: [{ name: 'comment', label: 'Comment', type: 'short_text' }],
+        formSnapshot: [{ name: 'comment', label: 'Comment', type: 'text' }],
         responses: { comment: 'Second' },
         submittedAt: newer,
       });
@@ -417,7 +417,7 @@ describe('Feedback Submissions API', () => {
       const form = await FeedbackForm.create({
         businessId,
         title: 'Survey',
-        fields: [{ name: 'comment', label: 'Comment', type: 'short_text' }],
+        fields: [{ name: 'comment', label: 'Comment', type: 'text' }],
       });
 
       await request(app)
@@ -453,13 +453,13 @@ describe('Feedback Submissions API', () => {
       const form = await FeedbackForm.create({
         businessId,
         title: 'Survey',
-        fields: [{ name: 'comment', label: 'Comment', type: 'short_text' }],
+        fields: [{ name: 'comment', label: 'Comment', type: 'text' }],
       });
       for (let i = 0; i < 5; i++) {
         await FeedbackSubmission.create({
           formId: form._id,
           businessId,
-          formSnapshot: [{ name: 'comment', label: 'Comment', type: 'short_text' }],
+          formSnapshot: [{ name: 'comment', label: 'Comment', type: 'text' }],
           responses: { comment: `Submission ${i}` },
         });
       }
@@ -479,7 +479,7 @@ describe('Feedback Submissions API', () => {
       const form = await FeedbackForm.create({
         businessId,
         title: 'Survey',
-        fields: [{ name: 'comment', label: 'Comment', type: 'short_text' }],
+        fields: [{ name: 'comment', label: 'Comment', type: 'text' }],
       });
 
       const findSpy = jest.spyOn(FeedbackSubmission, 'find').mockReturnValueOnce({
@@ -502,12 +502,12 @@ describe('Feedback Submissions API', () => {
       const form = await FeedbackForm.create({
         businessId,
         title: 'My Survey',
-        fields: [{ name: 'comment', label: 'Comment', type: 'short_text' }],
+        fields: [{ name: 'comment', label: 'Comment', type: 'text' }],
       });
       await FeedbackSubmission.create({
         formId: form._id,
         businessId,
-        formSnapshot: [{ name: 'comment', label: 'Comment', type: 'short_text' }],
+        formSnapshot: [{ name: 'comment', label: 'Comment', type: 'text' }],
         responses: { comment: 'First' },
       });
 
@@ -527,23 +527,23 @@ describe('Feedback Submissions API', () => {
       const form1 = await FeedbackForm.create({
         businessId,
         title: 'Form 1',
-        fields: [{ name: 'c', label: 'C', type: 'short_text' }],
+        fields: [{ name: 'c', label: 'C', type: 'text' }],
       });
       const form2 = await FeedbackForm.create({
         businessId,
         title: 'Form 2',
-        fields: [{ name: 'c', label: 'C', type: 'short_text' }],
+        fields: [{ name: 'c', label: 'C', type: 'text' }],
       });
       await FeedbackSubmission.create({
         formId: form1._id,
         businessId,
-        formSnapshot: [{ name: 'c', label: 'C', type: 'short_text' }],
+        formSnapshot: [{ name: 'c', label: 'C', type: 'text' }],
         responses: { c: 'a' },
       });
       await FeedbackSubmission.create({
         formId: form2._id,
         businessId,
-        formSnapshot: [{ name: 'c', label: 'C', type: 'short_text' }],
+        formSnapshot: [{ name: 'c', label: 'C', type: 'text' }],
         responses: { c: 'b' },
       });
 
@@ -574,7 +574,7 @@ describe('Feedback Submissions API', () => {
       const form = await FeedbackForm.create({
         businessId,
         title: 'Survey',
-        fields: [{ name: 'c', label: 'C', type: 'short_text' }],
+        fields: [{ name: 'c', label: 'C', type: 'text' }],
       });
       const oldDate = new Date('2024-01-01');
       const midDate = new Date('2024-06-15');
@@ -582,21 +582,21 @@ describe('Feedback Submissions API', () => {
       await FeedbackSubmission.create({
         formId: form._id,
         businessId,
-        formSnapshot: [{ name: 'c', label: 'C', type: 'short_text' }],
+        formSnapshot: [{ name: 'c', label: 'C', type: 'text' }],
         responses: { c: 'old' },
         submittedAt: oldDate,
       });
       await FeedbackSubmission.create({
         formId: form._id,
         businessId,
-        formSnapshot: [{ name: 'c', label: 'C', type: 'short_text' }],
+        formSnapshot: [{ name: 'c', label: 'C', type: 'text' }],
         responses: { c: 'mid' },
         submittedAt: midDate,
       });
       await FeedbackSubmission.create({
         formId: form._id,
         businessId,
-        formSnapshot: [{ name: 'c', label: 'C', type: 'short_text' }],
+        formSnapshot: [{ name: 'c', label: 'C', type: 'text' }],
         responses: { c: 'new' },
         submittedAt: newDate,
       });
@@ -646,13 +646,13 @@ describe('Feedback Submissions API', () => {
       const form = await FeedbackForm.create({
         businessId,
         title: 'Survey',
-        fields: [{ name: 'c', label: 'C', type: 'short_text' }],
+        fields: [{ name: 'c', label: 'C', type: 'text' }],
       });
       for (let i = 0; i < 5; i++) {
         await FeedbackSubmission.create({
           formId: form._id,
           businessId,
-          formSnapshot: [{ name: 'c', label: 'C', type: 'short_text' }],
+          formSnapshot: [{ name: 'c', label: 'C', type: 'text' }],
           responses: { c: `Sub ${i}` },
         });
       }
@@ -672,7 +672,7 @@ describe('Feedback Submissions API', () => {
       await FeedbackForm.create({
         businessId,
         title: 'Survey',
-        fields: [{ name: 'c', label: 'C', type: 'short_text' }],
+        fields: [{ name: 'c', label: 'C', type: 'text' }],
       });
 
       const findSpy = jest.spyOn(FeedbackSubmission, 'find').mockReturnValueOnce({

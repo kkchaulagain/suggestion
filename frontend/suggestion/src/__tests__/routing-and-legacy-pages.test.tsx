@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom'
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { Route, Routes } from 'react-router-dom'
+import { TestRouter } from './test-router'
 import axios from 'axios'
 
 import ProtectedRoute from '../component/ProtectedRoutes'
@@ -9,6 +10,9 @@ import SuggestionForm from '../pages/business/suggestionform'
 import { AuthProvider } from '../context/AuthContext'
 
 jest.mock('../App.css', () => ({}))
+jest.mock('../pages/feedback-form-render/branding', () => ({
+  branding: { siteName: 'Test', tagline: '', logoUrl: '' },
+}))
 jest.mock('axios')
 const mockedAxios = axios as jest.Mocked<typeof axios>
 
@@ -93,13 +97,13 @@ describe('ProtectedRoute component', () => {
     })
 
     render(
-      <MemoryRouter>
+      <TestRouter>
         <AuthProvider>
           <ProtectedRoute>
             <div>Private Content</div>
           </ProtectedRoute>
         </AuthProvider>
-      </MemoryRouter>,
+      </TestRouter>,
     )
 
     await waitFor(() => {
@@ -109,7 +113,7 @@ describe('ProtectedRoute component', () => {
 
   test('redirects to login when user is not logged in', () => {
     render(
-      <MemoryRouter
+      <TestRouter
         initialEntries={['/dashboard']}
       >
         <AuthProvider>
@@ -125,7 +129,7 @@ describe('ProtectedRoute component', () => {
             <Route path="/login" element={<div>Login Route</div>} />
           </Routes>
         </AuthProvider>
-      </MemoryRouter>,
+      </TestRouter>,
     )
 
     expect(screen.queryByText('Private Content')).not.toBeInTheDocument()
@@ -154,7 +158,7 @@ describe('App routing', () => {
     expect(screen.getByText('Login Page')).toBeInTheDocument()
   })
 
-  test('renders protected dashboard when logged in', async () => {
+  test('renders protected dashboard when logged in (all users see business layout and forms)', async () => {
     localStorage.setItem('auth_token', 'fake-token')
     mockedAxios.get.mockResolvedValue({
       data: { success: true, data: { _id: '1', name: 'Test', email: 't@t.com', role: 'user' } },
@@ -163,7 +167,8 @@ describe('App routing', () => {
     render(<App />)
 
     await waitFor(() => {
-      expect(screen.getByText('User Dashboard Page')).toBeInTheDocument()
+      expect(screen.getByText('Business Layout')).toBeInTheDocument()
+      expect(screen.getByText('Forms Listing Page')).toBeInTheDocument()
     })
   })
 
@@ -281,14 +286,14 @@ describe('App routing', () => {
 describe('Legacy business pages', () => {
   test('businessdashboard redirects to main dashboard forms route', () => {
     render(
-      <MemoryRouter
+      <TestRouter
         initialEntries={['/old-business-dashboard']}
       >
         <Routes>
           <Route path="/old-business-dashboard" element={<BusinessDashboard />} />
           <Route path="/dashboard/forms" element={<div>Main Dashboard Forms Route</div>} />
         </Routes>
-      </MemoryRouter>,
+      </TestRouter>,
     )
 
     expect(screen.getByText('Main Dashboard Forms Route')).toBeInTheDocument()
@@ -296,9 +301,9 @@ describe('Legacy business pages', () => {
 
   test('suggestion form page shows migration guidance text', () => {
     render(
-      <MemoryRouter>
+      <TestRouter>
         <SuggestionForm />
-      </MemoryRouter>,
+      </TestRouter>,
     )
 
     expect(screen.getByRole('heading', { name: /Suggestion Form Builder/i })).toBeInTheDocument()

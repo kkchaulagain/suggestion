@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom'
 interface ProfileData {
   name: string
   email: string
+  avatarId?: string | null
 }
 
 export default function ProfilePage() {
@@ -49,10 +50,11 @@ export default function ProfilePage() {
           headers: getAuthHeaders(),
         })
         if (!cancelled && response.data?.success && response.data?.data) {
-          const data = response.data.data as { name?: string; email?: string }
+          const data = response.data.data as { name?: string; email?: string; avatarId?: string | null }
           setProfile({
             name: data.name ?? 'N/A',
             email: data.email ?? 'N/A',
+            avatarId: data.avatarId ?? undefined,
           })
         }
       } catch (error: unknown) {
@@ -176,12 +178,13 @@ export default function ProfilePage() {
 
   const displayName = profile?.name ?? user?.name ?? 'N/A'
   const displayEmail = profile?.email ?? user?.email ?? 'N/A'
+  const displayAvatarId = profile?.avatarId ?? user?.avatarId ?? undefined
 
   return (
     <section className="mx-auto max-w-4xl space-y-6" aria-label="Profile">
       <div className="border-b border-slate-200 py-5 dark:border-slate-700">
         <div className="flex items-center gap-4">
-          <Avatar name={displayName} size="lg" alt="Profile" />
+          <Avatar name={displayName} avatarId={displayAvatarId} size="lg" alt="Profile" />
           <div className="min-w-0 flex-1">
             <p className="text-lg font-semibold text-slate-800 dark:text-slate-100 truncate">
               {isLoadingProfile ? 'Loading...' : displayName}

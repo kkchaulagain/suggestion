@@ -3,22 +3,22 @@ const { connect, disconnect } = require('../db');
 const app = require('../app');
 const Business = require('../models/Business');
 const { FeedbackForm } = require('../models/FeedbackForm');
-
 const mongoose = require('mongoose');
+import type { Request, Response, NextFunction } from 'express';
 
 // Mock isAuthenticated middleware to control req.id
-const mockIsAuthenticated = jest.fn((req, res, next) => {
-  req.id = new mongoose.Types.ObjectId().toString();
+const mockIsAuthenticated = jest.fn((req: Request, res: Response, next: NextFunction) => {
+  (req as Request & { id?: string }).id = new mongoose.Types.ObjectId().toString();
   next();
 });
 
 jest.mock('../middleware/isauthenticated', () => ({
-  isAuthenticated: (req, res, next) => mockIsAuthenticated(req, res, next),
+  isAuthenticated: (req: Request, res: Response, next: NextFunction) => mockIsAuthenticated(req, res, next),
 }));
 
 // Mock authorize so we can test resolveBusinessProfile and route handlers in isolation
 jest.mock('../middleware/authorize', () => ({
-  authorize: () => (req, res, next) => next(),
+  authorize: () => (req: Request, res: Response, next: NextFunction) => next(),
 }));
 
 describe('Feedback Forms API Coverage', () => {
@@ -94,9 +94,10 @@ describe('Feedback Forms API Coverage', () => {
     const ownerId = new mongoose.Types.ObjectId();
     const business = await Business.create({
       owner: ownerId,
+      type: 'commercial',
       businessname: 'Coverage Biz',
       location: 'City',
-      pancardNumber: 1234567,
+      pancardNumber: '1234567',
       description: 'Desc',
     });
     mockIsAuthenticated.mockImplementationOnce((req, res, next) => {
@@ -107,14 +108,14 @@ describe('Feedback Forms API Coverage', () => {
     const form = await FeedbackForm.create({
       businessId: business._id,
       title: 'To Update',
-      fields: [{ name: 'f1', label: 'F1', type: 'short_text' }],
+      fields: [{ name: 'f1', label: 'F1', type: 'text' }],
     });
 
     jest.spyOn(FeedbackForm, 'findOneAndUpdate').mockRejectedValueOnce(new Error('DB error'));
 
     const res = await request(app)
       .put(`/api/feedback-forms/${form._id}`)
-      .send({ title: 'Updated', fields: [{ name: 'f1', label: 'F1', type: 'long_text' }] })
+      .send({ title: 'Updated', fields: [{ name: 'f1', label: 'F1', type: 'text' }] })
       .expect(500);
 
     expect(res.body.error).toBe('Failed to update feedback form');
@@ -124,9 +125,10 @@ describe('Feedback Forms API Coverage', () => {
     const ownerId = new mongoose.Types.ObjectId();
     await Business.create({
       owner: ownerId,
+      type: 'commercial',
       businessname: 'Biz',
       location: 'City',
-      pancardNumber: 1234567,
+      pancardNumber: '1234567',
       description: 'Desc',
     });
     mockIsAuthenticated.mockImplementationOnce((req, res, next) => {
@@ -159,9 +161,10 @@ describe('Feedback Forms API Coverage', () => {
     const ownerId = new mongoose.Types.ObjectId();
     await Business.create({
       owner: ownerId,
+      type: 'commercial',
       businessname: 'Biz',
       location: 'City',
-      pancardNumber: 1234567,
+      pancardNumber: '1234567',
       description: 'Desc',
     });
     mockIsAuthenticated.mockImplementationOnce((req, res, next) => {
@@ -173,7 +176,7 @@ describe('Feedback Forms API Coverage', () => {
       .post('/api/feedback-forms')
       .send({
         title: 'Test',
-        fields: [{ name: '1invalid', label: 'Field', type: 'short_text' }],
+        fields: [{ name: '1invalid', label: 'Field', type: 'text' }],
       })
       .expect(400);
 
@@ -184,9 +187,10 @@ describe('Feedback Forms API Coverage', () => {
     const ownerId = new mongoose.Types.ObjectId();
     const business = await Business.create({
       owner: ownerId,
+      type: 'commercial',
       businessname: 'Biz',
       location: 'City',
-      pancardNumber: 1234567,
+      pancardNumber: '1234567',
       description: 'Desc',
     });
     mockIsAuthenticated.mockImplementationOnce((req, res, next) => {
@@ -196,7 +200,7 @@ describe('Feedback Forms API Coverage', () => {
     const form = await FeedbackForm.create({
       businessId: business._id,
       title: 'Form',
-      fields: [{ name: 'f1', label: 'F1', type: 'short_text' }],
+      fields: [{ name: 'f1', label: 'F1', type: 'text' }],
     });
 
     const res = await request(app)
@@ -211,9 +215,10 @@ describe('Feedback Forms API Coverage', () => {
     const ownerId = new mongoose.Types.ObjectId();
     const business = await Business.create({
       owner: ownerId,
+      type: 'commercial',
       businessname: 'Biz',
       location: 'City',
-      pancardNumber: 1234567,
+      pancardNumber: '1234567',
       description: 'Desc',
     });
     mockIsAuthenticated.mockImplementationOnce((req, res, next) => {
@@ -223,7 +228,7 @@ describe('Feedback Forms API Coverage', () => {
     const form = await FeedbackForm.create({
       businessId: business._id,
       title: 'Form',
-      fields: [{ name: 'f1', label: 'F1', type: 'short_text' }],
+      fields: [{ name: 'f1', label: 'F1', type: 'text' }],
     });
     const QRCode = require('qrcode');
     jest.spyOn(QRCode, 'toDataURL').mockRejectedValueOnce(new Error('QR error'));
@@ -240,9 +245,10 @@ describe('Feedback Forms API Coverage', () => {
     const ownerId = new mongoose.Types.ObjectId();
     const business = await Business.create({
       owner: ownerId,
+      type: 'commercial',
       businessname: 'Biz',
       location: 'City',
-      pancardNumber: 1234567,
+      pancardNumber: '1234567',
       description: 'Desc',
     });
     mockIsAuthenticated.mockImplementationOnce((req, res, next) => {
@@ -252,7 +258,7 @@ describe('Feedback Forms API Coverage', () => {
     const form = await FeedbackForm.create({
       businessId: business._id,
       title: 'Form',
-      fields: [{ name: 'f1', label: 'F1', type: 'short_text' }],
+      fields: [{ name: 'f1', label: 'F1', type: 'text' }],
     });
     jest.spyOn(FeedbackForm, 'findOneAndDelete').mockRejectedValueOnce(new Error('DB error'));
 

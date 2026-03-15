@@ -4,14 +4,20 @@ import type { BusinessDocument, BusinessListItem, GetBusinessesResponse, GetBusi
 import type { ApiResponse } from '../../types/api';
 
 function toListItem(doc: BusinessDocument): BusinessListItem {
-  return {
+  const item: BusinessListItem = {
     id: String(doc._id),
     owner: String(doc.owner),
+    type: doc.type,
     businessname: doc.businessname,
-    location: doc.location,
-    pancardNumber: doc.pancardNumber,
     description: doc.description,
   };
+  if (doc.location !== undefined && doc.location !== '') {
+    item.location = doc.location;
+  }
+  if (doc.pancardNumber !== undefined && doc.pancardNumber !== '') {
+    item.pancardNumber = doc.pancardNumber;
+  }
+  return item;
 }
 
 async function getBusiness(req: Request, res: Response): Promise<void> {
@@ -68,7 +74,7 @@ async function updateBusiness(req: Request, res: Response): Promise<void> {
   const updateFields: Partial<BusinessListItem> = {};
   if (businessname) updateFields.businessname = businessname;
   if (location) updateFields.location = location;
-  if (pancardNumber) updateFields.pancardNumber = pancardNumber;
+  if (pancardNumber != null && String(pancardNumber).trim()) updateFields.pancardNumber = String(pancardNumber).trim();
   if (description) updateFields.description = description;
 
   if (Object.keys(updateFields).length === 0) {

@@ -19,6 +19,8 @@ export interface DataTableProps<T = object> {
   totalPages?: number
   totalItems?: number
   onPageChange?: (page: number) => void
+  /** Optional class for the table wrapper (e.g. card styling) */
+  wrapperClassName?: string
 }
 
 export default function DataTable<T extends object>({
@@ -31,6 +33,7 @@ export default function DataTable<T extends object>({
   totalPages = 1,
   totalItems = 0,
   onPageChange,
+  wrapperClassName,
 }: DataTableProps<T>) {
   if (loading) {
     return <EmptyState type="loading" message={loadingMessage} />
@@ -49,12 +52,12 @@ export default function DataTable<T extends object>({
 
   return (
     <>
-      <div className="mt-4 overflow-x-auto">
+      <div className={wrapperClassName ? `overflow-x-auto ${wrapperClassName}` : 'mt-4 overflow-x-auto'}>
         <table className="w-full min-w-[400px] border-collapse text-sm">
           <thead>
-            <tr className="border-b border-slate-200 dark:border-slate-700 text-left">
+            <tr className="border-b-2 border-slate-200 bg-slate-50/80 text-left dark:border-slate-700 dark:bg-slate-800/40">
               {columns.map((col) => (
-                <th key={String(col.key)} className="py-2 pr-4 font-semibold text-slate-700 dark:text-slate-300">
+                <th key={String(col.key)} className="py-3 pr-4 font-semibold text-slate-700 dark:text-slate-300">
                   {col.header}
                 </th>
               ))}
@@ -62,9 +65,12 @@ export default function DataTable<T extends object>({
           </thead>
           <tbody>
             {rows.map((row, idx) => (
-              <tr key={idx} className="border-b border-slate-100 dark:border-slate-700/50">
+              <tr
+                key={idx}
+                className="border-b border-slate-100 transition-colors hover:bg-slate-50/80 dark:border-slate-700/50 dark:hover:bg-slate-800/30"
+              >
                 {columns.map((col) => (
-                  <td key={String(col.key)} className="py-3 pr-4 text-slate-900 dark:text-slate-200">
+                  <td key={String(col.key)} className="py-3.5 pr-4 text-slate-700 dark:text-slate-200">
                     {col.render ? col.render(row) : getCellValue(row, col.key)}
                   </td>
                 ))}
