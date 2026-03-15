@@ -1,17 +1,39 @@
 const mongoose = require('mongoose');
 
 const FEEDBACK_FIELD_TYPES = [
+  'text',
+  'textarea',
+  'email',
+  'phone',
+  'number',
+  'date',
+  'time',
+  'url',
   'checkbox',
+  'radio',
+  'dropdown',
+  'scale',
+  'scale_emoji',
+  'rating',
+  'image',
+  // Legacy types kept for backward compat with pre-migration forms
   'short_text',
   'long_text',
   'big_text',
   'image_upload',
-  'radio',
   'name',
-  'email',
   'scale_1_10',
-  'rating',
 ];
+
+const validationSchema = new mongoose.Schema(
+  {
+    min: { type: Number },
+    max: { type: Number },
+    pattern: { type: String, trim: true },
+    countryCode: { type: Boolean },
+  },
+  { _id: false },
+);
 
 const feedbackFieldSchema = new mongoose.Schema(
   {
@@ -54,11 +76,49 @@ const feedbackFieldSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    stepId: {
+      type: String,
+      trim: true,
+    },
+    stepOrder: {
+      type: Number,
+    },
+    validation: {
+      type: validationSchema,
+      default: undefined,
+    },
+  },
+  { _id: false },
+);
+
+const formStepSchema = new mongoose.Schema(
+  {
+    id: {
+      type: String,
+      required: [true, 'Step id is required'],
+      trim: true,
+    },
+    title: {
+      type: String,
+      required: [true, 'Step title is required'],
+      trim: true,
+      maxlength: 200,
+    },
+    description: {
+      type: String,
+      trim: true,
+      maxlength: 500,
+    },
+    order: {
+      type: Number,
+      required: [true, 'Step order is required'],
+    },
   },
   { _id: false },
 );
 
 const FORM_KINDS = ['form', 'poll', 'survey'] as const;
+const FORM_STYLES = ['default', 'drawer'] as const;
 
 const feedbackFormSchema = new mongoose.Schema(
   {
@@ -66,6 +126,15 @@ const feedbackFormSchema = new mongoose.Schema(
       type: String,
       enum: { values: FORM_KINDS, message: 'Kind must be form, poll, or survey' },
       default: 'form',
+    },
+    formStyle: {
+      type: String,
+      enum: { values: FORM_STYLES, message: 'Form style must be default or drawer' },
+      default: 'default',
+    },
+    drawerDefaultOpen: {
+      type: Boolean,
+      default: true,
     },
     businessId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -84,9 +153,71 @@ const feedbackFormSchema = new mongoose.Schema(
       trim: true,
       maxlength: 1000,
     },
+    metaTitle: {
+      type: String,
+      trim: true,
+      maxlength: 120,
+    },
+    metaDescription: {
+      type: String,
+      trim: true,
+      maxlength: 160,
+    },
+    landingHeadline: {
+      type: String,
+      trim: true,
+      maxlength: 120,
+    },
+    landingDescription: {
+      type: String,
+      trim: true,
+      maxlength: 300,
+    },
+    landingCtaText: {
+      type: String,
+      trim: true,
+      maxlength: 40,
+    },
+    landingEmoji: {
+      type: String,
+      trim: true,
+      maxlength: 4,
+    },
+    thankYouHeadline: {
+      type: String,
+      trim: true,
+      maxlength: 120,
+    },
+    thankYouMessage: {
+      type: String,
+      trim: true,
+      maxlength: 300,
+    },
     showResultsPublic: {
       type: Boolean,
       default: false,
+    },
+    steps: {
+      type: [formStepSchema],
+      default: undefined,
+      validate: [
+        {
+          validator(steps: Array<{ id?: string; order?: number }>) {
+            if (!Array.isArray(steps) || steps.length === 0) return true;
+            const ids = steps.map((s) => s?.id).filter(Boolean);
+            return new Set(ids).size === ids.length;
+          },
+          message: 'Step ids must be unique within the form',
+        },
+        {
+          validator(steps: Array<{ id?: string; order?: number }>) {
+            if (!Array.isArray(steps) || steps.length === 0) return true;
+            const orders = steps.map((s) => s?.order).filter((o) => o !== undefined && o !== null);
+            return new Set(orders).size === orders.length;
+          },
+          message: 'Step order values must be unique within the form',
+        },
+      ],
     },
     fields: {
       type: [feedbackFieldSchema],

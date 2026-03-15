@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
-import { Copy, Eye, Pencil, Plus, QrCode, Trash2, X } from 'lucide-react'
+import { BarChart3, Copy, Eye, Pencil, Plus, QrCode, Trash2, X } from 'lucide-react'
 import { useAuth } from '../../../context/AuthContext'
 import { feedbackFormsApi } from '../../../utils/apipath'
 import { Button, ErrorMessage, Modal, Tag } from '../../../components/ui'
-import { PageHeader, EmptyState, FormCard, QRDisplay } from '../../../components/layout'
+import { PageHeader, EmptyState, FormCard, FormCardSkeleton, QRDisplay } from '../../../components/layout'
 
 interface FeedbackField {
   name: string
@@ -156,59 +156,49 @@ export default function FormsPage() {
   }, [shareModalFormId, qrByFormId, handleGenerateQr])
 
   return (
-    <section className="space-y-6" aria-label="Saved forms">
+    <section className="space-y-8" aria-label="Saved forms">
       <PageHeader
         title="Your Forms"
         actions={
           <Button
-              type="button"
-              variant="primary"
-              size="sm"
-              className="min-h-0 rounded-md px-2.5 py-1.5 text-xs"
-              onClick={() => navigate('/dashboard/forms/create')}
-            >
-              <Plus className="h-4 w-4" />
-              Add Form
-            </Button>
+            type="button"
+            variant="primary"
+            size="sm"
+            className="min-h-9 rounded-xl border-0 bg-stone-900 px-4 font-medium text-white shadow-none transition hover:bg-stone-800 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-200"
+            onClick={() => navigate('/dashboard/forms/create')}
+          >
+            <Plus className="h-4 w-4" />
+            Add Form
+          </Button>
         }
       />
 
       {savedForms.length > 0 ? (
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs text-slate-600 dark:text-slate-400">Filter:</span>
-          <button
-            type="button"
-            onClick={() => setKindFilter('')}
-            className={`rounded px-2 py-1 text-xs font-medium ${!kindFilter ? 'bg-slate-200 dark:bg-slate-600' : 'bg-slate-100 dark:bg-slate-700'}`}
-          >
-            All
-          </button>
-          <button
-            type="button"
-            onClick={() => setKindFilter('form')}
-            className={`rounded px-2 py-1 text-xs font-medium ${kindFilter === 'form' ? 'bg-slate-200 dark:bg-slate-600' : 'bg-slate-100 dark:bg-slate-700'}`}
-          >
-            Form
-          </button>
-          <button
-            type="button"
-            onClick={() => setKindFilter('poll')}
-            className={`rounded px-2 py-1 text-xs font-medium ${kindFilter === 'poll' ? 'bg-slate-200 dark:bg-slate-600' : 'bg-slate-100 dark:bg-slate-700'}`}
-          >
-            Poll
-          </button>
-          <button
-            type="button"
-            onClick={() => setKindFilter('survey')}
-            className={`rounded px-2 py-1 text-xs font-medium ${kindFilter === 'survey' ? 'bg-slate-200 dark:bg-slate-600' : 'bg-slate-100 dark:bg-slate-700'}`}
-          >
-            Survey
-          </button>
+        <div className="flex flex-wrap items-center gap-2 pt-1">
+          <span className="text-[11px] font-medium uppercase tracking-widest text-stone-400 dark:text-stone-500">Filter</span>
+          {(['', 'form', 'poll', 'survey'] as const).map((value) => (
+            <button
+              key={value || 'all'}
+              type="button"
+              onClick={() => setKindFilter(value)}
+              className={`rounded-xl px-3 py-1.5 text-xs font-medium transition ${
+                (value === '' ? !kindFilter : kindFilter === value)
+                  ? 'bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900'
+                  : 'bg-stone-100 text-stone-600 hover:bg-stone-200 dark:bg-stone-800 dark:text-stone-400 dark:hover:bg-stone-700'
+              }`}
+            >
+              {value === '' ? 'All' : value.charAt(0).toUpperCase() + value.slice(1)}
+            </button>
+          ))}
         </div>
       ) : null}
 
       {loading ? (
-        <EmptyState type="loading" message="Hold on, we're fetching your forms." />
+        <div className="space-y-5 pt-2" aria-busy="true" aria-label="Loading forms">
+          {[1, 2, 3].map((i) => (
+            <FormCardSkeleton key={i} />
+          ))}
+        </div>
       ) : savedForms.length === 0 ? (
         <EmptyState
           type="empty"
@@ -218,7 +208,7 @@ export default function FormsPage() {
         <EmptyState type="empty" message="No forms match the selected filter." />
       ) : null}
 
-      <div className={filteredForms.length > 0 ? 'space-y-0' : undefined}>
+      <div className={filteredForms.length > 0 ? 'space-y-5 pt-2' : undefined}>
         {filteredForms.map((form) => {
           const questionCount = form.fields.length
           const requiredCount = form.fields.filter((field) => field.required).length
@@ -227,88 +217,89 @@ export default function FormsPage() {
           return (
             <FormCard
               key={form._id}
-              variant="flat"
+              variant="card"
               title={form.title}
               subtitle={
                 <span className="flex flex-wrap items-center gap-2">
                   <span data-testid={`form-kind-badge-${form._id}`}>
-                    <Tag className="text-xs">{kindLabel(kind)}</Tag>
+                    <Tag variant="stone">{kindLabel(kind)}</Tag>
                   </span>
                   <span
                     data-testid={`form-results-visibility-${form._id}`}
-                    className={`rounded px-2 py-0.5 text-xs font-medium ${
+                    className={`rounded-lg px-2 py-0.5 text-xs font-medium ${
                       form.showResultsPublic
-                        ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300'
-                        : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400'
+                        ? 'border border-stone-200 bg-stone-100 text-stone-700 dark:border-stone-600 dark:bg-stone-800 dark:text-stone-300'
+                        : 'border border-stone-200/80 bg-stone-50 text-stone-500 dark:border-stone-700 dark:bg-stone-800/80 dark:text-stone-400'
                     }`}
                     title={form.showResultsPublic ? 'Respondents can view results after submitting' : 'Results are only visible to you'}
                   >
                     {form.showResultsPublic ? 'Results public' : 'Results private'}
                   </span>
-                  <span>{`${questionCount} ${questionCount === 1 ? 'question' : 'questions'} - ${requiredCount} required`}</span>
+                  <span className="text-stone-500 dark:text-stone-400">{`${questionCount} ${questionCount === 1 ? 'question' : 'questions'} · ${requiredCount} required`}</span>
                 </span>
               }
               description={form.description || undefined}
             >
               {form.fields.length > 0 ? (
-                <p className="mt-2 text-xs text-slate-500 dark:text-slate-400" id={`${form._id}-questions`}>
-                  <span className="font-medium text-slate-600 dark:text-slate-300">Questions included:</span>{' '}
+                <p className="mt-2 text-xs text-stone-500 dark:text-stone-400" id={`${form._id}-questions`}>
+                  <span className="font-medium text-stone-600 dark:text-stone-300">Questions included:</span>{' '}
                   {formatFieldsSummary(form.fields)}
                 </p>
               ) : (
-                <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">No questions added yet.</p>
+                <p className="mt-2 text-xs text-stone-500 dark:text-stone-400">No questions added yet.</p>
               )}
-              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">
                 Share the form via QR or link, then use Responses to track submissions.
               </p>
-              <div className="mt-3 flex flex-wrap items-center gap-2">
+              <div className="mt-5 flex flex-wrap items-center gap-2">
                 <Button
                   type="button"
-                  variant="ghost"
+                  variant="secondary"
                   size="sm"
-                  className="min-h-0 rounded bg-slate-100 px-2 py-1 text-xs font-medium dark:bg-slate-700"
+                  className="min-h-9 rounded-lg border-stone-300 bg-stone-50 px-3.5 font-medium text-stone-800 hover:bg-stone-100 dark:border-stone-600 dark:bg-stone-800 dark:text-stone-200 dark:hover:bg-stone-700"
                   onClick={() => navigate(`/dashboard/forms/${form._id}/edit`)}
                 >
-                  <Pencil className="h-3.5 w-3.5" />
+                  <Pencil className="h-4 w-4 shrink-0" />
                   Edit
                 </Button>
                 <Button
                   type="button"
-                  variant="ghost"
+                  variant="secondary"
                   size="sm"
-                  className="min-h-0 rounded bg-slate-100 px-2 py-1 text-xs font-medium dark:bg-slate-700"
+                  className="min-h-9 rounded-lg border-stone-300 bg-stone-50 px-3.5 font-medium text-stone-800 hover:bg-stone-100 dark:border-stone-600 dark:bg-stone-800 dark:text-stone-200 dark:hover:bg-stone-700"
                   onClick={() => navigate(`/dashboard/submissions?formId=${encodeURIComponent(form._id)}`)}
                 >
-                  <Eye className="h-3.5 w-3.5" />
+                  <Eye className="h-4 w-4 shrink-0" />
                   Responses
                 </Button>
                 <Button
                   type="button"
-                  variant="ghost"
+                  variant="secondary"
                   size="sm"
-                  className="min-h-0 rounded bg-slate-100 px-2 py-1 text-xs font-medium dark:bg-slate-700"
+                  className="min-h-9 rounded-lg border-stone-300 bg-stone-50 px-3.5 font-medium text-stone-800 hover:bg-stone-100 dark:border-stone-600 dark:bg-stone-800 dark:text-stone-200 dark:hover:bg-stone-700"
                   onClick={() => navigate(`/dashboard/submissions?formId=${encodeURIComponent(form._id)}&tab=results`)}
                 >
+                  <BarChart3 className="h-4 w-4 shrink-0" />
                   Results
                 </Button>
                 <Button
                   type="button"
                   variant="secondary"
                   size="sm"
-                  className="min-h-0 rounded border-slate-200 px-2 py-1 text-xs font-medium dark:border-slate-600"
+                  className="min-h-9 rounded-lg border-stone-300 bg-stone-50 px-3.5 font-medium text-stone-800 hover:bg-stone-100 dark:border-stone-600 dark:bg-stone-800 dark:text-stone-200 dark:hover:bg-stone-700"
                   onClick={() => handleOpenShareModal(form._id)}
                 >
-                  <QrCode className="h-3.5 w-3.5" />
+                  <QrCode className="h-4 w-4 shrink-0" />
                   Share
                 </Button>
                 <Button
                   type="button"
                   variant="secondary"
                   size="sm"
-                  className="!text-red-600 hover:!text-red-600 dark:!text-red-400 dark:hover:!text-red-400"
+                  className="min-h-9 rounded-lg border-red-200 bg-red-50 px-3.5 font-medium text-red-700 hover:bg-red-100 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-300 dark:hover:bg-red-950/60"
                   onClick={() => setDeleteModalFormId(form._id)}
                 >
-                  <Trash2 className="h-3.5 w-3.5" />
+                  <Trash2 className="h-4 w-4 shrink-0" />
                   Delete
                 </Button>
               </div>
@@ -329,7 +320,7 @@ export default function FormsPage() {
         size="md"
       >
         {isGeneratingShare ? (
-          <p className="text-sm text-slate-600 dark:text-slate-400">Generating QR code…</p>
+          <p className="text-sm text-stone-600 dark:text-stone-400">Generating QR code…</p>
         ) : shareQrPayload ? (
           <div className="space-y-4">
             <QRDisplay
@@ -364,14 +355,15 @@ export default function FormsPage() {
         title="Delete form"
         size="sm"
       >
-        <p className="text-sm text-slate-600 dark:text-slate-300">
-          Delete <span className="font-semibold">{deleteForm?.title}</span>? This cannot be undone.
+        <p className="text-sm text-stone-600 dark:text-stone-400">
+          Delete <span className="font-medium text-stone-900 dark:text-stone-100">{deleteForm?.title}</span>? This cannot be undone.
         </p>
         <div className="mt-4 flex justify-end gap-2">
           <Button
             type="button"
             variant="secondary"
             size="sm"
+            className="rounded-xl border-stone-200 dark:border-stone-600"
             disabled={deletingFormId !== null}
             onClick={() => {
               setDeleteModalFormId(null)
@@ -385,7 +377,7 @@ export default function FormsPage() {
             type="button"
             variant="secondary"
             size="sm"
-            className="!text-red-600 hover:!text-red-600 dark:!text-red-400 dark:hover:!text-red-400"
+            className="rounded-xl border-red-200 bg-red-50 text-red-700 hover:bg-red-100 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-300 dark:hover:bg-red-950/50"
             disabled={deletingFormId !== null}
             onClick={() => void handleDeleteForm()}
           >

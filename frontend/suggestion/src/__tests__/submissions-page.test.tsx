@@ -66,7 +66,7 @@ describe('SubmissionsPage', () => {
         _id: 's1',
         formId: 'f1',
         formTitle: 'My Survey',   // shown in table cell
-        formSnapshot: [{ name: 'q', label: 'Question', type: 'short_text' }],
+        formSnapshot: [{ name: 'q', label: 'Question', type: 'text' }],
         responses: { q: 'The Answer' },
         submittedAt: '2024-06-01T12:00:00.000Z',
       },
@@ -102,15 +102,15 @@ describe('SubmissionsPage', () => {
     })
   })
 
-  it('renders image in modal when submission has image_upload field with URL', async () => {
+  it('renders image in modal when submission has image field with URL', async () => {
     const submissions = [
       {
         _id: 's-img',
         formId: 'f1',
         formTitle: 'Form With Image',
         formSnapshot: [
-          { name: 'photo', label: 'Photo', type: 'image_upload' },
-          { name: 'note', label: 'Note', type: 'short_text' },
+          { name: 'photo', label: 'Photo', type: 'image' },
+          { name: 'note', label: 'Note', type: 'text' },
         ],
         responses: {
           photo: 'https://example.r2.dev/uploads/abc.jpg',
@@ -147,7 +147,7 @@ describe('SubmissionsPage', () => {
         _id: 's-url',
         formId: 'f1',
         formTitle: 'Form With URL',
-        formSnapshot: [{ name: 'screenshot', label: 'Screenshot', type: 'short_text' }],
+        formSnapshot: [{ name: 'screenshot', label: 'Screenshot', type: 'text' }],
         responses: { screenshot: 'https://r2.dev/uploads/photo.png' },
         submittedAt: '2024-06-01T12:00:00.000Z',
       },
@@ -396,7 +396,7 @@ describe('SubmissionsPage', () => {
     mockedAxios.get
       .mockResolvedValueOnce({ data: { feedbackForms: [{ _id: 'f1', title: 'Survey' }] } })
       .mockResolvedValueOnce({ data: { submissions: [], total: 0 } })
-      .mockResolvedValueOnce({ data: { feedbackForm: { fields: [{ name: 'comment', label: 'Comment', type: 'short_text' }] } } })
+      .mockResolvedValueOnce({ data: { feedbackForm: { fields: [{ name: 'comment', label: 'Comment', type: 'text' }] } } })
       .mockResolvedValueOnce({ data: { submissions: [], total: 0 } })
 
     render(
@@ -431,7 +431,7 @@ describe('SubmissionsPage', () => {
   it('applies formId from URL and fetches submissions for that form', async () => {
     mockedAxios.get
       .mockResolvedValueOnce({ data: { feedbackForms: [{ _id: 'f-from-url', title: 'Form From URL' }] } })
-      .mockResolvedValueOnce({ data: { feedbackForm: { fields: [{ name: 'q', label: 'Question', type: 'short_text' }] } } })
+      .mockResolvedValueOnce({ data: { feedbackForm: { fields: [{ name: 'q', label: 'Question', type: 'text' }] } } })
       .mockResolvedValueOnce({ data: { submissions: [], total: 0 } })
 
     render(

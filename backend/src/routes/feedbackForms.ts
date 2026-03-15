@@ -49,11 +49,32 @@ function normalizeFields(fields: FeedbackFieldInput[] | null | undefined): Feedb
 const FORM_KINDS = ['form', 'poll', 'survey'] as const;
 type FormKind = (typeof FORM_KINDS)[number];
 
+interface FormStepInput {
+  id?: string;
+  title?: string;
+  description?: string;
+  order?: number;
+}
+
+const FORM_STYLES = ['default', 'drawer'] as const;
+type FormStyle = (typeof FORM_STYLES)[number];
+
 interface FeedbackFormPayload {
   title?: string;
   description?: string;
+  metaTitle?: string;
+  metaDescription?: string;
+  landingHeadline?: string;
+  landingDescription?: string;
+  landingCtaText?: string;
+  landingEmoji?: string;
+  thankYouHeadline?: string;
+  thankYouMessage?: string;
   fields?: FeedbackFieldInput[];
+  steps?: FormStepInput[];
   kind?: FormKind;
+  formStyle?: FormStyle;
+  drawerDefaultOpen?: boolean;
   showResultsPublic?: boolean;
   businessId?: Types.ObjectId;
 }
@@ -61,9 +82,25 @@ interface FeedbackFormPayload {
 interface RequestBody {
   title?: string;
   description?: string;
+  metaTitle?: string;
+  metaDescription?: string;
+  landingHeadline?: string;
+  landingDescription?: string;
+  landingCtaText?: string;
+  landingEmoji?: string;
+  thankYouHeadline?: string;
+  thankYouMessage?: string;
   fields?: FeedbackFieldInput[];
+  steps?: FormStepInput[];
   kind?: string;
+  formStyle?: string;
+  drawerDefaultOpen?: boolean;
   showResultsPublic?: boolean;
+}
+
+function normalizeSteps(steps: unknown): FormStepInput[] | undefined {
+  if (!Array.isArray(steps)) return undefined;
+  return steps.filter((s) => s && typeof s === 'object') as FormStepInput[];
 }
 
 function buildPayload(body: RequestBody): FeedbackFormPayload {
@@ -75,14 +112,46 @@ function buildPayload(body: RequestBody): FeedbackFormPayload {
   if (Object.prototype.hasOwnProperty.call(body, 'description') && typeof body.description === 'string') {
     payload.description = body.description;
   }
+  if (Object.prototype.hasOwnProperty.call(body, 'metaTitle') && typeof body.metaTitle === 'string') {
+    payload.metaTitle = body.metaTitle.trim().slice(0, 120);
+  }
+  if (Object.prototype.hasOwnProperty.call(body, 'metaDescription') && typeof body.metaDescription === 'string') {
+    payload.metaDescription = body.metaDescription.trim().slice(0, 160);
+  }
+  const stringLandingFields: Array<{ key: keyof FeedbackFormPayload & keyof RequestBody; max: number }> = [
+    { key: 'landingHeadline', max: 120 },
+    { key: 'landingDescription', max: 300 },
+    { key: 'landingCtaText', max: 40 },
+    { key: 'landingEmoji', max: 4 },
+    { key: 'thankYouHeadline', max: 120 },
+    { key: 'thankYouMessage', max: 300 },
+  ];
+  for (const { key, max } of stringLandingFields) {
+    if (Object.prototype.hasOwnProperty.call(body, key) && typeof body[key] === 'string') {
+      (payload as Record<string, unknown>)[key] = (body[key] as string).trim().slice(0, max);
+    }
+  }
   if (Object.prototype.hasOwnProperty.call(body, 'fields')) {
     payload.fields = normalizeFields(body.fields);
+  }
+  if (Object.prototype.hasOwnProperty.call(body, 'steps')) {
+    const steps = normalizeSteps(body.steps);
+    if (steps) payload.steps = steps;
   }
   if (Object.prototype.hasOwnProperty.call(body, 'kind') && typeof body.kind === 'string') {
     const k = body.kind.toLowerCase().trim();
     if (FORM_KINDS.includes(k as FormKind)) {
       payload.kind = k as FormKind;
     }
+  }
+  if (Object.prototype.hasOwnProperty.call(body, 'formStyle') && typeof body.formStyle === 'string') {
+    const style = body.formStyle.toLowerCase().trim();
+    if (FORM_STYLES.includes(style as FormStyle)) {
+      payload.formStyle = style as FormStyle;
+    }
+  }
+  if (Object.prototype.hasOwnProperty.call(body, 'drawerDefaultOpen') && typeof body.drawerDefaultOpen === 'boolean') {
+    payload.drawerDefaultOpen = body.drawerDefaultOpen;
   }
   if (Object.prototype.hasOwnProperty.call(body, 'showResultsPublic') && typeof body.showResultsPublic === 'boolean') {
     payload.showResultsPublic = body.showResultsPublic;
@@ -164,7 +233,7 @@ function validateSubmissionPayload(
     const name = field.name;
     const value = raw[name];
 
-    const isAnonymousAllowed = field.type === 'name' && (field as { allowAnonymous?: boolean }).allowAnonymous;
+    const isAnonymousAllowed = (field as { allowAnonymous?: boolean }).allowAnonymous === true;
 
     if (field.required && !isAnonymousAllowed) {
       if (value === undefined || value === null) {
@@ -434,19 +503,33 @@ router.get('/:id/results', optionalAuthAndBusiness, async (req: Request, res: Re
     const query: Record<string, unknown> = { formId: new mongoose.Types.ObjectId(id) };
     const dateFromRaw = req.query.dateFrom;
     const dateToRaw = req.query.dateTo;
-    const dateFrom = dateFromRaw && typeof dateFromRaw === 'string' ? new Date(dateFromRaw) : null;
-    const dateTo = dateToRaw && typeof dateToRaw === 'string' ? new Date(dateToRaw) : null;
+    let dateFrom: Date | null = null;
+    let dateTo: Date | null = null;
+    if (dateFromRaw && typeof dateFromRaw === 'string') {
+      dateFrom = new Date(dateFromRaw);
+      if (Number.isNaN(dateFrom.getTime())) dateFrom = null;
+    }
+    if (dateToRaw && typeof dateToRaw === 'string') {
+      const parsed = new Date(dateToRaw);
+      if (!Number.isNaN(parsed.getTime())) {
+        if (/^\d{4}-\d{2}-\d{2}$/.test(dateToRaw.trim())) {
+          dateTo = new Date(dateToRaw.trim() + 'T23:59:59.999Z');
+        } else {
+          dateTo = parsed;
+        }
+      }
+    }
     const submittedAtFilter: Record<string, Date> = {};
-    if (dateFrom && !Number.isNaN(dateFrom.getTime())) submittedAtFilter.$gte = dateFrom;
-    if (dateTo && !Number.isNaN(dateTo.getTime())) submittedAtFilter.$lte = dateTo;
+    if (dateFrom) submittedAtFilter.$gte = dateFrom;
+    if (dateTo) submittedAtFilter.$lte = dateTo;
     if (Object.keys(submittedAtFilter).length > 0) {
       query.submittedAt = submittedAtFilter;
     }
     const submissions = await FeedbackSubmission.find(query).select('responses submittedAt').lean();
     const totalResponses = submissions.length;
     const byField: Record<string, { label: string; type: string; options?: { option: string; count: number; percentage: number }[]; responseCount?: number; sampleAnswers?: string[] }> = {};
-    const choiceTypes = ['radio', 'checkbox', 'scale_1_10', 'rating'];
-    const textTypes = ['short_text', 'long_text', 'big_text', 'name', 'image_upload'];
+    const choiceTypes = ['radio', 'checkbox', 'scale', 'scale_emoji', 'scale_1_10', 'rating', 'dropdown'];
+    const textTypes = ['text', 'textarea', 'email', 'phone', 'number', 'date', 'time', 'url', 'image', 'short_text', 'long_text', 'big_text', 'name', 'image_upload'];
     const fields = formDoc.fields || [];
     for (const field of fields) {
       const fname = field.name;
@@ -458,7 +541,7 @@ router.get('/:id/results', optionalAuthAndBusiness, async (req: Request, res: Re
         optionsList.forEach((opt) => { counts[opt] = 0; });
         for (const sub of submissions as { responses?: Record<string, unknown> }[]) {
           const val = sub.responses?.[fname];
-          if ((ftype === 'radio' || ftype === 'scale_1_10' || ftype === 'rating') && typeof val === 'string' && val.trim() !== '') {
+          if ((ftype === 'radio' || ftype === 'scale' || ftype === 'scale_emoji' || ftype === 'scale_1_10' || ftype === 'rating' || ftype === 'dropdown') && typeof val === 'string' && val.trim() !== '') {
             counts[val] = (counts[val] ?? 0) + 1;
           } else if (ftype === 'checkbox' && Array.isArray(val)) {
             for (const v of val) {

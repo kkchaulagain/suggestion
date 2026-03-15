@@ -108,14 +108,14 @@ describe('Feedback Forms API Coverage', () => {
     const form = await FeedbackForm.create({
       businessId: business._id,
       title: 'To Update',
-      fields: [{ name: 'f1', label: 'F1', type: 'short_text' }],
+      fields: [{ name: 'f1', label: 'F1', type: 'text' }],
     });
 
     jest.spyOn(FeedbackForm, 'findOneAndUpdate').mockRejectedValueOnce(new Error('DB error'));
 
     const res = await request(app)
       .put(`/api/feedback-forms/${form._id}`)
-      .send({ title: 'Updated', fields: [{ name: 'f1', label: 'F1', type: 'long_text' }] })
+      .send({ title: 'Updated', fields: [{ name: 'f1', label: 'F1', type: 'text' }] })
       .expect(500);
 
     expect(res.body.error).toBe('Failed to update feedback form');
@@ -176,7 +176,7 @@ describe('Feedback Forms API Coverage', () => {
       .post('/api/feedback-forms')
       .send({
         title: 'Test',
-        fields: [{ name: '1invalid', label: 'Field', type: 'short_text' }],
+        fields: [{ name: '1invalid', label: 'Field', type: 'text' }],
       })
       .expect(400);
 
@@ -200,7 +200,7 @@ describe('Feedback Forms API Coverage', () => {
     const form = await FeedbackForm.create({
       businessId: business._id,
       title: 'Form',
-      fields: [{ name: 'f1', label: 'F1', type: 'short_text' }],
+      fields: [{ name: 'f1', label: 'F1', type: 'text' }],
     });
 
     const res = await request(app)
@@ -228,7 +228,7 @@ describe('Feedback Forms API Coverage', () => {
     const form = await FeedbackForm.create({
       businessId: business._id,
       title: 'Form',
-      fields: [{ name: 'f1', label: 'F1', type: 'short_text' }],
+      fields: [{ name: 'f1', label: 'F1', type: 'text' }],
     });
     const QRCode = require('qrcode');
     jest.spyOn(QRCode, 'toDataURL').mockRejectedValueOnce(new Error('QR error'));
@@ -258,7 +258,7 @@ describe('Feedback Forms API Coverage', () => {
     const form = await FeedbackForm.create({
       businessId: business._id,
       title: 'Form',
-      fields: [{ name: 'f1', label: 'F1', type: 'short_text' }],
+      fields: [{ name: 'f1', label: 'F1', type: 'text' }],
     });
     jest.spyOn(FeedbackForm, 'findOneAndDelete').mockRejectedValueOnce(new Error('DB error'));
 

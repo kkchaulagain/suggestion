@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import axios from 'axios'
 import { feedbackFormsApi } from '../../utils/apipath'
 import type { FormResultsData } from '../../types/results'
@@ -6,13 +6,14 @@ import { isChoiceFieldResult } from '../../types/results'
 import { ErrorMessage } from '../ui'
 import { EmptyState } from '../layout'
 import ChoiceQuestionResults from './ChoiceQuestionResults'
-import ScaleQuestionResults from './ScaleQuestionResults'
+import EmojiScaleResults from './EmojiScaleResults'
 import RatingQuestionResults from './RatingQuestionResults'
+import ScaleQuestionResults from './ScaleQuestionResults'
 import TextQuestionResults from './TextQuestionResults'
 import ResultsSummary from './ResultsSummary'
 
-const CHOICE_TYPES = ['radio', 'checkbox', 'scale_1_10', 'rating']
-const TEXT_TYPES = ['short_text', 'long_text', 'big_text', 'name', 'image_upload']
+const CHOICE_TYPES = ['radio', 'checkbox', 'scale', 'scale_emoji', 'scale_1_10', 'rating']
+const TEXT_TYPES = ['text', 'textarea', 'short_text', 'long_text', 'big_text', 'name', 'image', 'image_upload']
 
 interface FormResultsViewProps {
   formId: string
@@ -34,10 +35,12 @@ export default function FormResultsView({
   const [error, setError] = useState('')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
+  const hasDataRef = useRef(false)
 
   const fetchResults = useCallback(async () => {
     if (!formId) return
-    setLoading(true)
+    const isRefetch = hasDataRef.current
+    if (!isRefetch) setLoading(true)
     setError('')
     try {
       const params = new URLSearchParams()
@@ -46,6 +49,7 @@ export default function FormResultsView({
       const url = `${feedbackFormsApi}/${formId}/results${params.toString() ? `?${params.toString()}` : ''}`
       const res = await axios.get<FormResultsData>(url, authHeaders ?? {})
       setData(res.data)
+      hasDataRef.current = true
     } catch (err) {
       const status = axios.isAxiosError(err) ? err.response?.status : undefined
       const msg =
@@ -54,10 +58,15 @@ export default function FormResultsView({
           : 'Failed to load results.'
       setError(msg)
       setData(null)
+      hasDataRef.current = false
     } finally {
       setLoading(false)
     }
   }, [formId, dateFrom, dateTo, authHeaders])
+
+  useEffect(() => {
+    hasDataRef.current = false
+  }, [formId])
 
   useEffect(() => {
     void fetchResults()
@@ -119,7 +128,16 @@ export default function FormResultsView({
       />
       <div className="space-y-4">
         {fieldEntries.map(([fieldName, fieldData]) => {
-          if (fieldData.type === 'scale_1_10' && isChoiceFieldResult(fieldData)) {
+          if (fieldData.type === 'scale_emoji' && isChoiceFieldResult(fieldData)) {
+            return (
+              <EmojiScaleResults
+                key={fieldName}
+                fieldName={fieldName}
+                data={fieldData}
+              />
+            )
+          }
+          if ((fieldData.type === 'scale' || fieldData.type === 'scale_1_10') && isChoiceFieldResult(fieldData)) {
             return (
               <ScaleQuestionResults
                 key={fieldName}

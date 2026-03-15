@@ -6,7 +6,7 @@ import { useAuth } from '../../../context/AuthContext'
 import { feedbackFormsApi, feedbackFormSubmissionsApi } from '../../../utils/apipath'
 import { Button, ErrorMessage, Modal } from '../../../components/ui'
 import { DataTable, EmptyState, PageHeader, Pagination } from '../../../components/layout'
-import { FormResultsView } from '../../../components/results'
+import { FormResultsView, getEmojiScaleDisplay } from '../../../components/results'
 import SubmissionsFilter from '../components/SubmissionsFilter'
 
 interface FormSnapshotField {
@@ -69,8 +69,13 @@ function ResponseDetailModal({
           {submission.formSnapshot.map((field) => {
             const value = submission.responses[field.name]
             const isCheckbox = field.type === 'checkbox' && Array.isArray(value)
-            const displayText =
-              isCheckbox
+            const emojiDisplay =
+              typeof value === 'string' && (field.type === 'scale' || field.type === 'scale_emoji' || field.type === 'scale_1_10')
+                ? getEmojiScaleDisplay(value)
+                : null
+            const displayText = emojiDisplay
+              ? `${emojiDisplay.emoji} ${emojiDisplay.label}`
+              : isCheckbox
                 ? value.length ? value.join(', ') : '—'
                 : typeof value === 'string'
                   ? value || '—'
@@ -339,7 +344,6 @@ export default function SubmissionsPage() {
         <FormResultsView
           formId={formIdApplied}
           authHeaders={authHeaders}
-          showDateFilter
           titleOverride={selectedForm?.title}
         />
       ) : (

@@ -9,20 +9,39 @@ import {
   NameField,
   EmailField,
   Scale1To10Field,
+  ScaleChipsField,
+  PhoneField,
+  DateField,
+  TimeField,
+  NumberField,
+  UrlField,
+  DropdownField,
 } from './field-types'
 import { isStarRatingOptions } from './formFieldUtils'
 
 export type FormFieldType =
+  | 'text'
+  | 'textarea'
+  | 'email'
+  | 'phone'
+  | 'number'
+  | 'date'
+  | 'time'
+  | 'url'
+  | 'checkbox'
+  | 'radio'
+  | 'dropdown'
+  | 'scale'
+  | 'scale_emoji'
+  | 'rating'
+  | 'image'
+  // Legacy types kept for backward compat during migration
   | 'short_text'
   | 'long_text'
   | 'big_text'
-  | 'checkbox'
-  | 'radio'
   | 'image_upload'
   | 'name'
-  | 'email'
   | 'scale_1_10'
-  | 'rating'
 
 export interface FormFieldConfig {
   name: string
@@ -32,7 +51,16 @@ export interface FormFieldConfig {
   placeholder?: string
   options?: string[]
   allowAnonymous?: boolean
+  stepId?: string
+  stepOrder?: number
+  /** Scale field: label at low end (e.g. "Mostly disagree") */
+  scaleMinLabel?: string
+  /** Scale field: label at high end (e.g. "Mostly agree") */
+  scaleMaxLabel?: string
 }
+
+export type FormKind = 'form' | 'poll' | 'survey'
+export type FormVariant = 'default' | 'sheet'
 
 export interface FormFieldRendererProps {
   field: FormFieldConfig
@@ -41,6 +69,10 @@ export interface FormFieldRendererProps {
   disabled?: boolean
   error?: string
   labelActions?: ReactNode
+  /** When 'sheet', question label is emphasized (hero). */
+  formVariant?: FormVariant
+  /** When 'poll' or 'survey', scale fields can render as emoji chips. */
+  formKind?: FormKind
 }
 
 export default function FormFieldRenderer({
@@ -50,21 +82,29 @@ export default function FormFieldRenderer({
   disabled = false,
   error,
   labelActions,
+  formVariant = 'default',
+  formKind,
 }: FormFieldRendererProps) {
+  void formKind // reserved for future use; scale/scale_1_10 always use slider, scale_emoji uses chips
   const id = `field-${field.name}`
+  const isHeroLabel = formVariant === 'sheet'
   const labelNode = (
-    <span className="inline-flex flex-wrap items-center gap-3">
-      <span className="inline-flex min-w-0 items-center gap-1">
-        <span className="truncate">{field.label}</span>
-        {field.required ? <span className="text-rose-600 dark:text-rose-400" aria-hidden>*</span> : null}
+    <span className={isHeroLabel ? 'text-lg font-semibold text-stone-900 dark:text-stone-50 sm:text-xl' : undefined}>
+      <span className="inline-flex flex-wrap items-center gap-3">
+        <span className="inline-flex min-w-0 items-center gap-1">
+          <span className="truncate">{field.label}</span>
+          {field.required ? <span className="text-rose-600 dark:text-rose-400" aria-hidden>*</span> : null}
+        </span>
+        {labelActions ? <span className="inline-flex shrink-0 items-center">{labelActions}</span> : null}
       </span>
-      {labelActions ? <span className="inline-flex shrink-0 items-center">{labelActions}</span> : null}
     </span>
   )
 
   const handleChange = (v: string | string[] | File | undefined) => onChange(field.name, v)
 
-  if (field.type === 'short_text' || field.type === 'long_text') {
+  const t = field.type
+
+  if (t === 'text' || t === 'short_text' || t === 'long_text') {
     return (
       <ShortTextField
         id={id}
@@ -79,7 +119,7 @@ export default function FormFieldRenderer({
     )
   }
 
-  if (field.type === 'big_text') {
+  if (t === 'textarea' || t === 'big_text') {
     return (
       <BigTextField
         id={id}
@@ -94,7 +134,95 @@ export default function FormFieldRenderer({
     )
   }
 
-  if (field.type === 'checkbox' && field.options?.length) {
+  if (t === 'email') {
+    return (
+      <EmailField
+        id={id}
+        label={labelNode}
+        value={typeof value === 'string' ? value : ''}
+        onChange={(v) => handleChange(v)}
+        placeholder={field.placeholder}
+        disabled={disabled}
+        required={field.required}
+        error={error}
+      />
+    )
+  }
+
+  if (t === 'phone') {
+    return (
+      <PhoneField
+        id={id}
+        label={labelNode}
+        value={typeof value === 'string' ? value : ''}
+        onChange={(v) => handleChange(v)}
+        placeholder={field.placeholder}
+        disabled={disabled}
+        required={field.required}
+        error={error}
+      />
+    )
+  }
+
+  if (t === 'number') {
+    return (
+      <NumberField
+        id={id}
+        label={labelNode}
+        value={typeof value === 'string' ? value : ''}
+        onChange={(v) => handleChange(v)}
+        placeholder={field.placeholder}
+        disabled={disabled}
+        required={field.required}
+        error={error}
+      />
+    )
+  }
+
+  if (t === 'date') {
+    return (
+      <DateField
+        id={id}
+        label={labelNode}
+        value={typeof value === 'string' ? value : ''}
+        onChange={(v) => handleChange(v)}
+        disabled={disabled}
+        required={field.required}
+        error={error}
+      />
+    )
+  }
+
+  if (t === 'time') {
+    return (
+      <TimeField
+        id={id}
+        label={labelNode}
+        value={typeof value === 'string' ? value : ''}
+        onChange={(v) => handleChange(v)}
+        disabled={disabled}
+        required={field.required}
+        error={error}
+      />
+    )
+  }
+
+  if (t === 'url') {
+    return (
+      <UrlField
+        id={id}
+        label={labelNode}
+        value={typeof value === 'string' ? value : ''}
+        onChange={(v) => handleChange(v)}
+        placeholder={field.placeholder}
+        disabled={disabled}
+        required={field.required}
+        error={error}
+      />
+    )
+  }
+
+  if (t === 'checkbox' && field.options?.length) {
     return (
       <CheckboxField
         id={id}
@@ -109,13 +237,47 @@ export default function FormFieldRenderer({
     )
   }
 
-  if (field.type === 'scale_1_10') {
+  if (t === 'dropdown' && field.options?.length) {
+    return (
+      <DropdownField
+        id={id}
+        name={field.name}
+        label={labelNode}
+        value={typeof value === 'string' ? value : ''}
+        options={field.options}
+        onChange={(v) => handleChange(v)}
+        disabled={disabled}
+        required={field.required}
+        error={error}
+      />
+    )
+  }
+
+  if (t === 'scale_emoji') {
+    const scaleValue = typeof value === 'string' ? value : ''
+    const chipsValue = scaleValue && !['2', '4', '6', '8', '10'].includes(scaleValue) ? '6' : scaleValue
+    return (
+      <ScaleChipsField
+        id={id}
+        name={field.name}
+        label={labelNode}
+        value={chipsValue}
+        onChange={(v) => handleChange(v)}
+        disabled={disabled}
+        required={field.required}
+        error={error}
+      />
+    )
+  }
+
+  if (t === 'scale' || t === 'scale_1_10') {
+    const scaleValue = typeof value === 'string' ? value : ''
     return (
       <Scale1To10Field
         id={id}
         name={field.name}
         label={labelNode}
-        value={typeof value === 'string' ? value : ''}
+        value={scaleValue}
         onChange={(v) => handleChange(v)}
         disabled={disabled}
         required={field.required}
@@ -124,7 +286,7 @@ export default function FormFieldRenderer({
     )
   }
 
-  if (field.type === 'rating' && field.options?.length) {
+  if (t === 'rating' && field.options?.length) {
     return (
       <StarRatingField
         id={id}
@@ -140,7 +302,7 @@ export default function FormFieldRenderer({
     )
   }
 
-  if (field.type === 'radio' && field.options?.length && isStarRatingOptions(field.options)) {
+  if (t === 'radio' && field.options?.length && isStarRatingOptions(field.options)) {
     return (
       <StarRatingField
         id={id}
@@ -156,7 +318,7 @@ export default function FormFieldRenderer({
     )
   }
 
-  if (field.type === 'radio' && field.options?.length) {
+  if (t === 'radio' && field.options?.length) {
     return (
       <RadioField
         id={id}
@@ -172,7 +334,7 @@ export default function FormFieldRenderer({
     )
   }
 
-  if (field.type === 'image_upload') {
+  if (t === 'image' || t === 'image_upload') {
     return (
       <ImageUploadField
         id={id}
@@ -185,7 +347,7 @@ export default function FormFieldRenderer({
     )
   }
 
-  if (field.type === 'name') {
+  if (t === 'name') {
     return (
       <NameField
         id={id}
@@ -197,21 +359,6 @@ export default function FormFieldRenderer({
         required={field.required}
         isAnonymous={field.allowAnonymous}
         error={error}
-      />
-    )
-  }
-  if(field.type ==='email')
-  {
-    return(
-      <EmailField
-      id={id}
-      label={labelNode}
-      value={typeof value ==='string'? value:''}
-      onChange={(v)=>handleChange(v)}
-      placeholder={field.placeholder}
-      disabled={disabled}
-      required={field.required}
-      error={error}
       />
     )
   }

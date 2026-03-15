@@ -5,7 +5,7 @@ const VALID_ICONS: TemplateIconName[] = [
   'MessageSquare', 'Calendar', 'Bug', 'Briefcase', 'Star', 'Mail',
   'CalendarClock', 'Users', 'BarChart2', 'ListChecks',
 ]
-const VALID_FIELD_TYPES = ['checkbox', 'radio', 'short_text', 'long_text', 'big_text', 'image_upload', 'name', 'email', 'scale_1_10', 'rating'] as const
+const VALID_FIELD_TYPES = ['text', 'textarea', 'email', 'phone', 'number', 'date', 'time', 'url', 'checkbox', 'radio', 'dropdown', 'scale', 'rating', 'image'] as const
 
 describe('formTemplates', () => {
   test('FORM_TEMPLATES is a non-empty array', () => {

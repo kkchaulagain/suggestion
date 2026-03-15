@@ -6,16 +6,20 @@
 export type FormKind = 'form' | 'poll' | 'survey'
 
 export type TemplateFieldType =
+  | 'text'
+  | 'textarea'
+  | 'email'
+  | 'phone'
+  | 'number'
+  | 'date'
+  | 'time'
+  | 'url'
   | 'checkbox'
   | 'radio'
-  | 'short_text'
-  | 'long_text'
-  | 'big_text'
-  | 'image_upload'
-  | 'name'
-  | 'email'
-  | 'scale_1_10'
+  | 'dropdown'
+  | 'scale'
   | 'rating'
+  | 'image'
 
 export interface TemplateField {
   name: string
@@ -25,6 +29,8 @@ export interface TemplateField {
   placeholder?: string
   options?: string[]
   allowAnonymous?: boolean
+  stepId?: string
+  stepOrder?: number
 }
 
 export type TemplateIconName =
@@ -39,6 +45,13 @@ export type TemplateIconName =
   | 'BarChart2'
   | 'ListChecks'
 
+export interface FormStep {
+  id: string
+  title: string
+  description?: string
+  order: number
+}
+
 export interface FormTemplate {
   id: string
   label: string
@@ -48,6 +61,7 @@ export interface FormTemplate {
   formDescription: string
   kind: FormKind
   fields: TemplateField[]
+  steps?: FormStep[]
 }
 
 const STAR_RATING_OPTIONS = ['★ 1 Star', '★★ 2 Stars', '★★★ 3 Stars', '★★★★ 4 Stars', '★★★★★ 5 Stars']
@@ -111,8 +125,8 @@ export const FORM_TEMPLATES: FormTemplate[] = [
     kind: 'survey',
     fields: [
       { name: 'rating', label: 'Overall rating', type: 'radio', required: true, options: ['Poor', 'Fair', 'Good', 'Excellent'] },
-      { name: 'category', label: 'Category', type: 'radio', required: false, options: ['Quality', 'Service', 'Value', 'Other'] },
-      { name: 'comments', label: 'Additional comments', type: 'short_text', required: false, placeholder: '' },
+      { name: 'category', label: 'Category', type: 'dropdown', required: false, options: ['Quality', 'Service', 'Value', 'Other'] },
+      { name: 'comments', label: 'Additional comments', type: 'text', required: false, placeholder: '' },
     ],
   },
   {
@@ -125,8 +139,8 @@ export const FORM_TEMPLATES: FormTemplate[] = [
     kind: 'survey',
     fields: [
       { name: 'rating', label: 'How would you rate this event?', type: 'rating', required: true, options: STAR_RATING_OPTIONS },
-      { name: 'highlight', label: 'What was the best part?', type: 'short_text', required: false, placeholder: 'e.g. keynote, networking, venue' },
-      { name: 'improve', label: 'What could we improve?', type: 'long_text', required: false, placeholder: '' },
+      { name: 'highlight', label: 'What was the best part?', type: 'text', required: false, placeholder: 'e.g. keynote, networking, venue' },
+      { name: 'improve', label: 'What could we improve?', type: 'textarea', required: false, placeholder: '' },
       { name: 'attend_again', label: 'Would you attend again?', type: 'radio', required: true, options: ['Yes', 'No', 'Maybe'] },
     ],
   },
@@ -141,7 +155,7 @@ export const FORM_TEMPLATES: FormTemplate[] = [
     fields: [
       { name: 'rating', label: 'Overall experience', type: 'radio', required: true, options: ['Poor', 'Fair', 'Good', 'Excellent'] },
       { name: 'recommend', label: 'Would you recommend us?', type: 'radio', required: true, options: ['Yes', 'No', 'Maybe'] },
-      { name: 'comment', label: 'Anything else? (optional)', type: 'short_text', required: false, placeholder: '' },
+      { name: 'comment', label: 'Anything else? (optional)', type: 'text', required: false, placeholder: '' },
     ],
   },
   {
@@ -153,15 +167,15 @@ export const FORM_TEMPLATES: FormTemplate[] = [
     formDescription: 'We value your feedback. Please take a moment to share your experience.',
     kind: 'form',
     fields: [
-      { name: 'name', label: 'Your name', type: 'short_text', required: true, placeholder: '' },
-      { name: 'email', label: 'Email', type: 'short_text', required: true, placeholder: '' },
-      { name: 'phone', label: 'Phone', type: 'short_text', required: false, placeholder: '' },
-      { name: 'visit_date', label: 'Visit / service date', type: 'short_text', required: false, placeholder: '' },
+      { name: 'name', label: 'Your name', type: 'text', required: true, placeholder: '' },
+      { name: 'email', label: 'Email', type: 'email', required: true, placeholder: '' },
+      { name: 'phone', label: 'Phone', type: 'phone', required: false, placeholder: '' },
+      { name: 'visit_date', label: 'Visit / service date', type: 'date', required: false },
       { name: 'overall_rating', label: 'Overall experience', type: 'rating', required: true, options: STAR_RATING_OPTIONS },
-      { name: 'enjoyed', label: 'What did you enjoy?', type: 'long_text', required: false, placeholder: '' },
-      { name: 'improve', label: 'What could we improve?', type: 'long_text', required: false, placeholder: '' },
+      { name: 'enjoyed', label: 'What did you enjoy?', type: 'textarea', required: false, placeholder: '' },
+      { name: 'improve', label: 'What could we improve?', type: 'textarea', required: false, placeholder: '' },
       { name: 'would_recommend', label: 'Would you recommend us?', type: 'radio', required: true, options: ['Yes', 'No', 'Maybe'] },
-      { name: 'comments', label: 'Any other comments?', type: 'big_text', required: false, placeholder: '' },
+      { name: 'comments', label: 'Any other comments?', type: 'textarea', required: false, placeholder: '' },
     ],
   },
   {
@@ -172,16 +186,20 @@ export const FORM_TEMPLATES: FormTemplate[] = [
     title: 'Event Registration',
     formDescription: 'Register for our event. We will confirm your attendance by email.',
     kind: 'form',
+    steps: [
+      { id: 'evt-step-contact', title: 'Contact Information', order: 0 },
+      { id: 'evt-step-event', title: 'Event Details', order: 1 },
+    ],
     fields: [
-      { name: 'name', label: 'Full name', type: 'short_text', required: true, placeholder: '' },
-      { name: 'email', label: 'Email', type: 'short_text', required: true, placeholder: '' },
-      { name: 'phone', label: 'Phone', type: 'short_text', required: false, placeholder: '' },
-      { name: 'organisation', label: 'Organisation / company', type: 'short_text', required: false, placeholder: '' },
-      { name: 'event_name', label: "Event you're registering for", type: 'short_text', required: true, placeholder: '' },
-      { name: 'attendees_count', label: 'Number of attendees', type: 'short_text', required: true, placeholder: '' },
-      { name: 'dietary_requests', label: 'Dietary requirements / special requests', type: 'long_text', required: false, placeholder: '' },
-      { name: 'how_heard', label: 'How did you hear about us?', type: 'radio', required: false, options: ['Social Media', 'Friend', 'Email', 'Website', 'Other'] },
-      { name: 'supporting_doc', label: 'Upload supporting document', type: 'image_upload', required: false, placeholder: '' },
+      { name: 'name', label: 'Full name', type: 'text', required: true, placeholder: '', stepId: 'evt-step-contact', stepOrder: 0 },
+      { name: 'email', label: 'Email', type: 'email', required: true, placeholder: '', stepId: 'evt-step-contact', stepOrder: 1 },
+      { name: 'phone', label: 'Phone', type: 'phone', required: false, placeholder: '', stepId: 'evt-step-contact', stepOrder: 2 },
+      { name: 'organisation', label: 'Organisation / company', type: 'text', required: false, placeholder: '', stepId: 'evt-step-contact', stepOrder: 3 },
+      { name: 'event_name', label: "Event you're registering for", type: 'text', required: true, placeholder: '', stepId: 'evt-step-event', stepOrder: 0 },
+      { name: 'attendees_count', label: 'Number of attendees', type: 'number', required: true, placeholder: '1', stepId: 'evt-step-event', stepOrder: 1 },
+      { name: 'dietary_requests', label: 'Dietary requirements / special requests', type: 'textarea', required: false, placeholder: '', stepId: 'evt-step-event', stepOrder: 2 },
+      { name: 'how_heard', label: 'How did you hear about us?', type: 'dropdown', required: false, options: ['Social Media', 'Friend', 'Email', 'Website', 'Other'], stepId: 'evt-step-event', stepOrder: 3 },
+      { name: 'supporting_doc', label: 'Upload supporting document', type: 'image', required: false, placeholder: '', stepId: 'evt-step-event', stepOrder: 4 },
     ],
   },
   {
@@ -193,16 +211,16 @@ export const FORM_TEMPLATES: FormTemplate[] = [
     formDescription: 'Help us improve by describing the issue you encountered.',
     kind: 'form',
     fields: [
-      { name: 'name', label: 'Your name', type: 'short_text', required: true, placeholder: '' },
-      { name: 'email', label: 'Email', type: 'short_text', required: true, placeholder: '' },
-      { name: 'phone', label: 'Phone', type: 'short_text', required: false, placeholder: '' },
-      { name: 'issue_title', label: 'Issue title', type: 'short_text', required: true, placeholder: '' },
-      { name: 'system_area', label: 'Which part of the system?', type: 'short_text', required: false, placeholder: '' },
-      { name: 'steps_to_reproduce', label: 'Steps to reproduce', type: 'big_text', required: true, placeholder: '' },
-      { name: 'expected', label: 'Expected behaviour', type: 'long_text', required: false, placeholder: '' },
-      { name: 'actual', label: 'Actual behaviour', type: 'long_text', required: true, placeholder: '' },
-      { name: 'severity', label: 'Severity', type: 'radio', required: true, options: ['Low', 'Medium', 'High', 'Critical'] },
-      { name: 'screenshot', label: 'Screenshot / attachment', type: 'image_upload', required: false, placeholder: '' },
+      { name: 'name', label: 'Your name', type: 'text', required: true, placeholder: '' },
+      { name: 'email', label: 'Email', type: 'email', required: true, placeholder: '' },
+      { name: 'phone', label: 'Phone', type: 'phone', required: false, placeholder: '' },
+      { name: 'issue_title', label: 'Issue title', type: 'text', required: true, placeholder: '' },
+      { name: 'system_area', label: 'Which part of the system?', type: 'text', required: false, placeholder: '' },
+      { name: 'steps_to_reproduce', label: 'Steps to reproduce', type: 'textarea', required: true, placeholder: '' },
+      { name: 'expected', label: 'Expected behaviour', type: 'textarea', required: false, placeholder: '' },
+      { name: 'actual', label: 'Actual behaviour', type: 'textarea', required: true, placeholder: '' },
+      { name: 'severity', label: 'Severity', type: 'dropdown', required: true, options: ['Low', 'Medium', 'High', 'Critical'] },
+      { name: 'screenshot', label: 'Screenshot / attachment', type: 'image', required: false, placeholder: '' },
     ],
   },
   {
@@ -214,15 +232,15 @@ export const FORM_TEMPLATES: FormTemplate[] = [
     formDescription: 'Apply for this position. We will review your application and get in touch.',
     kind: 'form',
     fields: [
-      { name: 'name', label: 'Full name', type: 'short_text', required: true, placeholder: '' },
-      { name: 'email', label: 'Email', type: 'short_text', required: true, placeholder: '' },
-      { name: 'phone', label: 'Phone', type: 'short_text', required: false, placeholder: '' },
-      { name: 'position', label: 'Position applied for', type: 'short_text', required: true, placeholder: '' },
-      { name: 'experience', label: 'Years of experience', type: 'radio', required: true, options: ['0–1', '1–3', '3–5', '5+'] },
-      { name: 'how_heard', label: 'How did you hear about this role?', type: 'radio', required: false, options: ['Website', 'LinkedIn', 'Referral', 'Other'] },
-      { name: 'cover_letter', label: 'Cover letter', type: 'big_text', required: true, placeholder: '' },
-      { name: 'links', label: 'Portfolio / LinkedIn / GitHub links', type: 'long_text', required: false, placeholder: '' },
-      { name: 'resume', label: 'Resume / CV', type: 'image_upload', required: true, placeholder: '' },
+      { name: 'name', label: 'Full name', type: 'text', required: true, placeholder: '' },
+      { name: 'email', label: 'Email', type: 'email', required: true, placeholder: '' },
+      { name: 'phone', label: 'Phone', type: 'phone', required: false, placeholder: '' },
+      { name: 'position', label: 'Position applied for', type: 'text', required: true, placeholder: '' },
+      { name: 'experience', label: 'Years of experience', type: 'number', required: true, placeholder: '' },
+      { name: 'how_heard', label: 'How did you hear about this role?', type: 'dropdown', required: false, options: ['Website', 'LinkedIn', 'Referral', 'Other'] },
+      { name: 'cover_letter', label: 'Cover letter', type: 'textarea', required: true, placeholder: '' },
+      { name: 'links', label: 'Portfolio / LinkedIn / GitHub links', type: 'url', required: false, placeholder: 'https://' },
+      { name: 'resume', label: 'Resume / CV', type: 'image', required: true, placeholder: '' },
     ],
   },
   {
@@ -234,15 +252,15 @@ export const FORM_TEMPLATES: FormTemplate[] = [
     formDescription: 'Share your experience with this product.',
     kind: 'form',
     fields: [
-      { name: 'name', label: 'Your name', type: 'short_text', required: true, placeholder: '' },
-      { name: 'email', label: 'Email', type: 'short_text', required: true, placeholder: '' },
-      { name: 'phone', label: 'Phone', type: 'short_text', required: false, placeholder: '' },
-      { name: 'product_name', label: 'Product name', type: 'short_text', required: true, placeholder: '' },
+      { name: 'name', label: 'Your name', type: 'text', required: true, placeholder: '' },
+      { name: 'email', label: 'Email', type: 'email', required: true, placeholder: '' },
+      { name: 'phone', label: 'Phone', type: 'phone', required: false, placeholder: '' },
+      { name: 'product_name', label: 'Product name', type: 'text', required: true, placeholder: '' },
       { name: 'rating', label: 'Overall rating', type: 'rating', required: true, options: STAR_RATING_OPTIONS },
-      { name: 'liked', label: 'What did you like?', type: 'long_text', required: false, placeholder: '' },
-      { name: 'improve', label: 'What could be improved?', type: 'long_text', required: false, placeholder: '' },
+      { name: 'liked', label: 'What did you like?', type: 'textarea', required: false, placeholder: '' },
+      { name: 'improve', label: 'What could be improved?', type: 'textarea', required: false, placeholder: '' },
       { name: 'buy_again', label: 'Would you buy this again?', type: 'radio', required: true, options: ['Yes', 'No', 'Maybe'] },
-      { name: 'product_photo', label: 'Upload a product photo', type: 'image_upload', required: false, placeholder: '' },
+      { name: 'product_photo', label: 'Upload a product photo', type: 'image', required: false, placeholder: '' },
     ],
   },
   {
@@ -254,14 +272,14 @@ export const FORM_TEMPLATES: FormTemplate[] = [
     formDescription: 'Send us a message. We will respond as soon as possible.',
     kind: 'form',
     fields: [
-      { name: 'name', label: 'Your name', type: 'short_text', required: true, placeholder: '' },
-      { name: 'email', label: 'Email', type: 'short_text', required: true, placeholder: '' },
-      { name: 'phone', label: 'Phone', type: 'short_text', required: false, placeholder: '' },
-      { name: 'subject', label: 'Subject', type: 'short_text', required: true, placeholder: '' },
-      { name: 'inquiry_type', label: 'Inquiry type', type: 'radio', required: true, options: ['General', 'Support', 'Sales', 'Partnership', 'Other'] },
-      { name: 'message', label: 'Your message', type: 'big_text', required: true, placeholder: '' },
+      { name: 'name', label: 'Your name', type: 'text', required: true, placeholder: '' },
+      { name: 'email', label: 'Email', type: 'email', required: true, placeholder: '' },
+      { name: 'phone', label: 'Phone', type: 'phone', required: false, placeholder: '' },
+      { name: 'subject', label: 'Subject', type: 'text', required: true, placeholder: '' },
+      { name: 'inquiry_type', label: 'Inquiry type', type: 'dropdown', required: true, options: ['General', 'Support', 'Sales', 'Partnership', 'Other'] },
+      { name: 'message', label: 'Your message', type: 'textarea', required: true, placeholder: '' },
       { name: 'preferred_contact', label: 'Preferred contact method', type: 'radio', required: false, options: ['Email', 'Phone'] },
-      { name: 'best_time', label: 'Best time to contact', type: 'short_text', required: false, placeholder: '' },
+      { name: 'best_time', label: 'Best time to contact', type: 'time', required: false },
     ],
   },
   {
@@ -273,15 +291,15 @@ export const FORM_TEMPLATES: FormTemplate[] = [
     formDescription: 'Request an appointment. We will confirm availability by email or phone.',
     kind: 'form',
     fields: [
-      { name: 'name', label: 'Your name', type: 'short_text', required: true, placeholder: '' },
-      { name: 'email', label: 'Email', type: 'short_text', required: true, placeholder: '' },
-      { name: 'phone', label: 'Phone', type: 'short_text', required: false, placeholder: '' },
-      { name: 'service', label: 'Service requested', type: 'short_text', required: true, placeholder: '' },
-      { name: 'preferred_date', label: 'Preferred date', type: 'short_text', required: true, placeholder: '' },
-      { name: 'preferred_time', label: 'Preferred time', type: 'radio', required: true, options: ['Morning', 'Afternoon', 'Evening'] },
-      { name: 'alt_date', label: 'Alternative date', type: 'short_text', required: false, placeholder: '' },
-      { name: 'notes', label: 'Special requirements / notes', type: 'long_text', required: false, placeholder: '' },
-      { name: 'how_found', label: 'How did you find us?', type: 'radio', required: false, options: ['Search', 'Referral', 'Social Media', 'Other'] },
+      { name: 'name', label: 'Your name', type: 'text', required: true, placeholder: '' },
+      { name: 'email', label: 'Email', type: 'email', required: true, placeholder: '' },
+      { name: 'phone', label: 'Phone', type: 'phone', required: false, placeholder: '' },
+      { name: 'service', label: 'Service requested', type: 'text', required: true, placeholder: '' },
+      { name: 'preferred_date', label: 'Preferred date', type: 'date', required: true },
+      { name: 'preferred_time', label: 'Preferred time', type: 'time', required: true },
+      { name: 'alt_date', label: 'Alternative date', type: 'date', required: false },
+      { name: 'notes', label: 'Special requirements / notes', type: 'textarea', required: false, placeholder: '' },
+      { name: 'how_found', label: 'How did you find us?', type: 'dropdown', required: false, options: ['Search', 'Referral', 'Social Media', 'Other'] },
     ],
   },
   {
@@ -292,16 +310,21 @@ export const FORM_TEMPLATES: FormTemplate[] = [
     title: 'Employee Survey',
     formDescription: 'Your feedback helps us improve the workplace. All responses are confidential.',
     kind: 'survey',
+    steps: [
+      { id: 'emp-step-info', title: 'Your Information', order: 0 },
+      { id: 'emp-step-ratings', title: 'Satisfaction Ratings', order: 1 },
+      { id: 'emp-step-comments', title: 'Open Feedback', order: 2 },
+    ],
     fields: [
-      { name: 'employee_name', label: 'Your name (optional)', type: 'short_text', required: false, placeholder: '' },
-      { name: 'department', label: 'Department (optional)', type: 'short_text', required: false, placeholder: '' },
-      { name: 'job_satisfaction', label: 'Job satisfaction', type: 'rating', required: true, options: STAR_RATING_OPTIONS },
-      { name: 'management', label: 'Management satisfaction', type: 'rating', required: true, options: STAR_RATING_OPTIONS },
-      { name: 'work_life_balance', label: 'Work-life balance', type: 'rating', required: true, options: STAR_RATING_OPTIONS },
-      { name: 'doing_well', label: 'What are we doing well?', type: 'long_text', required: false, placeholder: '' },
-      { name: 'improve', label: 'What could be improved?', type: 'long_text', required: false, placeholder: '' },
-      { name: 'recommend', label: 'Would you recommend working here?', type: 'radio', required: true, options: ['Yes', 'No', 'Maybe'] },
-      { name: 'comments', label: 'Additional comments', type: 'big_text', required: false, placeholder: '' },
+      { name: 'employee_name', label: 'Your name (optional)', type: 'text', required: false, placeholder: '', stepId: 'emp-step-info', stepOrder: 0 },
+      { name: 'department', label: 'Department (optional)', type: 'text', required: false, placeholder: '', stepId: 'emp-step-info', stepOrder: 1 },
+      { name: 'job_satisfaction', label: 'Job satisfaction', type: 'rating', required: true, options: STAR_RATING_OPTIONS, stepId: 'emp-step-ratings', stepOrder: 0 },
+      { name: 'management', label: 'Management satisfaction', type: 'rating', required: true, options: STAR_RATING_OPTIONS, stepId: 'emp-step-ratings', stepOrder: 1 },
+      { name: 'work_life_balance', label: 'Work-life balance', type: 'rating', required: true, options: STAR_RATING_OPTIONS, stepId: 'emp-step-ratings', stepOrder: 2 },
+      { name: 'doing_well', label: 'What are we doing well?', type: 'textarea', required: false, placeholder: '', stepId: 'emp-step-comments', stepOrder: 0 },
+      { name: 'improve', label: 'What could be improved?', type: 'textarea', required: false, placeholder: '', stepId: 'emp-step-comments', stepOrder: 1 },
+      { name: 'recommend', label: 'Would you recommend working here?', type: 'radio', required: true, options: ['Yes', 'No', 'Maybe'], stepId: 'emp-step-comments', stepOrder: 2 },
+      { name: 'comments', label: 'Additional comments', type: 'textarea', required: false, placeholder: '', stepId: 'emp-step-comments', stepOrder: 3 },
     ],
   },
 ]
