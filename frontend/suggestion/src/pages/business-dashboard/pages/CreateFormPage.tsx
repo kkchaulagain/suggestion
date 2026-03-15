@@ -53,7 +53,7 @@ import {
 } from 'lucide-react'
 import { useAuth } from '../../../context/AuthContext'
 import { feedbackFormsApi } from '../../../utils/apipath'
-import { Button, Card, ErrorMessage, Input, Modal, Select, Textarea } from '../../../components/ui'
+import { Button, Card, ErrorMessage, Input, Modal, Select, Switch, Textarea } from '../../../components/ui'
 import { EmptyState } from '../../../components/layout'
 import { type FormKind, type FormTemplate, type TemplateCategory, FORM_TEMPLATES } from './formTemplates'
 
@@ -611,6 +611,7 @@ export default function CreateFormPage() {
   const [drawerDefaultOpen, setDrawerDefaultOpen] = useState(true)
   const [metaTitle, setMetaTitle] = useState('')
   const [metaDescription, setMetaDescription] = useState('')
+  const [showFormDetailsAdvanced, setShowFormDetailsAdvanced] = useState(false)
   const [landingHeadline, setLandingHeadline] = useState('')
   const [landingDescription, setLandingDescription] = useState('')
   const [landingCtaText, setLandingCtaText] = useState('')
@@ -1399,43 +1400,58 @@ export default function CreateFormPage() {
             placeholder="Briefly describe this form"
             rows={3}
           />
-          <div className="space-y-3 border-t border-slate-200 pt-4 dark:border-slate-700">
-            <p className="text-xs font-medium text-slate-500 dark:text-slate-400">SEO (optional)</p>
-            <Input
-              id="form-meta-title"
-              label="Page title for search &amp; sharing"
-              value={metaTitle}
-              onChange={setMetaTitle}
-              placeholder="Leave blank to use form title"
-            />
-            <Textarea
-              id="form-meta-description"
-              label="Short description for search &amp; social"
-              value={metaDescription}
-              onChange={setMetaDescription}
-              placeholder="Leave blank to use form description"
-              rows={2}
-            />
-          </div>
-          <div className="flex items-start gap-3 pt-1">
-            <input
-              id="form-show-results-public"
-              type="checkbox"
-              checked={showResultsPublic}
-              onChange={(e) => setShowResultsPublic(e.target.checked)}
-              className="mt-1 h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 dark:border-slate-600 dark:bg-slate-800"
-              aria-describedby="form-show-results-public-hint"
-            />
-            <div className="flex-1">
-              <label htmlFor="form-show-results-public" className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                Show results page to respondents
-              </label>
-              <p id="form-show-results-public-hint" className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-                When enabled, respondents will see a &quot;See results&quot; link after submitting and can view aggregated results. Default is off.
-              </p>
-            </div>
-          </div>
-          <div className="space-y-2 pt-1">
+          <div className="border-t border-slate-200 pt-4 dark:border-slate-700">
+            <button
+              type="button"
+              onClick={() => setShowFormDetailsAdvanced((v) => !v)}
+              className="flex w-full items-center justify-between gap-2 text-left text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
+              aria-expanded={showFormDetailsAdvanced}
+            >
+              Advanced options
+              {showFormDetailsAdvanced ? (
+                <ChevronUp className="h-4 w-4 shrink-0" />
+              ) : (
+                <ChevronDown className="h-4 w-4 shrink-0" />
+              )}
+            </button>
+            {showFormDetailsAdvanced ? (
+              <div className="space-y-4 pt-4">
+                <div className="space-y-3">
+                  <p className="text-xs font-medium text-slate-500 dark:text-slate-400">SEO (optional)</p>
+                  <Input
+                    id="form-meta-title"
+                    label="Page title for search &amp; sharing"
+                    value={metaTitle || title}
+                    onChange={setMetaTitle}
+                    placeholder="Uses form title when empty"
+                  />
+                  <Textarea
+                    id="form-meta-description"
+                    label="Short description for search &amp; social"
+                    value={metaDescription || description}
+                    onChange={setMetaDescription}
+                    placeholder="Uses form description when empty"
+                    rows={2}
+                  />
+                </div>
+                <div className="flex items-start gap-3">
+                  <Switch
+                    id="form-show-results-public"
+                    checked={showResultsPublic}
+                    onChange={setShowResultsPublic}
+                    aria-label="Show results page to respondents"
+                    className="mt-0.5 shrink-0"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <label htmlFor="form-show-results-public" className="text-sm font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
+                      Show results page to respondents
+                    </label>
+                    <p id="form-show-results-public-hint" className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                      When enabled, respondents will see a &quot;See results&quot; link after submitting and can view aggregated results. Default is off.
+                    </p>
+                  </div>
+                </div>
+                <div className="space-y-2 pt-1">
             <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Form display style</label>
             <p className="text-xs text-slate-500 dark:text-slate-400">
               How the form appears to respondents when they open the link.
@@ -1501,6 +1517,9 @@ export default function CreateFormPage() {
                   <Textarea id="form-thankyou-message" label="Message" value={thankYouMessage} onChange={setThankYouMessage} placeholder="Leave blank for default" rows={2} />
                 </div>
               </>
+            ) : null}
+                </div>
+              </div>
             ) : null}
           </div>
         </div>
