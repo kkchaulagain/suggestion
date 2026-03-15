@@ -288,21 +288,38 @@ describe('FormFieldRenderer', () => {
     expect(onChange).toHaveBeenCalledWith('score', '3')
   })
 
-  test('renders scale as emoji chips when formKind is poll', () => {
+  test('renders scale as slider even when formKind is poll', () => {
     const onChange = jest.fn()
     render(
       <FormFieldRenderer
         field={{ name: 'satisfaction', label: 'How satisfied?', type: 'scale', required: true }}
-        value=""
+        value="6"
         onChange={onChange}
         formKind="poll"
       />,
     )
     expect(screen.getByText(/How satisfied?/i)).toBeInTheDocument()
+    const slider = screen.getByRole('slider', { name: /how satisfied/i })
+    expect(slider).toBeInTheDocument()
+    expect(slider).toHaveAttribute('aria-valuenow', '6')
+    fireEvent.change(slider, { target: { value: '8' } })
+    expect(onChange).toHaveBeenCalledWith('satisfaction', '8')
+  })
+
+  test('renders scale_emoji as emoji chips', () => {
+    const onChange = jest.fn()
+    render(
+      <FormFieldRenderer
+        field={{ name: 'mood', label: 'How was it?', type: 'scale_emoji', required: true }}
+        value=""
+        onChange={onChange}
+      />,
+    )
+    expect(screen.getByText(/How was it?/i)).toBeInTheDocument()
     const neutralButton = screen.getByRole('button', { name: /Neutral/i })
     expect(neutralButton).toBeInTheDocument()
     fireEvent.click(neutralButton)
-    expect(onChange).toHaveBeenCalledWith('satisfaction', '6')
+    expect(onChange).toHaveBeenCalledWith('mood', '6')
   })
 
   test('renders rating type as StarRatingField', () => {
