@@ -78,11 +78,45 @@ function getStepsWithFields(
     return [{ step: { id: '__default', title: '', description: undefined, order: 0 }, fields }]
   }
   const sorted = [...steps].sort((a, b) => a.order - b.order)
+  const stepIds = new Set(sorted.map((s) => s.id))
+
+  const byStep = new Map<string, FeedbackFormField[]>()
+  for (const step of sorted) {
+    byStep.set(
+      step.id,
+      fields
+        .filter((f) => f.stepId === step.id)
+        .sort((a, b) => (a.stepOrder ?? 0) - (b.stepOrder ?? 0)),
+    )
+  }
+
+  const unassigned = fields.filter((f) => !f.stepId || !stepIds.has(f.stepId))
+  if (unassigned.length > 0) {
+    unassigned.forEach((f, i) => {
+      const step = sorted[i % sorted.length]
+      const list = byStep.get(step.id) ?? []
+      list.push(f)
+      byStep.set(step.id, list)
+    })
+  }
+
+  const hasEmptyStep = [...byStep.values()].some((list) => list.length === 0)
+  const hasOverloadedStep = sorted.length > 1 && [...byStep.values()].some((list) => list.length > 1)
+  if (sorted.length > 1 && hasEmptyStep && hasOverloadedStep) {
+    const allAssigned = sorted.flatMap((step) => byStep.get(step.id) ?? [])
+    byStep.clear()
+    sorted.forEach((step) => byStep.set(step.id, []))
+    allAssigned.forEach((f, i) => {
+      const step = sorted[i % sorted.length]
+      const list = byStep.get(step.id) ?? []
+      list.push(f)
+      byStep.set(step.id, list)
+    })
+  }
+
   return sorted.map((step) => ({
     step,
-    fields: fields
-      .filter((f) => f.stepId === step.id)
-      .sort((a, b) => (a.stepOrder ?? 0) - (b.stepOrder ?? 0)),
+    fields: byStep.get(step.id) ?? [],
   }))
 }
 
@@ -315,47 +349,70 @@ export default function FormRenderPage() {
         ) : null}
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-5" noValidate>
-          {fieldsToRender.map((field) => (
-            <FormFieldRenderer
-              key={field.name}
-              field={field as FormFieldConfig}
-              value={values[field.name]}
-              onChange={updateValue}
-              error={fieldErrors[field.name]}
-            />
-          ))}
+          <div className="space-y-5">
+            {fieldsToRender.map((field) => (
+              <FormFieldRenderer
+                key={field.name}
+                field={field as FormFieldConfig}
+                value={values[field.name]}
+                onChange={updateValue}
+                error={fieldErrors[field.name]}
+              />
+            ))}
+          </div>
 
           {submitError && Object.keys(fieldErrors).length === 0 ? (
             <ErrorMessage message={submitError} />
           ) : null}
 
           {isMultistep ? (
-            <div className="flex gap-3 pt-2">
+            <div className="flex min-h-[44px] flex-shrink-0 items-center gap-3 pt-6">
               {currentStepIndex > 0 ? (
-                <Button type="button" variant="secondary" size="md" onClick={handleBack} className="flex-1">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="md"
+                  className="min-w-[100px] flex-1 sm:flex-none"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    handleBack()
+                  }}
+                >
                   <ChevronLeft className="h-4 w-4" />
                   Back
                 </Button>
               ) : (
-                <div className="flex-1" />
+                <span className="flex-1" aria-hidden />
               )}
               {isLastStep ? (
-                <Button type="submit" variant="primary" size="md" disabled={submitting} className="flex-1">
+                <Button type="submit" variant="primary" size="md" disabled={submitting} className="min-w-[120px] flex-1 sm:flex-none">
                   <Send className="h-4 w-4" />
                   {submitting ? 'Submitting...' : 'Submit'}
                 </Button>
               ) : (
-                <Button type="button" variant="primary" size="md" onClick={handleNext} className="flex-1">
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="md"
+                  className="min-w-[100px] flex-1 sm:flex-none"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    handleNext()
+                  }}
+                >
                   Next
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               )}
             </div>
           ) : (
-            <Button type="submit" variant="primary" size="md" disabled={submitting} className="w-full">
-              <Send className="h-4 w-4" />
-              {submitting ? 'Submitting...' : 'Submit'}
-            </Button>
+            <div className="pt-2">
+              <Button type="submit" variant="primary" size="md" disabled={submitting} className="w-full">
+                <Send className="h-4 w-4" />
+                {submitting ? 'Submitting...' : 'Submit'}
+              </Button>
+            </div>
           )}
         </form>
       </Card>

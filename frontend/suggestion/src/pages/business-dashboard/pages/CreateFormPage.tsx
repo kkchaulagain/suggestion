@@ -12,6 +12,7 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
+  useDroppable,
 } from '@dnd-kit/core'
 import {
   arrayMove,
@@ -297,6 +298,28 @@ const TEMPLATE_ICONS: Record<FormTemplate['iconName'], React.ComponentType<{ cla
 
 function getFieldClientId(field: FeedbackField, index: number): string {
   return field.clientId ?? `${field.name || 'field'}-${index}`
+}
+
+const STEP_DROP_PREFIX = 'step-drop:'
+
+function StepDroppable({
+  stepId,
+  children,
+  className = '',
+}: {
+  stepId: string
+  children: React.ReactNode
+  className?: string
+}) {
+  const { setNodeRef, isOver } = useDroppable({ id: STEP_DROP_PREFIX + stepId })
+  return (
+    <div
+      ref={setNodeRef}
+      className={`min-h-[60px] rounded-md transition-colors ${isOver ? 'bg-emerald-50 dark:bg-emerald-900/20' : ''} ${className}`}
+    >
+      {children}
+    </div>
+  )
 }
 
 interface SortableFieldRowProps {
@@ -879,11 +902,56 @@ export default function CreateFormPage() {
       return
     }
 
+    const activeId = String(active.id)
+    const overId = String(over.id)
+    const isStepDroppable = overId.startsWith(STEP_DROP_PREFIX)
+
     setFields((current) => {
-      const oldIndex = current.findIndex((field, index) => getFieldClientId(field, index) === String(active.id))
-      const newIndex = current.findIndex((field, index) => getFieldClientId(field, index) === String(over.id))
-      if (oldIndex === -1 || newIndex === -1) return current
-      return arrayMove(current, oldIndex, newIndex)
+      const oldIndex = current.findIndex((field, index) => getFieldClientId(field, index) === activeId)
+      if (oldIndex === -1) return current
+
+      const activeField = current[oldIndex]
+      const withoutActive = current.filter((_, i) => i !== oldIndex)
+
+      if (formSteps.length === 0) {
+        const newIndex = current.findIndex((field, index) => getFieldClientId(field, index) === overId)
+        if (newIndex === -1) return current
+        return arrayMove(current, oldIndex, newIndex)
+      }
+
+      let targetStepId: string
+      let insertIndex: number
+
+      if (isStepDroppable) {
+        targetStepId = overId.slice(STEP_DROP_PREFIX.length)
+        const targetStep = formSteps.find((s) => s.id === targetStepId)
+        const targetOrder = targetStep?.order ?? 0
+        const stepIndices = withoutActive
+          .map((f, i) => (f.stepId === targetStepId ? i : -1))
+          .filter((i) => i >= 0)
+        if (stepIndices.length > 0) {
+          insertIndex = stepIndices[stepIndices.length - 1] + 1
+        } else {
+          const firstIndexInStep = withoutActive.findIndex((f) => {
+            const s = formSteps.find((x) => x.id === f.stepId)
+            return (s?.order ?? -1) >= targetOrder
+          })
+          insertIndex = firstIndexInStep >= 0 ? firstIndexInStep : withoutActive.length
+        }
+      } else {
+        const overIndexInWithout = withoutActive.findIndex((f, i) => {
+          const origIdx = i < oldIndex ? i : i + 1
+          return getFieldClientId(f, origIdx) === overId
+        })
+        if (overIndexInWithout === -1) return current
+        const overField = withoutActive[overIndexInWithout]
+        targetStepId = overField.stepId ?? [...formSteps].sort((a, b) => a.order - b.order)[0]?.id ?? ''
+        insertIndex = overIndexInWithout
+      }
+
+      const moved = { ...activeField, stepId: targetStepId }
+      const next = withoutActive.slice(0, insertIndex).concat([moved], withoutActive.slice(insertIndex))
+      return next
     })
 
     setDraggingFieldId(null)
@@ -1122,8 +1190,8 @@ export default function CreateFormPage() {
         .map((f, i) => ({ field: f, globalIndex: i }))
         .filter(({ field }) => field.stepId === s.id)
 
-      return (
-        <div key={s.id} className="rounded-lg border border-slate-200 p-4 dark:border-slate-700">
+        return (
+        <div key={s.id} className="rounded-lg border border-slate-200 p-4 dark:border-slate-700" data-stepid={s.id}>
           <div className="mb-3 flex items-center justify-between gap-2">
             <button
               type="button"
@@ -1138,6 +1206,7 @@ export default function CreateFormPage() {
               size="sm"
               className="min-h-0 px-2 py-1 text-xs !text-rose-600 hover:!bg-rose-50 dark:!text-rose-400"
               onClick={() => handleRemoveStep(s.id)}
+              aria-label={`Remove step ${s.title || `Step ${s.order + 1}`}`}
             >
               <Trash2 className="h-3 w-3" />
             </Button>
@@ -1162,42 +1231,44 @@ export default function CreateFormPage() {
             </div>
           ) : null}
 
-          {stepFields.map(({ field, globalIndex }) => {
-            const fieldId = getFieldClientId(field, globalIndex)
-            const isEditing = editingFieldId === fieldId
-            const showDropIndicator = Boolean(draggingFieldId && overFieldId === fieldId && draggingFieldId !== fieldId)
-            return (
-              <SortableFieldRow
-                key={fieldId}
-                field={field}
-                index={globalIndex}
-                isEditing={isEditing}
-                showDropIndicator={showDropIndicator}
-                showAdvancedOptions={showAdvancedOptions}
-                steps={formSteps}
-                onToggleEdit={(clientId) => {
-                  setEditingFieldId((current) => (current === clientId ? null : clientId))
-                  setShowAdvancedOptions(false)
-                }}
-                onRemoveField={handleRemoveField}
-                onFieldLabelChange={handleFieldLabelChange}
-                onFieldTypeChange={handleFieldTypeChange}
-                onFieldRequiredChange={handleFieldRequiredChange}
-                onFieldAllowAnonymousChange={handleFieldAllowAnonymousChange}
-                onAddOption={handleAddOption}
-                onOptionChange={handleOptionChange}
-                onRemoveOption={handleRemoveOption}
-                onToggleAdvancedOptions={() => setShowAdvancedOptions((v) => !v)}
-                onFieldNameChange={handleFieldNameChange}
-                onFieldPlaceholderChange={handleFieldPlaceholderChange}
-                onFieldStepChange={handleFieldStepChange}
-              />
-            )
-          })}
+          <StepDroppable stepId={s.id} className="mt-2">
+            {stepFields.map(({ field, globalIndex }) => {
+              const fieldId = getFieldClientId(field, globalIndex)
+              const isEditing = editingFieldId === fieldId
+              const showDropIndicator = Boolean(draggingFieldId && overFieldId === fieldId && draggingFieldId !== fieldId)
+              return (
+                <SortableFieldRow
+                  key={fieldId}
+                  field={field}
+                  index={globalIndex}
+                  isEditing={isEditing}
+                  showDropIndicator={showDropIndicator}
+                  showAdvancedOptions={showAdvancedOptions}
+                  steps={formSteps}
+                  onToggleEdit={(clientId) => {
+                    setEditingFieldId((current) => (current === clientId ? null : clientId))
+                    setShowAdvancedOptions(false)
+                  }}
+                  onRemoveField={handleRemoveField}
+                  onFieldLabelChange={handleFieldLabelChange}
+                  onFieldTypeChange={handleFieldTypeChange}
+                  onFieldRequiredChange={handleFieldRequiredChange}
+                  onFieldAllowAnonymousChange={handleFieldAllowAnonymousChange}
+                  onAddOption={handleAddOption}
+                  onOptionChange={handleOptionChange}
+                  onRemoveOption={handleRemoveOption}
+                  onToggleAdvancedOptions={() => setShowAdvancedOptions((v) => !v)}
+                  onFieldNameChange={handleFieldNameChange}
+                  onFieldPlaceholderChange={handleFieldPlaceholderChange}
+                  onFieldStepChange={handleFieldStepChange}
+                />
+              )
+            })}
 
-          {stepFields.length === 0 ? (
-            <p className="py-2 text-center text-xs text-slate-400 dark:text-slate-500">No fields in this step yet.</p>
-          ) : null}
+            {stepFields.length === 0 ? (
+              <p className="py-2 text-center text-xs text-slate-400 dark:text-slate-500">Drop fields here or add from below.</p>
+            ) : null}
+          </StepDroppable>
         </div>
       )
     })
@@ -1286,7 +1357,7 @@ export default function CreateFormPage() {
           </DndContext>
 
           <div className="-mt-2 text-xs text-slate-500 dark:text-slate-400">
-            Drag fields with the grip handle to reorder.
+            Drag fields to reorder; with multiple steps, drag onto a step to move a field there.
           </div>
 
           <div className="flex flex-wrap items-center gap-3 pt-2">

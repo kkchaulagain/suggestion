@@ -301,6 +301,33 @@ describe('Feedback Forms API', () => {
     expect(res.body.feedbackForm.fields[0].required).toBe(true);
   });
 
+  it('creates a feedback form with phone, date, number, dropdown, url, and time field types', async () => {
+    const { authHeader } = await createBusinessAuth();
+
+    const res = await request(app)
+      .post('/api/feedback-forms')
+      .set(authHeader)
+      .send({
+        title: 'Extended types form',
+        fields: [
+          { name: 'phoneNumber', label: 'Phone', type: 'phone' },
+          { name: 'eventDate', label: 'Date', type: 'date' },
+          { name: 'quantity', label: 'Quantity', type: 'number' },
+          { name: 'source', label: 'Source', type: 'dropdown', options: ['Web', 'App', 'Other'] },
+          { name: 'website', label: 'Website', type: 'url' },
+          { name: 'preferredTime', label: 'Preferred time', type: 'time' },
+        ],
+      })
+      .expect(201);
+
+    expect(res.body.feedbackForm.title).toBe('Extended types form');
+    expect(res.body.feedbackForm.fields).toHaveLength(6);
+    const types = res.body.feedbackForm.fields.map((f) => f.type);
+    expect(types).toEqual(['phone', 'date', 'number', 'dropdown', 'url', 'time']);
+    const dropdownField = res.body.feedbackForm.fields.find((f) => f.type === 'dropdown');
+    expect(dropdownField.options).toEqual(['Web', 'App', 'Other']);
+  });
+
   it('creates a feedback form with text field type and allowAnonymous', async () => {
     const { authHeader } = await createBusinessAuth();
 
@@ -340,7 +367,7 @@ describe('Feedback Forms API', () => {
 
   describe('steps', () => {
     it('creates a form with valid steps and stores them', async () => {
-      const { authHeader, businessId } = await createBusinessAuth();
+      const { authHeader } = await createBusinessAuth();
 
       const res = await request(app)
         .post('/api/feedback-forms')

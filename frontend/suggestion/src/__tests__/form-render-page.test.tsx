@@ -396,6 +396,38 @@ describe('FormRenderPage', () => {
     })
   })
 
+  test('multistep form: clicking Next does not submit the form', async () => {
+    const multistepForm = {
+      feedbackForm: {
+        _id: 'form-ms',
+        title: 'Two Step Form',
+        description: '',
+        fields: [
+          { name: 'a', label: 'Field A', type: 'text', required: true, stepId: 's1', stepOrder: 0 },
+          { name: 'b', label: 'Field B', type: 'text', required: false, stepId: 's2', stepOrder: 0 },
+        ],
+        steps: [
+          { id: 's1', title: 'Step 1', order: 0 },
+          { id: 's2', title: 'Step 2', order: 1 },
+        ],
+      },
+    }
+    mockedAxios.get.mockResolvedValueOnce({ data: multistepForm })
+
+    renderFormRenderPage('form-ms')
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /Two Step Form/i })).toBeInTheDocument()
+    })
+    fireEvent.change(screen.getByLabelText(/Field A/i), { target: { value: 'filled' } })
+    fireEvent.click(screen.getByRole('button', { name: /Next/i }))
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/Field B/i)).toBeInTheDocument()
+    })
+    expect(mockedAxios.post).not.toHaveBeenCalled()
+  })
+
   test('multistep form: Next with valid step clears errors and advances', async () => {
     const multistepForm = {
       feedbackForm: {
@@ -427,6 +459,95 @@ describe('FormRenderPage', () => {
       expect(screen.getByLabelText(/Field B/i)).toBeInTheDocument()
     })
     expect(screen.getByText(/Step 2 of 2/i)).toBeInTheDocument()
+  })
+
+  test('multistep form: full flow fill step 1, Next, fill step 2, Submit sends once and shows thank you', async () => {
+    const multistepForm = {
+      feedbackForm: {
+        _id: 'form-ms-submit',
+        title: 'Two Step Submit',
+        description: '',
+        fields: [
+          { name: 'a', label: 'Field A', type: 'text', required: true, stepId: 's1', stepOrder: 0 },
+          { name: 'b', label: 'Field B', type: 'text', required: true, stepId: 's2', stepOrder: 0 },
+        ],
+        steps: [
+          { id: 's1', title: 'Step 1', order: 0 },
+          { id: 's2', title: 'Step 2', order: 1 },
+        ],
+      },
+    }
+    mockedAxios.get.mockResolvedValueOnce({ data: multistepForm })
+    mockedAxios.post.mockResolvedValueOnce({ data: { message: 'Submission received' } })
+
+    renderFormRenderPage('form-ms-submit')
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /Two Step Submit/i })).toBeInTheDocument()
+    })
+    fireEvent.change(screen.getByLabelText(/Field A/i), { target: { value: 'value A' } })
+    fireEvent.click(screen.getByRole('button', { name: /Next/i }))
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/Field B/i)).toBeInTheDocument()
+    })
+    fireEvent.change(screen.getByLabelText(/Field B/i), { target: { value: 'value B' } })
+    fireEvent.click(screen.getByRole('button', { name: /Submit/i }))
+
+    await waitFor(() => {
+      expect(mockedAxios.post).toHaveBeenCalledTimes(1)
+      expect(mockedAxios.post).toHaveBeenCalledWith(
+        expect.stringMatching(/\/submit$/),
+        expect.objectContaining({ a: 'value A', b: 'value B' }),
+      )
+    })
+    await waitFor(() => {
+      expect(screen.getByText(/Thank you/i)).toBeInTheDocument()
+    })
+  })
+
+  test('single-step form shows only Submit button, not Next', async () => {
+    mockedAxios.get.mockResolvedValueOnce({ data: mockFormConfig })
+
+    renderFormRenderPage('form-1')
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /Customer Feedback/i })).toBeInTheDocument()
+    })
+    expect(screen.getByRole('button', { name: /Submit/i })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Next/i })).not.toBeInTheDocument()
+  })
+
+  test('multistep form: required field empty blocks Next and shows validation', async () => {
+    const multistepForm = {
+      feedbackForm: {
+        _id: 'form-ms-valid',
+        title: 'Two Step Required',
+        description: '',
+        fields: [
+          { name: 'a', label: 'Field A', type: 'text', required: true, stepId: 's1', stepOrder: 0 },
+          { name: 'b', label: 'Field B', type: 'text', required: false, stepId: 's2', stepOrder: 0 },
+        ],
+        steps: [
+          { id: 's1', title: 'Step 1', order: 0 },
+          { id: 's2', title: 'Step 2', order: 1 },
+        ],
+      },
+    }
+    mockedAxios.get.mockResolvedValueOnce({ data: multistepForm })
+
+    renderFormRenderPage('form-ms-valid')
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Next/i })).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: /Next/i }))
+
+    await waitFor(() => {
+      expect(screen.getAllByText(/required/i).length).toBeGreaterThan(0)
+    })
+    expect(screen.getByLabelText(/Field A/i)).toBeInTheDocument()
+    expect(screen.queryByLabelText(/Field B/i)).not.toBeInTheDocument()
   })
 
   test('multistep form: Back clears errors and returns to previous step', async () => {

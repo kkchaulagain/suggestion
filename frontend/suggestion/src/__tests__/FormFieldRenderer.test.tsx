@@ -292,6 +292,107 @@ describe('FormFieldRenderer', () => {
     fireEvent.click(screen.getByRole('button', { name: /3 stars/i }))
     expect(onChange).toHaveBeenCalledWith('stars', '★★★ 3 Stars')
   })
+
+  test('renders phone field as tel input', () => {
+    const onChange = jest.fn()
+    render(
+      <FormFieldRenderer
+        field={{ name: 'phone', label: 'Phone', type: 'phone', required: false }}
+        value=""
+        onChange={onChange}
+      />,
+    )
+    expect(screen.getByText('Phone')).toBeInTheDocument()
+    const input = screen.getByRole('textbox', { name: /phone/i })
+    expect(input).toHaveAttribute('type', 'tel')
+    fireEvent.change(input, { target: { value: '+15551234567' } })
+    expect(onChange).toHaveBeenCalledWith('phone', '+15551234567')
+  })
+
+  test('renders date field as date input', () => {
+    const onChange = jest.fn()
+    render(
+      <FormFieldRenderer
+        field={{ name: 'dob', label: 'Date of birth', type: 'date', required: false }}
+        value=""
+        onChange={onChange}
+      />,
+    )
+    expect(screen.getByText('Date of birth')).toBeInTheDocument()
+    const input = screen.getByLabelText(/date of birth/i)
+    expect(input).toHaveAttribute('type', 'date')
+    fireEvent.change(input, { target: { value: '2025-01-15' } })
+    expect(onChange).toHaveBeenCalledWith('dob', '2025-01-15')
+  })
+
+  test('renders time field as time input', () => {
+    const onChange = jest.fn()
+    render(
+      <FormFieldRenderer
+        field={{ name: 'preferredTime', label: 'Preferred time', type: 'time', required: false }}
+        value=""
+        onChange={onChange}
+      />,
+    )
+    expect(screen.getByText('Preferred time')).toBeInTheDocument()
+    const input = screen.getByLabelText(/preferred time/i)
+    expect(input).toHaveAttribute('type', 'time')
+    fireEvent.change(input, { target: { value: '14:30' } })
+    expect(onChange).toHaveBeenCalledWith('preferredTime', '14:30')
+  })
+
+  test('renders number field as number input', () => {
+    const onChange = jest.fn()
+    render(
+      <FormFieldRenderer
+        field={{ name: 'quantity', label: 'Quantity', type: 'number', required: false }}
+        value=""
+        onChange={onChange}
+      />,
+    )
+    expect(screen.getByText('Quantity')).toBeInTheDocument()
+    const input = screen.getByLabelText(/quantity/i)
+    expect(input).toHaveAttribute('type', 'number')
+    fireEvent.change(input, { target: { value: '42' } })
+    expect(onChange).toHaveBeenCalledWith('quantity', '42')
+  })
+
+  test('renders url field as url input', () => {
+    const onChange = jest.fn()
+    render(
+      <FormFieldRenderer
+        field={{ name: 'website', label: 'Website', type: 'url', required: false }}
+        value=""
+        onChange={onChange}
+      />,
+    )
+    expect(screen.getByText('Website')).toBeInTheDocument()
+    const input = screen.getByRole('textbox', { name: /website/i })
+    expect(input).toHaveAttribute('type', 'url')
+    fireEvent.change(input, { target: { value: 'https://example.com' } })
+    expect(onChange).toHaveBeenCalledWith('website', 'https://example.com')
+  })
+
+  test('renders dropdown field as select with options', () => {
+    const onChange = jest.fn()
+    render(
+      <FormFieldRenderer
+        field={{
+          name: 'source',
+          label: 'Source',
+          type: 'dropdown',
+          required: true,
+          options: ['Web', 'App', 'Other'],
+        }}
+        value=""
+        onChange={onChange}
+      />,
+    )
+    expect(screen.getByText('Source')).toBeInTheDocument()
+    const select = screen.getByRole('combobox', { name: /source/i })
+    fireEvent.change(select, { target: { value: 'App' } })
+    expect(onChange).toHaveBeenCalledWith('source', 'App')
+  })
 })
 
 test('Scale1To10Field is exported and renderable', () => {
