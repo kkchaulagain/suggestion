@@ -450,6 +450,97 @@ describe('SubmissionsPage', () => {
     expect(submissionsCall![0]).toMatch(/\?.*formId=f-from-url/)
   })
 
+  it('renders submission cards with key answer, submitter, relative time, and questions truncation', async () => {
+    const tenDaysAgo = new Date(Date.now() - 10 * 86400000).toISOString()
+    const oneHourAgo = new Date(Date.now() - 3600000).toISOString()
+    const sixFields = [
+      { name: 'a', label: 'A', type: 'text' },
+      { name: 'b', label: 'B', type: 'text' },
+      { name: 'c', label: 'C', type: 'text' },
+      { name: 'd', label: 'D', type: 'text' },
+      { name: 'e', label: 'E', type: 'text' },
+      { name: 'f', label: 'F', type: 'text' },
+    ]
+    const submissions = [
+      {
+        _id: 's-old',
+        formId: 'f1',
+        formTitle: 'Old Submission',
+        formSnapshot: [{ name: 'q', label: 'Q', type: 'text' }],
+        responses: { q: 'Answer' },
+        submittedAt: tenDaysAgo,
+      },
+      {
+        _id: 's-recent',
+        formId: 'f1',
+        formTitle: 'Recent Form',
+        formSnapshot: [{ name: 'x', label: 'X', type: 'text' }],
+        responses: { x: 'Data' },
+        submittedAt: oneHourAgo,
+      },
+      {
+        _id: 's-six',
+        formId: 'f1',
+        formTitle: 'Six Fields Form',
+        formSnapshot: sixFields,
+        responses: { a: '1', b: '2', c: '3', d: '4', e: '5', f: '6' },
+        submittedAt: tenDaysAgo,
+      },
+      {
+        _id: 's-radio',
+        formId: 'f1',
+        formTitle: 'Poll',
+        formSnapshot: [{ name: 'choice', label: 'Pick one', type: 'radio', options: ['Option A', 'Option B'] }],
+        responses: { choice: 'Option A' },
+        submittedAt: tenDaysAgo,
+      },
+      {
+        _id: 's-scale',
+        formId: 'f1',
+        formTitle: 'Scale Form',
+        formSnapshot: [{ name: 'rating', label: 'Rate', type: 'scale_emoji' }],
+        responses: { rating: '8' },
+        submittedAt: tenDaysAgo,
+      },
+      {
+        _id: 's-name',
+        formId: 'f1',
+        formTitle: 'With Name',
+        formSnapshot: [
+          { name: 'your_name', label: 'Your name', type: 'text' },
+          { name: 'comment', label: 'Comment', type: 'text' },
+        ],
+        responses: { your_name: 'Jane Doe', comment: 'Hello' },
+        submittedAt: tenDaysAgo,
+      },
+    ]
+    mockedAxios.get
+      .mockResolvedValueOnce({ data: { feedbackForms: [{ _id: 'f1', title: 'Form 1' }] } })
+      .mockResolvedValueOnce({ data: { submissions, total: submissions.length } })
+
+    render(
+      <TestRouter>
+        <SubmissionsPage />
+      </TestRouter>,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText(/Old Submission/i)).toBeInTheDocument()
+    })
+
+    expect(screen.getByText(/Recent Form/i)).toBeInTheDocument()
+    expect(screen.getByText(/New/)).toBeInTheDocument()
+    expect(screen.getByText(/Six Fields Form/i)).toBeInTheDocument()
+    expect(screen.getByText(/\+1 more/)).toBeInTheDocument()
+    expect(screen.getByText(/Poll/i)).toBeInTheDocument()
+    expect(screen.getAllByText(/Option A/).length).toBeGreaterThanOrEqual(1)
+    expect(screen.getByText(/Scale Form/i)).toBeInTheDocument()
+    expect(screen.getByText(/Good/)).toBeInTheDocument()
+    expect(screen.getByText(/With Name/i)).toBeInTheDocument()
+    expect(screen.getByText(/From:/)).toBeInTheDocument()
+    expect(screen.getAllByText(/Jane Doe/).length).toBeGreaterThanOrEqual(1)
+  })
+
   it('Previous/Next pagination buttons work', async () => {
     const page1Submissions = Array.from({ length: 20 }, (_, i) => ({
       _id: `sub-${i}`,

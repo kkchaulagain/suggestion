@@ -73,6 +73,16 @@ describe('CreateFormPage', () => {
     })
   })
 
+  test('expands Advanced options to show SEO and show results switch', () => {
+    renderCreateFormPage()
+    goToFormBuilder()
+
+    expect(screen.queryByLabelText(/Page title for search/i)).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /Advanced options/i }))
+    expect(screen.getByLabelText(/Page title for search/i)).toBeInTheDocument()
+    expect(screen.getByRole('switch', { name: /Show results page to respondents/i })).toBeInTheDocument()
+  })
+
   test('allows editing fixed field labels', () => {
     renderCreateFormPage()
     goToFormBuilder()

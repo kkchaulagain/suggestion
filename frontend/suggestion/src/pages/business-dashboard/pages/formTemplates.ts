@@ -52,11 +52,14 @@ export interface FormStep {
   order: number
 }
 
+export type TemplateCategory = 'simple' | 'advanced'
+
 export interface FormTemplate {
   id: string
   label: string
   description: string
   iconName: TemplateIconName
+  category: TemplateCategory
   title: string
   formDescription: string
   kind: FormKind
@@ -66,12 +69,16 @@ export interface FormTemplate {
 
 const STAR_RATING_OPTIONS = ['★ 1 Star', '★★ 2 Stars', '★★★ 3 Stars', '★★★★ 4 Stars', '★★★★★ 5 Stars']
 
+const SIMPLE: TemplateCategory = 'simple'
+const ADVANCED: TemplateCategory = 'advanced'
+
 export const FORM_TEMPLATES: FormTemplate[] = [
   {
     id: 'poll',
     label: 'Poll',
     description: 'Single question with predefined options. Quick vote or choice.',
     iconName: 'BarChart2',
+    category: SIMPLE,
     title: 'Quick Poll',
     formDescription: 'Cast your vote.',
     kind: 'poll',
@@ -84,6 +91,7 @@ export const FORM_TEMPLATES: FormTemplate[] = [
     label: 'Meeting Time Poll',
     description: 'Let people vote for their preferred meeting or event time.',
     iconName: 'BarChart2',
+    category: SIMPLE,
     title: 'When works best?',
     formDescription: 'Vote for your preferred time. We will schedule based on the results.',
     kind: 'poll',
@@ -102,6 +110,7 @@ export const FORM_TEMPLATES: FormTemplate[] = [
     label: 'Satisfaction Poll',
     description: 'Quick one-question satisfaction check.',
     iconName: 'BarChart2',
+    category: SIMPLE,
     title: 'How satisfied are you?',
     formDescription: 'Your feedback helps us improve.',
     kind: 'poll',
@@ -120,6 +129,7 @@ export const FORM_TEMPLATES: FormTemplate[] = [
     label: 'Survey',
     description: 'Multiple questions: ratings, choices, and open feedback.',
     iconName: 'ListChecks',
+    category: SIMPLE,
     title: 'Survey',
     formDescription: 'We value your feedback. Please answer the following questions.',
     kind: 'survey',
@@ -134,6 +144,7 @@ export const FORM_TEMPLATES: FormTemplate[] = [
     label: 'Event Feedback Survey',
     description: 'Collect feedback after an event: rating, highlights, and recommendations.',
     iconName: 'ListChecks',
+    category: SIMPLE,
     title: 'Event Feedback',
     formDescription: 'Thank you for attending. Please share your feedback so we can improve future events.',
     kind: 'survey',
@@ -149,6 +160,7 @@ export const FORM_TEMPLATES: FormTemplate[] = [
     label: 'Quick Feedback Survey',
     description: 'Short 3-question survey: rating, recommendation, and optional comment.',
     iconName: 'ListChecks',
+    category: SIMPLE,
     title: 'Quick Feedback',
     formDescription: 'A few quick questions to help us serve you better.',
     kind: 'survey',
@@ -163,6 +175,7 @@ export const FORM_TEMPLATES: FormTemplate[] = [
     label: 'Customer Feedback',
     description: 'Collect ratings and comments from customers.',
     iconName: 'MessageSquare',
+    category: ADVANCED,
     title: 'Customer Feedback',
     formDescription: 'We value your feedback. Please take a moment to share your experience.',
     kind: 'form',
@@ -183,6 +196,7 @@ export const FORM_TEMPLATES: FormTemplate[] = [
     label: 'Event Registration',
     description: 'Register attendees for workshops and events.',
     iconName: 'Calendar',
+    category: ADVANCED,
     title: 'Event Registration',
     formDescription: 'Register for our event. We will confirm your attendance by email.',
     kind: 'form',
@@ -207,6 +221,7 @@ export const FORM_TEMPLATES: FormTemplate[] = [
     label: 'Bug / Issue Report',
     description: 'Report bugs and technical issues.',
     iconName: 'Bug',
+    category: ADVANCED,
     title: 'Bug / Issue Report',
     formDescription: 'Help us improve by describing the issue you encountered.',
     kind: 'form',
@@ -228,6 +243,7 @@ export const FORM_TEMPLATES: FormTemplate[] = [
     label: 'Job Application',
     description: 'Collect applications for open positions.',
     iconName: 'Briefcase',
+    category: ADVANCED,
     title: 'Job Application',
     formDescription: 'Apply for this position. We will review your application and get in touch.',
     kind: 'form',
@@ -248,6 +264,7 @@ export const FORM_TEMPLATES: FormTemplate[] = [
     label: 'Product Review',
     description: 'Gather product ratings and reviews.',
     iconName: 'Star',
+    category: ADVANCED,
     title: 'Product Review',
     formDescription: 'Share your experience with this product.',
     kind: 'form',
@@ -268,6 +285,7 @@ export const FORM_TEMPLATES: FormTemplate[] = [
     label: 'Contact / Inquiry',
     description: 'General contact and support inquiries.',
     iconName: 'Mail',
+    category: SIMPLE,
     title: 'Contact / Inquiry',
     formDescription: 'Send us a message. We will respond as soon as possible.',
     kind: 'form',
@@ -287,6 +305,7 @@ export const FORM_TEMPLATES: FormTemplate[] = [
     label: 'Appointment / Booking',
     description: 'Request appointments and bookings.',
     iconName: 'CalendarClock',
+    category: ADVANCED,
     title: 'Appointment / Booking Request',
     formDescription: 'Request an appointment. We will confirm availability by email or phone.',
     kind: 'form',
@@ -307,6 +326,7 @@ export const FORM_TEMPLATES: FormTemplate[] = [
     label: 'Employee Survey',
     description: 'Internal feedback and satisfaction survey.',
     iconName: 'Users',
+    category: ADVANCED,
     title: 'Employee Survey',
     formDescription: 'Your feedback helps us improve the workplace. All responses are confidential.',
     kind: 'survey',
@@ -325,6 +345,81 @@ export const FORM_TEMPLATES: FormTemplate[] = [
       { name: 'improve', label: 'What could be improved?', type: 'textarea', required: false, placeholder: '', stepId: 'emp-step-comments', stepOrder: 1 },
       { name: 'recommend', label: 'Would you recommend working here?', type: 'radio', required: true, options: ['Yes', 'No', 'Maybe'], stepId: 'emp-step-comments', stepOrder: 2 },
       { name: 'comments', label: 'Additional comments', type: 'textarea', required: false, placeholder: '', stepId: 'emp-step-comments', stepOrder: 3 },
+    ],
+  },
+  {
+    id: 'workshop-feedback',
+    label: 'Workshop / Training Feedback',
+    description: 'Multi-step feedback for workshops and training sessions.',
+    iconName: 'ListChecks',
+    category: ADVANCED,
+    title: 'Workshop Feedback',
+    formDescription: 'Thank you for attending. Your feedback helps us improve future sessions.',
+    kind: 'survey',
+    steps: [
+      { id: 'ws-step-about', title: 'About the session', order: 0 },
+      { id: 'ws-step-ratings', title: 'Ratings', order: 1 },
+      { id: 'ws-step-comments', title: 'Comments', order: 2 },
+    ],
+    fields: [
+      { name: 'session_name', label: 'Session / workshop name', type: 'text', required: true, placeholder: '', stepId: 'ws-step-about', stepOrder: 0 },
+      { name: 'trainer', label: "Trainer's name", type: 'text', required: false, placeholder: '', stepId: 'ws-step-about', stepOrder: 1 },
+      { name: 'content_rating', label: 'Content quality', type: 'rating', required: true, options: STAR_RATING_OPTIONS, stepId: 'ws-step-ratings', stepOrder: 0 },
+      { name: 'delivery_rating', label: 'Delivery / presentation', type: 'rating', required: true, options: STAR_RATING_OPTIONS, stepId: 'ws-step-ratings', stepOrder: 1 },
+      { name: 'materials_rating', label: 'Materials and resources', type: 'rating', required: true, options: STAR_RATING_OPTIONS, stepId: 'ws-step-ratings', stepOrder: 2 },
+      { name: 'highlight', label: 'What was most valuable?', type: 'textarea', required: false, placeholder: '', stepId: 'ws-step-comments', stepOrder: 0 },
+      { name: 'improve', label: 'What could be improved?', type: 'textarea', required: false, placeholder: '', stepId: 'ws-step-comments', stepOrder: 1 },
+      { name: 'recommend', label: 'Would you recommend this session?', type: 'radio', required: true, options: ['Yes', 'No', 'Maybe'], stepId: 'ws-step-comments', stepOrder: 2 },
+    ],
+  },
+  {
+    id: 'service-request',
+    label: 'Service Request',
+    description: 'Multi-step form for requesting a service or support.',
+    iconName: 'Mail',
+    category: ADVANCED,
+    title: 'Service Request',
+    formDescription: 'Submit your request. We will get back to you within 1–2 business days.',
+    kind: 'form',
+    steps: [
+      { id: 'svc-step-contact', title: 'Your details', order: 0 },
+      { id: 'svc-step-request', title: 'Request details', order: 1 },
+    ],
+    fields: [
+      { name: 'name', label: 'Full name', type: 'text', required: true, placeholder: '', stepId: 'svc-step-contact', stepOrder: 0 },
+      { name: 'email', label: 'Email', type: 'email', required: true, placeholder: '', stepId: 'svc-step-contact', stepOrder: 1 },
+      { name: 'phone', label: 'Phone', type: 'phone', required: false, placeholder: '', stepId: 'svc-step-contact', stepOrder: 2 },
+      { name: 'service_type', label: 'Type of service', type: 'dropdown', required: true, options: ['Consultation', 'Support', 'Quote', 'Custom', 'Other'], stepId: 'svc-step-request', stepOrder: 0 },
+      { name: 'subject', label: 'Subject / summary', type: 'text', required: true, placeholder: '', stepId: 'svc-step-request', stepOrder: 1 },
+      { name: 'details', label: 'Describe your request', type: 'textarea', required: true, placeholder: '', stepId: 'svc-step-request', stepOrder: 2 },
+      { name: 'preferred_contact', label: 'Preferred contact method', type: 'radio', required: false, options: ['Email', 'Phone', 'Either'], stepId: 'svc-step-request', stepOrder: 3 },
+    ],
+  },
+  {
+    id: 'nps-survey',
+    label: 'NPS Survey (multi-step)',
+    description: 'Net Promoter Score survey with follow-up in steps.',
+    iconName: 'BarChart2',
+    category: ADVANCED,
+    title: 'How likely are you to recommend us?',
+    formDescription: 'Your feedback helps us improve. This will only take a minute.',
+    kind: 'survey',
+    steps: [
+      { id: 'nps-step-score', title: 'Your score', order: 0 },
+      { id: 'nps-step-reason', title: 'Tell us more', order: 1 },
+    ],
+    fields: [
+      {
+        name: 'nps_score',
+        label: 'On a scale of 0–10, how likely are you to recommend us?',
+        type: 'radio',
+        required: true,
+        options: ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10'],
+        stepId: 'nps-step-score',
+        stepOrder: 0,
+      },
+      { name: 'reason', label: "What's the main reason for your score?", type: 'textarea', required: false, placeholder: '', stepId: 'nps-step-reason', stepOrder: 0 },
+      { name: 'improve', label: 'What could we do to improve?', type: 'textarea', required: false, placeholder: '', stepId: 'nps-step-reason', stepOrder: 1 },
     ],
   },
 ]

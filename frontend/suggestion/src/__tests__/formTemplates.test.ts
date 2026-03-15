@@ -14,12 +14,14 @@ describe('formTemplates', () => {
   })
 
   test('every template has required FormTemplate shape', () => {
+    const VALID_CATEGORIES = ['simple', 'advanced']
     FORM_TEMPLATES.forEach((t) => {
       expect(t).toMatchObject({
         id: expect.any(String),
         label: expect.any(String),
         description: expect.any(String),
         iconName: expect.any(String),
+        category: expect.any(String),
         title: expect.any(String),
         formDescription: expect.any(String),
         kind: expect.any(String),
@@ -28,6 +30,7 @@ describe('formTemplates', () => {
       expect(t.id.length).toBeGreaterThan(0)
       expect(VALID_KINDS).toContain(t.kind)
       expect(VALID_ICONS).toContain(t.iconName)
+      expect(VALID_CATEGORIES).toContain(t.category)
     })
   })
 

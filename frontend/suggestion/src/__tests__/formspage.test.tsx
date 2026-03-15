@@ -347,7 +347,34 @@ describe('FormsPage', () => {
     expect(screen.getByText('2 questions · 1 required')).toBeInTheDocument()
     expect(screen.queryByText(/Business ID:/i)).not.toBeInTheDocument()
   })
-  
+
+  test('truncates questions included when form has more than 5 fields', async () => {
+    const sixFields = [
+      { name: 'q1', label: 'Question 1', type: 'text', required: false },
+      { name: 'q2', label: 'Question 2', type: 'text', required: false },
+      { name: 'q3', label: 'Question 3', type: 'text', required: false },
+      { name: 'q4', label: 'Question 4', type: 'text', required: false },
+      { name: 'q5', label: 'Question 5', type: 'text', required: false },
+      { name: 'q6', label: 'Question 6', type: 'text', required: false },
+    ]
+    mockedAxios.get.mockResolvedValueOnce({
+      data: {
+        feedbackForms: [
+          { _id: 'f-long', title: 'Long Form', businessId: 'b1', fields: sixFields },
+        ],
+      },
+    } as FormsListApiResponse)
+
+    renderFormsPage()
+
+    await waitFor(() => {
+      expect(screen.getByText(/Long Form/i)).toBeInTheDocument()
+    })
+
+    expect(screen.getByText(/Questions included:/i)).toBeInTheDocument()
+    expect(screen.getByText(/\+1 more/)).toBeInTheDocument()
+  })
+
   test('Delete button opens modal and deletes form on confirm', async () => {
     mockedAxios.get.mockResolvedValueOnce({
       data: {
