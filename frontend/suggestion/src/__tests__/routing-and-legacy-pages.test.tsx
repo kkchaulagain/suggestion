@@ -10,6 +10,9 @@ import SuggestionForm from '../pages/business/suggestionform'
 import { AuthProvider } from '../context/AuthContext'
 
 jest.mock('../App.css', () => ({}))
+jest.mock('../pages/feedback-form-render/branding', () => ({
+  branding: { siteName: 'Test', tagline: '', logoUrl: '' },
+}))
 jest.mock('axios')
 const mockedAxios = axios as jest.Mocked<typeof axios>
 

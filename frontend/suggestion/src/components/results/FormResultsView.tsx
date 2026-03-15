@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import axios from 'axios'
 import { feedbackFormsApi } from '../../utils/apipath'
 import type { FormResultsData } from '../../types/results'
@@ -6,7 +6,7 @@ import { isChoiceFieldResult } from '../../types/results'
 import { ErrorMessage } from '../ui'
 import { EmptyState } from '../layout'
 import ChoiceQuestionResults from './ChoiceQuestionResults'
-import ScaleQuestionResults from './ScaleQuestionResults'
+import EmojiScaleResults from './EmojiScaleResults'
 import RatingQuestionResults from './RatingQuestionResults'
 import TextQuestionResults from './TextQuestionResults'
 import ResultsSummary from './ResultsSummary'
@@ -34,10 +34,12 @@ export default function FormResultsView({
   const [error, setError] = useState('')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
+  const hasDataRef = useRef(false)
 
   const fetchResults = useCallback(async () => {
     if (!formId) return
-    setLoading(true)
+    const isRefetch = hasDataRef.current
+    if (!isRefetch) setLoading(true)
     setError('')
     try {
       const params = new URLSearchParams()
@@ -46,6 +48,7 @@ export default function FormResultsView({
       const url = `${feedbackFormsApi}/${formId}/results${params.toString() ? `?${params.toString()}` : ''}`
       const res = await axios.get<FormResultsData>(url, authHeaders ?? {})
       setData(res.data)
+      hasDataRef.current = true
     } catch (err) {
       const status = axios.isAxiosError(err) ? err.response?.status : undefined
       const msg =
@@ -54,10 +57,15 @@ export default function FormResultsView({
           : 'Failed to load results.'
       setError(msg)
       setData(null)
+      hasDataRef.current = false
     } finally {
       setLoading(false)
     }
   }, [formId, dateFrom, dateTo, authHeaders])
+
+  useEffect(() => {
+    hasDataRef.current = false
+  }, [formId])
 
   useEffect(() => {
     void fetchResults()
@@ -121,7 +129,7 @@ export default function FormResultsView({
         {fieldEntries.map(([fieldName, fieldData]) => {
           if ((fieldData.type === 'scale' || fieldData.type === 'scale_1_10') && isChoiceFieldResult(fieldData)) {
             return (
-              <ScaleQuestionResults
+              <EmojiScaleResults
                 key={fieldName}
                 fieldName={fieldName}
                 data={fieldData}

@@ -56,12 +56,25 @@ interface FormStepInput {
   order?: number;
 }
 
+const FORM_STYLES = ['default', 'drawer'] as const;
+type FormStyle = (typeof FORM_STYLES)[number];
+
 interface FeedbackFormPayload {
   title?: string;
   description?: string;
+  metaTitle?: string;
+  metaDescription?: string;
+  landingHeadline?: string;
+  landingDescription?: string;
+  landingCtaText?: string;
+  landingEmoji?: string;
+  thankYouHeadline?: string;
+  thankYouMessage?: string;
   fields?: FeedbackFieldInput[];
   steps?: FormStepInput[];
   kind?: FormKind;
+  formStyle?: FormStyle;
+  drawerDefaultOpen?: boolean;
   showResultsPublic?: boolean;
   businessId?: Types.ObjectId;
 }
@@ -69,9 +82,19 @@ interface FeedbackFormPayload {
 interface RequestBody {
   title?: string;
   description?: string;
+  metaTitle?: string;
+  metaDescription?: string;
+  landingHeadline?: string;
+  landingDescription?: string;
+  landingCtaText?: string;
+  landingEmoji?: string;
+  thankYouHeadline?: string;
+  thankYouMessage?: string;
   fields?: FeedbackFieldInput[];
   steps?: FormStepInput[];
   kind?: string;
+  formStyle?: string;
+  drawerDefaultOpen?: boolean;
   showResultsPublic?: boolean;
 }
 
@@ -89,6 +112,25 @@ function buildPayload(body: RequestBody): FeedbackFormPayload {
   if (Object.prototype.hasOwnProperty.call(body, 'description') && typeof body.description === 'string') {
     payload.description = body.description;
   }
+  if (Object.prototype.hasOwnProperty.call(body, 'metaTitle') && typeof body.metaTitle === 'string') {
+    payload.metaTitle = body.metaTitle.trim().slice(0, 120);
+  }
+  if (Object.prototype.hasOwnProperty.call(body, 'metaDescription') && typeof body.metaDescription === 'string') {
+    payload.metaDescription = body.metaDescription.trim().slice(0, 160);
+  }
+  const stringLandingFields: Array<{ key: keyof FeedbackFormPayload & keyof RequestBody; max: number }> = [
+    { key: 'landingHeadline', max: 120 },
+    { key: 'landingDescription', max: 300 },
+    { key: 'landingCtaText', max: 40 },
+    { key: 'landingEmoji', max: 4 },
+    { key: 'thankYouHeadline', max: 120 },
+    { key: 'thankYouMessage', max: 300 },
+  ];
+  for (const { key, max } of stringLandingFields) {
+    if (Object.prototype.hasOwnProperty.call(body, key) && typeof body[key] === 'string') {
+      (payload as Record<string, unknown>)[key] = (body[key] as string).trim().slice(0, max);
+    }
+  }
   if (Object.prototype.hasOwnProperty.call(body, 'fields')) {
     payload.fields = normalizeFields(body.fields);
   }
@@ -101,6 +143,15 @@ function buildPayload(body: RequestBody): FeedbackFormPayload {
     if (FORM_KINDS.includes(k as FormKind)) {
       payload.kind = k as FormKind;
     }
+  }
+  if (Object.prototype.hasOwnProperty.call(body, 'formStyle') && typeof body.formStyle === 'string') {
+    const style = body.formStyle.toLowerCase().trim();
+    if (FORM_STYLES.includes(style as FormStyle)) {
+      payload.formStyle = style as FormStyle;
+    }
+  }
+  if (Object.prototype.hasOwnProperty.call(body, 'drawerDefaultOpen') && typeof body.drawerDefaultOpen === 'boolean') {
+    payload.drawerDefaultOpen = body.drawerDefaultOpen;
   }
   if (Object.prototype.hasOwnProperty.call(body, 'showResultsPublic') && typeof body.showResultsPublic === 'boolean') {
     payload.showResultsPublic = body.showResultsPublic;
@@ -463,8 +514,8 @@ router.get('/:id/results', optionalAuthAndBusiness, async (req: Request, res: Re
     const submissions = await FeedbackSubmission.find(query).select('responses submittedAt').lean();
     const totalResponses = submissions.length;
     const byField: Record<string, { label: string; type: string; options?: { option: string; count: number; percentage: number }[]; responseCount?: number; sampleAnswers?: string[] }> = {};
-    const choiceTypes = ['radio', 'checkbox', 'scale', 'rating', 'dropdown'];
-    const textTypes = ['text', 'textarea', 'email', 'phone', 'number', 'date', 'time', 'url', 'image'];
+    const choiceTypes = ['radio', 'checkbox', 'scale', 'scale_1_10', 'rating', 'dropdown'];
+    const textTypes = ['text', 'textarea', 'email', 'phone', 'number', 'date', 'time', 'url', 'image', 'short_text', 'long_text', 'big_text', 'name', 'image_upload'];
     const fields = formDoc.fields || [];
     for (const field of fields) {
       const fname = field.name;
@@ -476,7 +527,7 @@ router.get('/:id/results', optionalAuthAndBusiness, async (req: Request, res: Re
         optionsList.forEach((opt) => { counts[opt] = 0; });
         for (const sub of submissions as { responses?: Record<string, unknown> }[]) {
           const val = sub.responses?.[fname];
-          if ((ftype === 'radio' || ftype === 'scale' || ftype === 'rating' || ftype === 'dropdown') && typeof val === 'string' && val.trim() !== '') {
+          if ((ftype === 'radio' || ftype === 'scale' || ftype === 'scale_1_10' || ftype === 'rating' || ftype === 'dropdown') && typeof val === 'string' && val.trim() !== '') {
             counts[val] = (counts[val] ?? 0) + 1;
           } else if (ftype === 'checkbox' && Array.isArray(val)) {
             for (const v of val) {

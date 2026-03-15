@@ -94,13 +94,25 @@ interface FeedbackField {
   stepOrder?: number
 }
 
+type FormStyle = 'default' | 'drawer'
+
 interface FeedbackFormResponse {
   feedbackForm: {
     title: string
     description?: string
+    metaTitle?: string
+    metaDescription?: string
+    landingHeadline?: string
+    landingDescription?: string
+    landingCtaText?: string
+    landingEmoji?: string
+    thankYouHeadline?: string
+    thankYouMessage?: string
     fields: FeedbackField[]
     steps?: FormStep[]
     kind?: FormKind
+    formStyle?: FormStyle
+    drawerDefaultOpen?: boolean
     showResultsPublic?: boolean
   }
 }
@@ -586,8 +598,18 @@ export default function CreateFormPage() {
   const [overFieldId, setOverFieldId] = useState<string | null>(null)
   const [formKind, setFormKind] = useState<FormKind>('form')
   const [showResultsPublic, setShowResultsPublic] = useState(false)
+  const [formStyle, setFormStyle] = useState<FormStyle>('default')
+  const [drawerDefaultOpen, setDrawerDefaultOpen] = useState(true)
+  const [metaTitle, setMetaTitle] = useState('')
+  const [metaDescription, setMetaDescription] = useState('')
+  const [landingHeadline, setLandingHeadline] = useState('')
+  const [landingDescription, setLandingDescription] = useState('')
+  const [landingCtaText, setLandingCtaText] = useState('')
+  const [landingEmoji, setLandingEmoji] = useState('')
+  const [thankYouHeadline, setThankYouHeadline] = useState('')
+  const [thankYouMessage, setThankYouMessage] = useState('')
 
-  const initialSnapshotRef = useRef<{ title: string; description: string; fieldsKey: string; showResultsPublic: boolean } | null>(null)
+  const initialSnapshotRef = useRef<{ title: string; description: string; metaTitle: string; metaDescription: string; fieldsKey: string; showResultsPublic: boolean; formStyle: FormStyle; drawerDefaultOpen: boolean } | null>(null)
   const initialFieldOrderRef = useRef<string[]>(defaultFields.map((field, index) => getFieldClientId(field, index)))
   const { getAuthHeaders } = useAuth()
   const getAuthHeadersRef = useRef(getAuthHeaders)
@@ -597,8 +619,12 @@ export default function CreateFormPage() {
     initialSnapshotRef.current !== null &&
     (title !== initialSnapshotRef.current.title ||
       description !== initialSnapshotRef.current.description ||
+      metaTitle !== initialSnapshotRef.current.metaTitle ||
+      metaDescription !== initialSnapshotRef.current.metaDescription ||
       serializeFieldsForDirty(fields) !== initialSnapshotRef.current.fieldsKey ||
-      showResultsPublic !== initialSnapshotRef.current.showResultsPublic)
+      showResultsPublic !== initialSnapshotRef.current.showResultsPublic ||
+      formStyle !== initialSnapshotRef.current.formStyle ||
+      drawerDefaultOpen !== initialSnapshotRef.current.drawerDefaultOpen)
 
   const handleSelectTemplate = (template: FormTemplate | null) => {
     if (template) {
@@ -610,26 +636,40 @@ export default function CreateFormPage() {
       setFormSteps(nextSteps)
       setFormKind(template.kind ?? 'form')
       setShowResultsPublic(false)
+      setFormStyle('default')
+      setDrawerDefaultOpen(true)
       initialFieldOrderRef.current = nextFields.map((field, index) => getFieldClientId(field, index))
       initialSnapshotRef.current = {
         title: template.title,
         description: template.formDescription,
+        metaTitle: '',
+        metaDescription: '',
         fieldsKey: serializeFieldsForDirty(nextFields),
         showResultsPublic: false,
+        formStyle: 'default',
+        drawerDefaultOpen: true,
       }
     } else {
       setTitle('Feedback form')
       setDescription('test')
+      setMetaTitle('')
+      setMetaDescription('')
       setFields(defaultFields)
       setFormSteps([])
       setFormKind('form')
       setShowResultsPublic(false)
+      setFormStyle('default')
+      setDrawerDefaultOpen(true)
       initialFieldOrderRef.current = defaultFields.map((field, index) => getFieldClientId(field, index))
       initialSnapshotRef.current = {
         title: 'Feedback form',
         description: 'test',
+        metaTitle: '',
+        metaDescription: '',
         fieldsKey: serializeFieldsForDirty(defaultFields),
         showResultsPublic: false,
+        formStyle: 'default',
+        drawerDefaultOpen: true,
       }
     }
     setEditingFieldId(null)
@@ -654,23 +694,47 @@ export default function CreateFormPage() {
         if (!active) return
         const loadedTitle = data.feedbackForm.title || 'Feedback form'
         const loadedDescription = data.feedbackForm.description ?? ''
+        const loadedMetaTitle = data.feedbackForm.metaTitle ?? ''
+        const loadedMetaDescription = data.feedbackForm.metaDescription ?? ''
+        const loadedLandingHeadline = data.feedbackForm.landingHeadline ?? ''
+        const loadedLandingDescription = data.feedbackForm.landingDescription ?? ''
+        const loadedLandingCtaText = data.feedbackForm.landingCtaText ?? ''
+        const loadedLandingEmoji = data.feedbackForm.landingEmoji ?? ''
+        const loadedThankYouHeadline = data.feedbackForm.thankYouHeadline ?? ''
+        const loadedThankYouMessage = data.feedbackForm.thankYouMessage ?? ''
         const loadedFields = normalizeLoadedFields(data.feedbackForm.fields)
         const loadedKind = data.feedbackForm.kind ?? 'form'
         const loadedShowResultsPublic = data.feedbackForm.showResultsPublic ?? false
+        const loadedFormStyle = (data.feedbackForm.formStyle === 'drawer' ? 'drawer' : 'default') as FormStyle
+        const loadedDrawerDefaultOpen = data.feedbackForm.drawerDefaultOpen !== false
         const loadedSteps = data.feedbackForm.steps ?? []
         setTitle(loadedTitle)
         setDescription(loadedDescription)
+        setMetaTitle(loadedMetaTitle)
+        setMetaDescription(loadedMetaDescription)
+        setLandingHeadline(loadedLandingHeadline)
+        setLandingDescription(loadedLandingDescription)
+        setLandingCtaText(loadedLandingCtaText)
+        setLandingEmoji(loadedLandingEmoji)
+        setThankYouHeadline(loadedThankYouHeadline)
+        setThankYouMessage(loadedThankYouMessage)
         setFields(loadedFields)
         setFormSteps(loadedSteps)
         setFormKind(loadedKind)
         setShowResultsPublic(loadedShowResultsPublic)
+        setFormStyle(loadedFormStyle)
+        setDrawerDefaultOpen(loadedDrawerDefaultOpen)
         initialFieldOrderRef.current = loadedFields.map((field, index) => getFieldClientId(field, index))
         setEditingFieldId(null)
         initialSnapshotRef.current = {
           title: loadedTitle,
           description: loadedDescription,
+          metaTitle: loadedMetaTitle,
+          metaDescription: loadedMetaDescription,
           fieldsKey: serializeFieldsForDirty(loadedFields),
           showResultsPublic: loadedShowResultsPublic,
+          formStyle: loadedFormStyle,
+          drawerDefaultOpen: loadedDrawerDefaultOpen,
         }
       } catch (err: unknown) {
         if (!active) return
@@ -1026,7 +1090,17 @@ export default function CreateFormPage() {
     const payload = {
       title: title.trim(),
       description: description.trim(),
+      metaTitle: metaTitle.trim() || undefined,
+      metaDescription: metaDescription.trim() || undefined,
+      landingHeadline: landingHeadline.trim() || undefined,
+      landingDescription: landingDescription.trim() || undefined,
+      landingCtaText: landingCtaText.trim() || undefined,
+      landingEmoji: landingEmoji.trim() || undefined,
+      thankYouHeadline: thankYouHeadline.trim() || undefined,
+      thankYouMessage: thankYouMessage.trim() || undefined,
       kind: formKind,
+      formStyle,
+      drawerDefaultOpen: formStyle === 'drawer' ? drawerDefaultOpen : undefined,
       showResultsPublic,
       steps: formSteps.length > 0 ? formSteps : undefined,
       fields: fields.map((field, idx) => ({
@@ -1296,6 +1370,24 @@ export default function CreateFormPage() {
             placeholder="Briefly describe this form"
             rows={3}
           />
+          <div className="space-y-3 border-t border-slate-200 pt-4 dark:border-slate-700">
+            <p className="text-xs font-medium text-slate-500 dark:text-slate-400">SEO (optional)</p>
+            <Input
+              id="form-meta-title"
+              label="Page title for search &amp; sharing"
+              value={metaTitle}
+              onChange={setMetaTitle}
+              placeholder="Leave blank to use form title"
+            />
+            <Textarea
+              id="form-meta-description"
+              label="Short description for search &amp; social"
+              value={metaDescription}
+              onChange={setMetaDescription}
+              placeholder="Leave blank to use form description"
+              rows={2}
+            />
+          </div>
           <div className="flex items-start gap-3 pt-1">
             <input
               id="form-show-results-public"
@@ -1313,6 +1405,74 @@ export default function CreateFormPage() {
                 When enabled, respondents will see a &quot;See results&quot; link after submitting and can view aggregated results. Default is off.
               </p>
             </div>
+          </div>
+          <div className="space-y-2 pt-1">
+            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Form display style</label>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              How the form appears to respondents when they open the link.
+            </p>
+            <div className="flex flex-col gap-2 sm:flex-row sm:gap-4">
+              <label className="flex items-start gap-3">
+                <input
+                  type="radio"
+                  name="form-style"
+                  value="default"
+                  checked={formStyle === 'default'}
+                  onChange={() => setFormStyle('default')}
+                  className="mt-1 h-4 w-4 border-slate-300 text-stone-900 focus:ring-stone-500 dark:border-slate-600 dark:bg-slate-800"
+                />
+                <span className="text-sm text-slate-700 dark:text-slate-300">
+                  <strong>Default</strong> — Form is shown immediately.
+                </span>
+              </label>
+              <label className="flex items-start gap-3">
+                <input
+                  type="radio"
+                  name="form-style"
+                  value="drawer"
+                  checked={formStyle === 'drawer'}
+                  onChange={() => setFormStyle('drawer')}
+                  className="mt-1 h-4 w-4 border-slate-300 text-stone-900 focus:ring-stone-500 dark:border-slate-600 dark:bg-slate-800"
+                />
+                <span className="text-sm text-slate-700 dark:text-slate-300">
+                  <strong>Drawer</strong> — Landing screen first; pull up to open the form.
+                </span>
+              </label>
+            </div>
+            {formStyle === 'drawer' ? (
+              <>
+                <div className="flex items-start gap-3 pt-3">
+                  <input
+                    id="form-drawer-default-open"
+                    type="checkbox"
+                    checked={drawerDefaultOpen}
+                    onChange={(e) => setDrawerDefaultOpen(e.target.checked)}
+                    className="mt-1 h-4 w-4 rounded border-slate-300 text-stone-900 focus:ring-stone-500 dark:border-slate-600 dark:bg-slate-800"
+                    aria-describedby="form-drawer-default-open-hint"
+                  />
+                  <div className="flex-1">
+                    <label htmlFor="form-drawer-default-open" className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                      Open drawer by default
+                    </label>
+                    <p id="form-drawer-default-open-hint" className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                      When enabled, respondents see the form immediately (drawer already open). On desktop, the form is always shown in a centered layout.
+                    </p>
+                  </div>
+                </div>
+                <div className="space-y-3 border-t border-slate-200 pt-4 dark:border-slate-700">
+                  <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Landing screen</p>
+                  <Input id="form-landing-emoji" label="Emoji" value={landingEmoji} onChange={setLandingEmoji} placeholder="📋" />
+                  <Input id="form-landing-headline" label="Headline" value={landingHeadline} onChange={setLandingHeadline} placeholder="Leave blank to use form title" />
+                  <Textarea id="form-landing-description" label="Description" value={landingDescription} onChange={setLandingDescription} placeholder="Leave blank to use form description" rows={2} />
+                  <Input id="form-landing-cta" label="Button text" value={landingCtaText} onChange={setLandingCtaText} placeholder="Tap to vote" />
+                </div>
+                <div className="space-y-3 border-t border-slate-200 pt-4 dark:border-slate-700">
+                  <p className="text-xs font-medium text-slate-500 dark:text-slate-400">After submission</p>
+                  <Input id="form-thankyou-headline" label="Headline" value={thankYouHeadline} onChange={setThankYouHeadline} placeholder="Vote submitted" />
+                  <Textarea id="form-thankyou-message" label="Message" value={thankYouMessage} onChange={setThankYouMessage} placeholder="Leave blank for default" rows={2} />
+                </div>
+              </>
+            ) : null}
           </div>
         </div>
       </Card>

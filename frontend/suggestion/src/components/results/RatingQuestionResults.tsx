@@ -1,17 +1,8 @@
 import type { ReactNode } from 'react'
 import { Star } from 'lucide-react'
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  ResponsiveContainer,
-  Tooltip,
-} from 'recharts'
 import type { ChoiceFieldResult, ResultOption } from '../../types/results'
 import { Card } from '../ui'
 
-/** Parse star count from option label (e.g. "★★★★ 4 Stars" -> 4). Falls back to counting ★ characters. */
 function starCount(option: string): number {
   const match = option.match(/(\d+)\s*stars?/i)
   if (match) return Math.min(5, Math.max(1, parseInt(match[1], 10)))
@@ -35,16 +26,10 @@ function renderStars(value: number): ReactNode {
         <Star key={`f-${i}`} className="h-5 w-5 fill-amber-400 text-amber-400" strokeWidth={1.5} />
       ))}
       {Array.from({ length: empty }, (_, i) => (
-        <Star key={`e-${i}`} className="h-5 w-5 text-slate-300 dark:text-slate-500" strokeWidth={1.5} />
+        <Star key={`e-${i}`} className="h-5 w-5 text-stone-300 dark:text-stone-600" strokeWidth={1.5} />
       ))}
     </span>
   )
-}
-
-function buildAriaSummary(options: ResultOption[], average: number | null): string {
-  const parts = options.map((o) => `${o.option} ${o.percentage}%`)
-  const avgText = average != null ? `Average rating: ${average} out of 5. ` : ''
-  return `Star rating: ${avgText}${parts.join(', ')}`
 }
 
 interface RatingQuestionResultsProps {
@@ -55,73 +40,57 @@ interface RatingQuestionResultsProps {
 export default function RatingQuestionResults({ fieldName, data }: RatingQuestionResultsProps) {
   const { label, options } = data
   const average = computeAverageStars(options)
-  const chartData = options.map((o) => ({ name: o.option, count: o.count, percentage: o.percentage }))
-  const ariaSummary = buildAriaSummary(options, average)
+  const totalVotes = options.reduce((s, o) => s + o.count, 0)
+  const maxCount = Math.max(...options.map((o) => o.count), 1)
+  const sorted = [...options].sort((a, b) => starCount(b.option) - starCount(a.option))
 
   return (
-    <Card className="rounded-xl p-4" padding="md">
-      <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">{label}</h3>
+    <Card className="rounded-2xl border-stone-200/80 p-5 dark:border-stone-700/60" padding="md">
+      <div className="flex items-baseline justify-between gap-3">
+        <h3 className="text-base font-semibold text-stone-900 dark:text-stone-100">{label}</h3>
+        <span className="shrink-0 text-xs tabular-nums text-stone-400 dark:text-stone-500">
+          {totalVotes} {totalVotes === 1 ? 'vote' : 'votes'}
+        </span>
+      </div>
+
       {average != null && (
-        <div className="mt-2 flex items-center gap-2" aria-live="polite">
+        <div className="mt-4 flex items-center gap-3 rounded-xl bg-stone-50 px-4 py-3 dark:bg-stone-800/60" aria-live="polite">
           {renderStars(average)}
-          <span className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-            {average}
-          </span>
-          <span className="text-sm text-slate-500 dark:text-slate-400">out of 5 average</span>
+          <div>
+            <p className="text-xs font-medium uppercase tracking-wider text-stone-400 dark:text-stone-500">Average</p>
+            <p className="text-lg font-bold text-stone-900 dark:text-stone-100">
+              <span>{average}</span>
+              <span className="ml-1.5 text-sm font-normal text-stone-500 dark:text-stone-400">out of 5</span>
+            </p>
+          </div>
         </div>
       )}
-      <div className="mt-3 flex flex-col gap-4 sm:flex-row">
-        <div
-          className="min-h-[200px] w-full sm:w-1/2"
-          role="img"
-          aria-label={ariaSummary}
-        >
-          <ResponsiveContainer width="100%" height={240}>
-            <BarChart
-              data={chartData}
-              layout="vertical"
-              margin={{ top: 5, right: 20, left: 80, bottom: 5 }}
-            >
-              <XAxis type="number" allowDecimals={false} />
-              <YAxis type="category" dataKey="name" width={70} tick={{ fontSize: 11 }} />
-              <Tooltip formatter={(value) => [value ?? 0, 'Count']} />
-              <Bar dataKey="count" fill="#f59e0b" name="Count" radius={[0, 4, 4, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-        <div className="w-full sm:w-1/2">
-          <table className="w-full text-sm" data-testid={`results-table-${fieldName}`}>
-            <thead>
-              <tr className="border-b border-slate-200 dark:border-slate-600">
-                <th className="py-2 text-left font-medium text-slate-700 dark:text-slate-300">
-                  Rating
-                </th>
-                <th className="py-2 text-right font-medium text-slate-700 dark:text-slate-300">
-                  Count
-                </th>
-                <th className="py-2 text-right font-medium text-slate-700 dark:text-slate-300">
-                  %
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {options.map((row) => (
-                <tr
-                  key={row.option}
-                  className="border-b border-slate-100 dark:border-slate-700"
-                >
-                  <td className="py-1.5 text-slate-900 dark:text-slate-100">{row.option}</td>
-                  <td className="py-1.5 text-right text-slate-700 dark:text-slate-300">
-                    {row.count}
-                  </td>
-                  <td className="py-1.5 text-right text-slate-700 dark:text-slate-300">
-                    {row.percentage}%
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+
+      <div className="mt-5 space-y-2.5" data-testid={`results-table-${fieldName}`}>
+        {sorted.map((opt) => {
+          const stars = starCount(opt.option)
+          const widthPct = maxCount > 0 ? (opt.count / maxCount) * 100 : 0
+          return (
+            <div key={opt.option} className="flex items-center gap-3">
+              <span className="flex w-24 shrink-0 items-center gap-0.5" aria-hidden>
+                {Array.from({ length: stars }, (_, i) => (
+                  <Star key={i} className="h-3.5 w-3.5 fill-amber-400 text-amber-400" strokeWidth={1.5} />
+                ))}
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="h-2.5 w-full overflow-hidden rounded-full bg-stone-100 dark:bg-stone-800">
+                  <div
+                    className="h-full rounded-full bg-amber-400 transition-all duration-700 ease-out dark:bg-amber-500"
+                    style={{ width: `${widthPct}%` }}
+                  />
+                </div>
+              </div>
+              <span className="w-16 shrink-0 text-right text-xs tabular-nums text-stone-500 dark:text-stone-400">
+                {opt.count} · {opt.percentage}%
+              </span>
+            </div>
+          )
+        })}
       </div>
     </Card>
   )

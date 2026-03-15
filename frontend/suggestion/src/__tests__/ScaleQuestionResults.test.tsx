@@ -18,17 +18,17 @@ describe('ScaleQuestionResults', () => {
       />,
     )
     expect(screen.getByRole('heading', { name: /Score \(1-10\)/i })).toBeInTheDocument()
-    expect(screen.getByText(/out of 10 average/i)).toBeInTheDocument()
-    // (5*2 + 7*3) / 5 = 6.2
+    expect(screen.getByText(/out of 10/i)).toBeInTheDocument()
+    expect(screen.getByText('Average')).toBeInTheDocument()
     expect(screen.getByText('6.2')).toBeInTheDocument()
-    expect(screen.getByTestId('results-table-score')).toHaveTextContent('Score')
-    expect(screen.getByTestId('results-table-score')).toHaveTextContent('5')
-    expect(screen.getByTestId('results-table-score')).toHaveTextContent('7')
-    expect(screen.getByTestId('results-table-score')).toHaveTextContent('40%')
-    expect(screen.getByTestId('results-table-score')).toHaveTextContent('60%')
+    const container = screen.getByTestId('results-table-score')
+    expect(container).toHaveTextContent('5')
+    expect(container).toHaveTextContent('7')
+    expect(container).toHaveTextContent('40%')
+    expect(container).toHaveTextContent('60%')
   })
 
-  it('renders table with Score column header', () => {
+  it('renders score labels in the container', () => {
     render(
       <ScaleQuestionResults
         fieldName="s"
@@ -40,7 +40,6 @@ describe('ScaleQuestionResults', () => {
       />,
     )
     expect(screen.getByTestId('results-table-s')).toBeInTheDocument()
-    expect(screen.getByText('Score')).toBeInTheDocument()
   })
 
   it('does not show average when total count is zero', () => {
@@ -58,6 +57,6 @@ describe('ScaleQuestionResults', () => {
       />,
     )
     expect(screen.getByRole('heading', { name: /Scale/i })).toBeInTheDocument()
-    expect(screen.queryByText(/out of 10 average/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/out of 10/i)).not.toBeInTheDocument()
   })
 })

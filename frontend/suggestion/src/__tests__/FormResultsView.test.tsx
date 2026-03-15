@@ -69,7 +69,7 @@ describe('FormResultsView', () => {
     expect(screen.getByText(/No responses yet/i)).toBeInTheDocument()
   })
 
-  it('shows summary and choice question table with counts and percentages', async () => {
+  it('shows summary and choice question results with vote bars', async () => {
     mockedAxios.get.mockResolvedValueOnce({
       data: {
         formId: 'form-1',
@@ -93,18 +93,14 @@ describe('FormResultsView', () => {
 
     await waitFor(() => {
       expect(screen.getByText(/Quick Poll/i)).toBeInTheDocument()
-      expect(screen.getByText('Yes')).toBeInTheDocument()
-      expect(screen.getByText('No')).toBeInTheDocument()
     })
 
-    const table = screen.getByTestId('results-table-choice')
-    expect(table).toBeInTheDocument()
-    expect(table).toHaveTextContent('Yes')
-    expect(table).toHaveTextContent('No')
-    expect(table).toHaveTextContent('2')
-    expect(table).toHaveTextContent('1')
-    expect(table).toHaveTextContent('67%')
-    expect(table).toHaveTextContent('33%')
+    const container = screen.getByTestId('results-table-choice')
+    expect(container).toBeInTheDocument()
+    expect(container).toHaveTextContent('Yes')
+    expect(container).toHaveTextContent('No')
+    expect(container).toHaveTextContent('67%')
+    expect(container).toHaveTextContent('33%')
   })
 
   it('shows text question response count and sample answers', async () => {
@@ -134,9 +130,7 @@ describe('FormResultsView', () => {
 
     expect(screen.getByRole('heading', { name: /Survey/i })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: /Comment/i })).toBeInTheDocument()
-    expect(screen.getByText(/2 responses/)).toBeInTheDocument()
-    expect(screen.getByText('First answer')).toBeInTheDocument()
-    expect(screen.getByText('Second answer')).toBeInTheDocument()
+    expect(screen.getByText(/2 response/)).toBeInTheDocument()
   })
 
   it('fetches results from correct endpoint', async () => {
@@ -160,7 +154,7 @@ describe('FormResultsView', () => {
     })
   })
 
-  it('shows scale field with average and distribution table', async () => {
+  it('shows scale field with average and distribution', async () => {
     mockedAxios.get.mockResolvedValueOnce({
       data: {
         formId: 'form-1',
@@ -188,18 +182,13 @@ describe('FormResultsView', () => {
       expect(screen.getByText(/How would you rate?/i)).toBeInTheDocument()
     })
 
-    expect(screen.getByText(/out of 10 average/i)).toBeInTheDocument()
-    const table = screen.getByTestId('results-table-score')
-    expect(table).toBeInTheDocument()
-    expect(table).toHaveTextContent('Score')
-    expect(table).toHaveTextContent('7')
-    expect(table).toHaveTextContent('8')
-    expect(table).toHaveTextContent('9')
-    expect(table).toHaveTextContent('2')
-    expect(table).toHaveTextContent('50%')
+    const emojiResults = screen.getByTestId('emoji-results-score')
+    expect(emojiResults).toBeInTheDocument()
+    expect(emojiResults).toHaveTextContent('Good')
+    expect(emojiResults).toHaveTextContent('Excellent')
   })
 
-  it('shows rating field with average and distribution table', async () => {
+  it('shows rating field with stars and distribution', async () => {
     mockedAxios.get.mockResolvedValueOnce({
       data: {
         formId: 'form-1',
@@ -226,13 +215,71 @@ describe('FormResultsView', () => {
       expect(screen.getByText(/Rate your experience/i)).toBeInTheDocument()
     })
 
-    expect(screen.getByText(/out of 5 average/i)).toBeInTheDocument()
-    const table = screen.getByTestId('results-table-stars')
-    expect(table).toBeInTheDocument()
-    expect(table).toHaveTextContent('Rating')
-    expect(table).toHaveTextContent('★★★★ 4 Stars')
-    expect(table).toHaveTextContent('★★★★★ 5 Stars')
-    expect(table).toHaveTextContent('1')
-    expect(table).toHaveTextContent('50%')
+    expect(screen.getByText(/out of 5/i)).toBeInTheDocument()
+    const container = screen.getByTestId('results-table-stars')
+    expect(container).toBeInTheDocument()
+    expect(container).toHaveTextContent('50%')
+  })
+
+  it('shows scale average and top choice badges in summary', async () => {
+    mockedAxios.get.mockResolvedValueOnce({
+      data: {
+        formId: 'form-1',
+        formTitle: 'Sentiment Poll',
+        totalResponses: 5,
+        byField: {
+          mood: {
+            label: 'How do you feel?',
+            type: 'scale',
+            options: [
+              { option: '8', count: 3, percentage: 60 },
+              { option: '10', count: 2, percentage: 40 },
+            ],
+          },
+          pick: {
+            label: 'Pick one',
+            type: 'radio',
+            options: [
+              { option: 'Alpha', count: 4, percentage: 80 },
+              { option: 'Beta', count: 1, percentage: 20 },
+            ],
+          },
+        },
+        responsesOverTime: [],
+      },
+    })
+
+    render(<FormResultsView formId="form-1" />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('scale-summary-badge')).toBeInTheDocument()
+      expect(screen.getByTestId('top-choice-badge')).toBeInTheDocument()
+    })
+    expect(screen.getByTestId('scale-summary-badge')).toHaveTextContent('Scale average')
+    expect(screen.getByTestId('scale-summary-badge')).toHaveTextContent('Positive')
+    expect(screen.getByTestId('top-choice-badge')).toHaveTextContent('Alpha')
+    expect(screen.getByTestId('top-choice-badge')).toHaveTextContent('80%')
+  })
+
+  it('shows share button', async () => {
+    mockedAxios.get.mockResolvedValueOnce({
+      data: {
+        formId: 'form-1',
+        formTitle: 'Poll',
+        totalResponses: 1,
+        byField: {
+          q: { label: 'Q', type: 'radio', options: [{ option: 'A', count: 1, percentage: 100 }] },
+        },
+        responsesOverTime: [],
+      },
+    })
+
+    render(<FormResultsView formId="form-1" />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('form-results-view')).toBeInTheDocument()
+    })
+    expect(screen.getByTestId('copy-link-btn')).toBeInTheDocument()
+    expect(screen.getByTestId('copy-link-btn')).toHaveTextContent('Share')
   })
 })

@@ -1,3 +1,4 @@
+import { MessageSquare } from 'lucide-react'
 import type { TextFieldResult } from '../../types/results'
 import { Card } from '../ui'
 
@@ -10,19 +11,27 @@ export default function TextQuestionResults({ fieldName, data }: TextQuestionRes
   const { label, responseCount, sampleAnswers = [] } = data
 
   return (
-    <Card className="rounded-xl p-4" padding="md" data-testid={`text-results-${fieldName}`}>
-      <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">{label}</h3>
-      <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-        {responseCount} {responseCount === 1 ? 'response' : 'responses'}
-      </p>
+    <Card className="rounded-2xl border-stone-200/80 p-5 dark:border-stone-700/60" padding="md" data-testid={`text-results-${fieldName}`}>
+      <div className="flex items-baseline justify-between gap-3">
+        <h3 className="text-base font-semibold text-stone-900 dark:text-stone-100">{label}</h3>
+        <span className="shrink-0 text-xs tabular-nums text-stone-400 dark:text-stone-500">
+          {responseCount} {responseCount === 1 ? 'response' : 'responses'}
+        </span>
+      </div>
       {sampleAnswers.length > 0 && (
-        <ul className="mt-3 list-inside list-disc space-y-1 text-sm text-slate-700 dark:text-slate-300">
+        <div className="mt-4 space-y-2">
           {sampleAnswers.map((answer, i) => (
-            <li key={`${fieldName}-${i}`} className="truncate">
-              {answer}
-            </li>
+            <div
+              key={`${fieldName}-${i}`}
+              className="flex items-start gap-2.5 rounded-lg bg-stone-50 px-3.5 py-2.5 dark:bg-stone-800/60"
+            >
+              <MessageSquare className="mt-0.5 h-4 w-4 shrink-0 text-stone-400 dark:text-stone-500" />
+              <p className="min-w-0 break-words text-sm text-stone-700 dark:text-stone-300">
+                {answer}
+              </p>
+            </div>
           ))}
-        </ul>
+        </div>
       )}
     </Card>
   )

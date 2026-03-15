@@ -54,13 +54,34 @@ export interface FormStep {
 
 export type FormKind = 'form' | 'poll' | 'survey'
 
+export type FormStyle = 'default' | 'drawer'
+
 export interface FeedbackFormConfig {
   _id: string
   title: string
   description?: string
+  /** Optional SEO: override for <title> and og:title (defaults to title) */
+  metaTitle?: string
+  /** Optional SEO: override for meta description and og:description (defaults to description) */
+  metaDescription?: string
+  /** Drawer landing: headline (defaults to title) */
+  landingHeadline?: string
+  /** Drawer landing: body text (defaults to description) */
+  landingDescription?: string
+  /** Drawer landing: CTA button text (defaults to "Tap to vote" / "Start") */
+  landingCtaText?: string
+  /** Drawer landing: emoji shown above headline */
+  landingEmoji?: string
+  /** After submit: headline (defaults to "Vote submitted" / "Response recorded") */
+  thankYouHeadline?: string
+  /** After submit: message (defaults to "Results will be visible soon.") */
+  thankYouMessage?: string
   fields: FeedbackFormField[]
   steps?: FormStep[]
   kind?: FormKind
+  formStyle?: FormStyle
+  /** When formStyle is drawer: start with drawer open. Default true. */
+  drawerDefaultOpen?: boolean
   showResultsPublic?: boolean
 }
 

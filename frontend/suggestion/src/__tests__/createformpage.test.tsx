@@ -403,7 +403,7 @@ describe('CreateFormPage', () => {
     await waitFor(() => {
       expect(mockedAxios.post).toHaveBeenCalledWith(
         feedbackFormsApi,
-        {
+        expect.objectContaining({
           title: 'Feedback form',
           description: 'test',
           kind: 'form',
@@ -446,7 +446,7 @@ describe('CreateFormPage', () => {
               allowAnonymous: false,
             },
           ],
-        },
+        }),
         {
           withCredentials: true,
           headers: { Authorization: 'Bearer fake-token' },

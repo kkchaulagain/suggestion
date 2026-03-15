@@ -10,6 +10,10 @@ import FormRenderPage from '../pages/feedback-form-render/FormRenderPage'
 jest.mock('axios')
 const mockedAxios = axios as jest.Mocked<typeof axios>
 
+jest.mock('../pages/feedback-form-render/branding', () => ({
+  branding: { siteName: 'Suggestion Platform', tagline: '', logoUrl: '' },
+}))
+
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
   useParams: jest.fn(),
@@ -70,7 +74,7 @@ describe('FormRenderPage', () => {
     expect(screen.getByText(/Loading form/i)).toBeInTheDocument()
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: /Customer Feedback/i })).toBeInTheDocument()
+      expect(screen.getByText(/Customer Feedback/i)).toBeInTheDocument()
     })
     expect(screen.getByText(/Tell us what you think/i)).toBeInTheDocument()
   })
@@ -117,7 +121,7 @@ describe('FormRenderPage', () => {
     renderFormRenderPage('form-1')
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: /Customer Feedback/i })).toBeInTheDocument()
+      expect(screen.getByText(/Customer Feedback/i)).toBeInTheDocument()
     })
 
     fireEvent.change(screen.getByPlaceholderText(/Your comment/i), { target: { value: 'Great service' } })
@@ -125,8 +129,8 @@ describe('FormRenderPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /Submit/i }))
 
     await waitFor(() => {
-      expect(screen.getByText(/Thank you/i)).toBeInTheDocument()
-      expect(screen.getByText(/Your response has been recorded/i)).toBeInTheDocument()
+      expect(screen.getByText(/Response recorded/i)).toBeInTheDocument()
+      expect(screen.getByText(/You can view results below/i)).toBeInTheDocument()
     })
   })
 
@@ -137,7 +141,7 @@ describe('FormRenderPage', () => {
     renderFormRenderPage('form-1')
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: /Customer Feedback/i })).toBeInTheDocument()
+      expect(screen.getByText(/Customer Feedback/i)).toBeInTheDocument()
     })
 
     fireEvent.change(screen.getByPlaceholderText(/Your comment/i), { target: { value: 'Great' } })
@@ -170,14 +174,14 @@ describe('FormRenderPage', () => {
     renderFormRenderPage('poll-1')
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: /Quick Poll/i })).toBeInTheDocument()
+      expect(screen.getByText(/Quick Poll/i)).toBeInTheDocument()
     })
 
     fireEvent.click(screen.getByRole('radio', { name: /Yes/i }))
-    fireEvent.click(screen.getByRole('button', { name: /Submit/i }))
+    fireEvent.click(screen.getByRole('button', { name: /Cast Vote/i }))
 
     await waitFor(() => {
-      expect(screen.getByText(/Thanks for voting!/i)).toBeInTheDocument()
+      expect(screen.getByText(/Vote submitted/i)).toBeInTheDocument()
       expect(screen.getByTestId('see-results-link')).toBeInTheDocument()
     })
   })
@@ -200,13 +204,13 @@ describe('FormRenderPage', () => {
     renderFormRenderPage('form-private')
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: /Private Form/i })).toBeInTheDocument()
+      expect(screen.getByText(/Private Form/i)).toBeInTheDocument()
     })
 
     fireEvent.click(screen.getByRole('button', { name: /Submit/i }))
 
     await waitFor(() => {
-      expect(screen.getByText(/Your response has been recorded/i)).toBeInTheDocument()
+      expect(screen.getByText(/Thanks for taking the time/i)).toBeInTheDocument()
     })
     expect(screen.queryByTestId('see-results-link')).not.toBeInTheDocument()
   })
@@ -225,7 +229,7 @@ describe('FormRenderPage', () => {
     await waitFor(() => {
       expect(screen.getAllByText(/required/i).length).toBeGreaterThan(0)
     })
-    expect(screen.getByRole('heading', { name: /Customer Feedback/i })).toBeInTheDocument()
+    expect(screen.getByText(/Customer Feedback/i)).toBeInTheDocument()
     const commentInput = screen.getByRole('textbox', { name: /Comment/i })
     expect(commentInput).toHaveAttribute('aria-invalid', 'true')
   })
@@ -262,7 +266,7 @@ describe('FormRenderPage', () => {
     renderFormRenderPage('form-2')
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: /Survey/i })).toBeInTheDocument()
+      expect(screen.getByText(/Survey/i)).toBeInTheDocument()
     })
     const notesField = screen.getByRole('textbox', { name: /Notes/i })
     expect(notesField).toBeInTheDocument()
@@ -310,7 +314,7 @@ describe('FormRenderPage', () => {
     renderFormRenderPage('f3')
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: /No Description Form/i })).toBeInTheDocument()
+      expect(screen.getByText(/No Description Form/i)).toBeInTheDocument()
     })
     expect(screen.queryByText(/Optional description/i)).not.toBeInTheDocument()
   })
@@ -335,7 +339,7 @@ describe('FormRenderPage', () => {
     renderFormRenderPage('form-img')
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: /With Photo/i })).toBeInTheDocument()
+      expect(screen.getByText(/With Photo/i)).toBeInTheDocument()
     })
 
     const fileInput = document.querySelector('input[type="file"][accept="image/*"]')
@@ -359,7 +363,7 @@ describe('FormRenderPage', () => {
       )
     })
     await waitFor(() => {
-      expect(screen.getByText(/Thank you/i)).toBeInTheDocument()
+      expect(screen.getByText(/Response recorded/i)).toBeInTheDocument()
     })
   })
 
@@ -417,7 +421,7 @@ describe('FormRenderPage', () => {
     renderFormRenderPage('form-ms')
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: /Two Step Form/i })).toBeInTheDocument()
+      expect(screen.getByText(/Two Step Form/i)).toBeInTheDocument()
     })
     fireEvent.change(screen.getByLabelText(/Field A/i), { target: { value: 'filled' } })
     fireEvent.click(screen.getByRole('button', { name: /Next/i }))
@@ -449,7 +453,7 @@ describe('FormRenderPage', () => {
     renderFormRenderPage('form-ms')
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: /Two Step Form/i })).toBeInTheDocument()
+      expect(screen.getByText(/Two Step Form/i)).toBeInTheDocument()
     })
     expect(screen.getByLabelText(/Field A/i)).toBeInTheDocument()
     fireEvent.change(screen.getByLabelText(/Field A/i), { target: { value: 'filled' } })
@@ -483,7 +487,7 @@ describe('FormRenderPage', () => {
     renderFormRenderPage('form-ms-submit')
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: /Two Step Submit/i })).toBeInTheDocument()
+      expect(screen.getByText(/Two Step Submit/i)).toBeInTheDocument()
     })
     fireEvent.change(screen.getByLabelText(/Field A/i), { target: { value: 'value A' } })
     fireEvent.click(screen.getByRole('button', { name: /Next/i }))
@@ -502,7 +506,7 @@ describe('FormRenderPage', () => {
       )
     })
     await waitFor(() => {
-      expect(screen.getByText(/Thank you/i)).toBeInTheDocument()
+      expect(screen.getByText(/Response recorded/i)).toBeInTheDocument()
     })
   })
 
@@ -512,10 +516,58 @@ describe('FormRenderPage', () => {
     renderFormRenderPage('form-1')
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: /Customer Feedback/i })).toBeInTheDocument()
+      expect(screen.getByText(/Customer Feedback/i)).toBeInTheDocument()
     })
     expect(screen.getByRole('button', { name: /Submit/i })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Next/i })).not.toBeInTheDocument()
+  })
+
+  test('drawer style: drawer is open by default, form visible and landing hidden', async () => {
+    const drawerFormConfig = {
+      feedbackForm: {
+        ...mockFormConfig.feedbackForm,
+        formStyle: 'drawer',
+        drawerDefaultOpen: true,
+      },
+    }
+    mockedAxios.get.mockResolvedValueOnce({ data: drawerFormConfig })
+
+    renderFormRenderPage('form-1')
+
+    await waitFor(() => {
+      const drawer = screen.getByTestId('form-drawer')
+      expect(drawer).toHaveAttribute('aria-hidden', 'false')
+    })
+    expect(screen.getByRole('button', { name: /Submit/i })).toBeInTheDocument()
+    expect(screen.getByLabelText(/Comment/i)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Start/i })).not.toBeInTheDocument()
+  })
+
+  test('drawer style with drawerDefaultOpen false: drawer starts closed, opens on Start click', async () => {
+    const drawerFormConfig = {
+      feedbackForm: {
+        ...mockFormConfig.feedbackForm,
+        formStyle: 'drawer',
+        drawerDefaultOpen: false,
+      },
+    }
+    mockedAxios.get.mockResolvedValueOnce({ data: drawerFormConfig })
+
+    renderFormRenderPage('form-1')
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Start/i })).toBeInTheDocument()
+    })
+    const drawer = screen.getByTestId('form-drawer')
+    await waitFor(() => {
+      expect(drawer).toHaveAttribute('aria-hidden', 'true')
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /Start/i }))
+
+    await waitFor(() => {
+      expect(drawer).toHaveAttribute('aria-hidden', 'false')
+    })
   })
 
   test('multistep form: required field empty blocks Next and shows validation', async () => {

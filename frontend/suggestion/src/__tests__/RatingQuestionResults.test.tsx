@@ -18,15 +18,14 @@ describe('RatingQuestionResults', () => {
       />,
     )
     expect(screen.getByRole('heading', { name: /Rate us/i })).toBeInTheDocument()
-    expect(screen.getByText(/out of 5 average/i)).toBeInTheDocument()
-    // (3 + 5) / 2 = 4
+    expect(screen.getByText(/out of 5/i)).toBeInTheDocument()
+    expect(screen.getByText('Average')).toBeInTheDocument()
     expect(screen.getByText('4')).toBeInTheDocument()
-    expect(screen.getByTestId('results-table-stars')).toHaveTextContent('Rating')
-    expect(screen.getByTestId('results-table-stars')).toHaveTextContent('★★★ 3 Stars')
-    expect(screen.getByTestId('results-table-stars')).toHaveTextContent('★★★★★ 5 Stars')
+    const container = screen.getByTestId('results-table-stars')
+    expect(container).toHaveTextContent('50%')
   })
 
-  it('renders table with Rating column header', () => {
+  it('renders the distribution container', () => {
     render(
       <RatingQuestionResults
         fieldName="r"
@@ -38,7 +37,6 @@ describe('RatingQuestionResults', () => {
       />,
     )
     expect(screen.getByTestId('results-table-r')).toBeInTheDocument()
-    expect(screen.getByText('Rating')).toBeInTheDocument()
   })
 
   it('does not show average when total count is zero', () => {
@@ -56,6 +54,6 @@ describe('RatingQuestionResults', () => {
       />,
     )
     expect(screen.getByRole('heading', { name: /Stars/i })).toBeInTheDocument()
-    expect(screen.queryByText(/out of 5 average/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/out of 5/i)).not.toBeInTheDocument()
   })
 })

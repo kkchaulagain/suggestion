@@ -1,7 +1,24 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+
+const DRAWER_DESKTOP_BREAKPOINT = 768
+
+function useIsDesktop() {
+  const [isDesktop, setIsDesktop] = useState(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return false
+    return window.matchMedia(`(min-width: ${DRAWER_DESKTOP_BREAKPOINT}px)`).matches
+  })
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return
+    const mql = window.matchMedia(`(min-width: ${DRAWER_DESKTOP_BREAKPOINT}px)`)
+    const handler = () => setIsDesktop(mql.matches)
+    mql.addEventListener('change', handler)
+    return () => mql.removeEventListener('change', handler)
+  }, [])
+  return isDesktop
+}
 import { useParams, Link } from 'react-router-dom'
 import axios from 'axios'
-import { Home, Send, ChevronLeft, ChevronRight, Check } from 'lucide-react'
+import { Home, Send, ChevronLeft, ChevronRight, Check, X } from 'lucide-react'
 import { feedbackFormsApi, uploadApi } from '../../utils/apipath'
 import type { FeedbackFormConfig, FeedbackFormField, FormStep } from './types'
 import { Button, Card, ErrorMessage, ThemeToggle } from '../../components/ui'
@@ -123,6 +140,8 @@ function getStepsWithFields(
 }
 
 import FormRenderFooter from './FormRenderFooter'
+import { useFormPageSEO } from './useFormPageSEO'
+import { branding } from './branding'
 
 export default function FormRenderPage() {
   const { formId } = useParams<{ formId: string }>()
@@ -135,6 +154,8 @@ export default function FormRenderPage() {
   const [submitted, setSubmitted] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [currentStepIndex, setCurrentStepIndex] = useState(0)
+  const [drawerOpen, setDrawerOpen] = useState(true)
+  const isDesktop = useIsDesktop()
 
   const stepsWithFields = useMemo(
     () => (config ? getStepsWithFields(config.steps, config.fields) : []),
@@ -177,6 +198,19 @@ export default function FormRenderPage() {
   useEffect(() => {
     void loadForm()
   }, [loadForm])
+
+  useEffect(() => {
+    if (config?.formStyle === 'drawer') {
+      setDrawerOpen(config.drawerDefaultOpen !== false)
+    }
+  }, [config?.formStyle, config?.drawerDefaultOpen])
+
+  useFormPageSEO({
+    title: config?.metaTitle ?? config?.title ?? null,
+    description: config?.metaDescription ?? config?.description ?? null,
+    siteName: branding.siteName,
+    canonicalUrl: typeof window !== 'undefined' ? window.location.href : null,
+  })
 
   const updateValue = useCallback((name: string, value: string | string[] | File | undefined) => {
     setValues((prev) => ({ ...prev, [name]: value }))
@@ -281,23 +315,39 @@ export default function FormRenderPage() {
     )
   }
 
-  if (submitted) {
+  const resolvedFormStyle = config.formStyle ?? 'default'
+  if (submitted && !(resolvedFormStyle === 'drawer' && !isDesktop)) {
     const isPollOrSurvey = config?.kind === 'poll' || config?.kind === 'survey'
+    const defaultThankYouHeadline = isPollOrSurvey ? 'Vote submitted' : 'Response recorded'
+    const defaultThankYouMessage = formId && config?.showResultsPublic
+      ? 'You can view results below.'
+      : 'Thanks for taking the time!'
+    const tyHeadline = config?.thankYouHeadline || defaultThankYouHeadline
+    const tyMessage = config?.thankYouMessage || defaultThankYouMessage
+    const tyEmoji = config?.landingEmoji || '✓'
+
     return (
       <div className="relative">
         <div className="absolute right-0 top-0 p-2">
           <ThemeToggle />
         </div>
         <Card padding="lg" className="rounded-xl text-center">
-          <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Thank you</h2>
-          <p className="mt-2 text-slate-600 dark:text-slate-300">
-            {isPollOrSurvey ? 'Thanks for voting!' : 'Your response has been recorded.'}
+          <div className="flex justify-center">
+            <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-stone-100 text-3xl dark:bg-stone-800" aria-hidden>
+              {tyEmoji}
+            </span>
+          </div>
+          <h2 className="mt-5 text-xl font-semibold text-stone-900 dark:text-stone-100">
+            {tyHeadline}
+          </h2>
+          <p className="mx-auto mt-2 max-w-xs text-sm leading-relaxed text-stone-500 dark:text-stone-400">
+            {tyMessage}
           </p>
           {formId && config?.showResultsPublic ? (
-            <div className="mt-4">
+            <div className="mt-5">
               <Link
                 to={`/feedback-forms/${formId}/results`}
-                className="inline-flex items-center gap-1.5 rounded-md bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600"
+                className="inline-flex items-center gap-1.5 rounded-xl bg-stone-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-stone-800 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-200"
                 data-testid="see-results-link"
               >
                 See results
@@ -314,27 +364,16 @@ export default function FormRenderPage() {
     ? currentStepData.fields
     : config.fields
   const isLastStep = currentStepIndex === totalSteps - 1
+  const formStyle = resolvedFormStyle
+  const formKind = config.kind ?? 'form'
+  const submitLabel =
+    formKind === 'poll' ? 'Cast Vote' : formKind === 'survey' ? 'Submit Vote' : 'Submit'
+  const submittingLabel =
+    formKind === 'poll' ? 'Submitting...' : formKind === 'survey' ? 'Submitting...' : 'Submitting...'
 
-  return (
-    <div className="min-h-[40vh] w-full max-w-full overflow-x-hidden px-0 py-2 sm:py-4">
-      <div
-        className="relative mx-auto w-full max-w-xl overflow-hidden rounded-2xl border border-stone-200/80 bg-white p-6 shadow-[0_1px_3px_0_rgba(0,0,0,0.04),0_8px_24px_-8px_rgba(0,0,0,0.08)] dark:border-stone-700/80 dark:bg-stone-900 dark:shadow-[0_1px_3px_0_rgba(0,0,0,0.2),0_8px_24px_-8px_rgba(0,0,0,0.4)] sm:p-10"
-        style={{ paddingTop: '2.5rem' }}
-      >
-        <div className="absolute right-4 top-4 z-10 sm:right-6 sm:top-6">
-          <ThemeToggle />
-        </div>
-        <div className="min-w-0 pr-10 sm:pr-12">
-          <h1 className="break-words text-2xl font-light tracking-tight text-stone-900 dark:text-stone-50 sm:text-3xl">
-            {config.title}
-          </h1>
-          {config.description ? (
-            <p className="mt-2 break-words text-sm leading-relaxed text-stone-500 dark:text-stone-400">
-              {config.description}
-            </p>
-          ) : null}
-
-        {isMultistep && currentStepData ? (
+  const formInnerContent = (
+    <>
+      {isMultistep && currentStepData ? (
           <div
             className="mt-8 min-w-0"
             aria-label={`Step ${currentStepIndex + 1} of ${totalSteps}`}
@@ -407,6 +446,8 @@ export default function FormRenderPage() {
                 value={values[field.name]}
                 onChange={updateValue}
                 error={fieldErrors[field.name]}
+                formKind={formKind}
+                formVariant="sheet"
               />
             ))}
           </div>
@@ -443,7 +484,7 @@ export default function FormRenderPage() {
                   className="w-full min-h-[48px] touch-manipulation rounded-xl bg-stone-900 font-medium text-white shadow-none transition hover:bg-stone-800 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-200 sm:min-h-[44px] sm:w-auto sm:min-w-[120px]"
                 >
                   <Send className="h-4 w-4 shrink-0" />
-                  {submitting ? 'Submitting...' : 'Submit'}
+                  {submitting ? submittingLabel : submitLabel}
                 </Button>
               ) : (
                 <Button
@@ -472,13 +513,180 @@ export default function FormRenderPage() {
                 className="w-full min-h-[48px] touch-manipulation rounded-xl bg-stone-900 font-medium text-white shadow-none transition hover:bg-stone-800 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-200 sm:min-h-[44px]"
               >
                 <Send className="h-4 w-4 shrink-0" />
-                {submitting ? 'Submitting...' : 'Submit'}
+                {submitting ? submittingLabel : submitLabel}
               </Button>
             </div>
           )}
         </form>
-        </div>
+    </>
+  )
+
+  const formCardContent = (
+    <div
+      className="relative mx-auto w-full max-w-xl overflow-hidden rounded-2xl border border-stone-200/80 bg-white p-6 dark:border-stone-700/80 dark:bg-stone-900 sm:p-10"
+      style={{ paddingTop: '2.5rem' }}
+    >
+      <div className="absolute right-4 top-4 z-10 sm:right-6 sm:top-6">
+        <ThemeToggle />
       </div>
+      <div className="min-w-0 pr-10 sm:pr-12">
+        <p className="text-xs font-medium uppercase tracking-widest text-stone-500 dark:text-stone-400">
+          {config.title}
+        </p>
+        {config.description ? (
+          <p className="mt-1 break-words text-sm leading-relaxed text-stone-500 dark:text-stone-400">
+            {config.description}
+          </p>
+        ) : null}
+        {formInnerContent}
+      </div>
+    </div>
+  )
+
+  if (formStyle === 'drawer') {
+    if (isDesktop) {
+      return (
+        <div className="min-h-[40vh] w-full max-w-full overflow-x-hidden px-0 py-2 sm:py-4">
+          {formCardContent}
+          <FormRenderFooter />
+        </div>
+      )
+    }
+    const isPollOrSurvey = formKind === 'poll' || formKind === 'survey'
+    const landingEmoji = config.landingEmoji || (isPollOrSurvey ? '🗳️' : '📋')
+    const landingHeadline = config.landingHeadline || config.title
+    const landingDesc = config.landingDescription || config.description || ''
+    const defaultCta = isPollOrSurvey ? 'Tap to vote' : 'Start'
+    const landingCta = config.landingCtaText || defaultCta
+    const fieldCount = config.fields.length
+    const kindLabel = formKind === 'poll' ? 'Poll' : formKind === 'survey' ? 'Survey' : 'Form'
+
+    return (
+      <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-[#fafaf9] dark:bg-stone-950">
+        {/* Landing / thank-you */}
+        <div
+          className={`relative mx-auto flex min-h-[80vh] w-full max-w-xl flex-col items-center justify-center px-4 py-12 text-center transition-opacity duration-300 ${
+            drawerOpen && !submitted ? 'pointer-events-none opacity-0' : 'opacity-100'
+          }`}
+          aria-hidden={drawerOpen && !submitted}
+        >
+          <div className="absolute right-4 top-4 z-10">
+            <ThemeToggle />
+          </div>
+
+          {submitted ? (() => {
+            const isPoll = formKind === 'poll' || formKind === 'survey'
+            const tyH = config.thankYouHeadline || (isPoll ? 'Vote submitted' : 'Response recorded')
+            const tyM = config.thankYouMessage || (config.showResultsPublic ? 'You can view results below.' : 'Thanks for taking the time!')
+            return (
+              <>
+                <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-stone-100 text-3xl dark:bg-stone-800" aria-hidden>
+                  {landingEmoji}
+                </span>
+                <h1 className="mt-5 text-2xl font-semibold tracking-tight text-stone-900 dark:text-stone-50 sm:text-3xl">
+                  {tyH}
+                </h1>
+                <p className="mx-auto mt-3 max-w-sm text-sm leading-relaxed text-stone-500 dark:text-stone-400">
+                  {tyM}
+                </p>
+                {formId && config.showResultsPublic ? (
+                  <Link
+                    to={`/feedback-forms/${formId}/results`}
+                    className="mt-6 inline-flex items-center gap-1.5 rounded-xl bg-stone-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-stone-800 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-200"
+                    data-testid="see-results-link"
+                  >
+                    See results
+                  </Link>
+                ) : null}
+              </>
+            )
+          })() : (
+            <>
+              <span className="text-5xl" aria-hidden>{landingEmoji}</span>
+
+              <h1 className="mt-5 break-words text-2xl font-semibold tracking-tight text-stone-900 dark:text-stone-50 sm:text-3xl">
+                {landingHeadline}
+              </h1>
+
+              {landingDesc ? (
+                <p className="mx-auto mt-3 max-w-sm break-words text-sm leading-relaxed text-stone-500 dark:text-stone-400">
+                  {landingDesc}
+                </p>
+              ) : null}
+
+              <div className="mt-4 flex items-center gap-2 text-xs text-stone-400 dark:text-stone-500">
+                <span className="rounded-full bg-stone-200/80 px-2.5 py-0.5 font-medium dark:bg-stone-800">{kindLabel}</span>
+                <span>·</span>
+                <span>{fieldCount} {fieldCount === 1 ? 'question' : 'questions'}</span>
+              </div>
+
+              <Button
+                type="button"
+                size="md"
+                className="mt-8 min-h-12 w-full max-w-xs rounded-xl bg-stone-900 px-6 font-medium text-white dark:bg-stone-100 dark:text-stone-900"
+                onClick={() => setDrawerOpen(true)}
+              >
+                {landingCta}
+              </Button>
+            </>
+          )}
+
+          <FormRenderFooter />
+        </div>
+
+        {/* Backdrop when drawer is open: dims page and closes drawer on tap */}
+        {drawerOpen && !submitted ? (
+          <button
+            type="button"
+            className="fixed inset-0 z-20 bg-stone-900/20 backdrop-blur-[2px] transition-opacity dark:bg-stone-950/30"
+            onClick={() => setDrawerOpen(false)}
+            aria-label="Close form"
+          />
+        ) : null}
+
+        {!submitted ? (
+          <div
+            data-testid="form-drawer"
+            className="fixed inset-x-0 bottom-0 z-30 flex max-h-[88vh] flex-col rounded-t-2xl bg-white shadow-[0_-4px_24px_rgba(0,0,0,0.08)] transition-transform duration-300 ease-out dark:bg-stone-900 dark:shadow-[0_-4px_24px_rgba(0,0,0,0.25)]"
+            style={{ transform: drawerOpen ? 'translateY(0)' : 'translateY(calc(100% - 56px))' }}
+            aria-hidden={!drawerOpen}
+          >
+            {!drawerOpen ? (
+              <button
+                type="button"
+                className="flex w-full shrink-0 cursor-pointer items-center justify-center gap-2 border-b border-stone-200/80 py-3 dark:border-stone-700/80"
+                onClick={() => setDrawerOpen(true)}
+                aria-label="Open form"
+              >
+                <span className="h-1 w-10 rounded-full bg-stone-300 dark:bg-stone-600" aria-hidden />
+              </button>
+            ) : null}
+            <header className="flex shrink-0 items-center justify-between border-b border-stone-200/80 px-4 py-3 dark:border-stone-700/80">
+              <span className="text-sm font-medium text-stone-900 dark:text-stone-100">{config.title}</span>
+              <div className="flex items-center gap-1">
+                <ThemeToggle />
+                <button
+                  type="button"
+                  onClick={() => setDrawerOpen(false)}
+                  className="-mr-1 rounded-full p-2 text-stone-500 hover:bg-stone-100 hover:text-stone-700 dark:hover:bg-stone-800 dark:hover:text-stone-300"
+                  aria-label="Close"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            </header>
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-8 pt-5">
+              {formInnerContent}
+            </div>
+          </div>
+        ) : null}
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-[40vh] w-full max-w-full overflow-x-hidden px-0 py-2 sm:py-4">
+      {formCardContent}
       <FormRenderFooter />
     </div>
   )

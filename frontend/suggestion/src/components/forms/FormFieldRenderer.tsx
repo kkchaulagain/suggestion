@@ -9,6 +9,7 @@ import {
   NameField,
   EmailField,
   Scale1To10Field,
+  ScaleChipsField,
   PhoneField,
   DateField,
   TimeField,
@@ -57,6 +58,9 @@ export interface FormFieldConfig {
   scaleMaxLabel?: string
 }
 
+export type FormKind = 'form' | 'poll' | 'survey'
+export type FormVariant = 'default' | 'sheet'
+
 export interface FormFieldRendererProps {
   field: FormFieldConfig
   value: string | string[] | File | undefined
@@ -64,6 +68,10 @@ export interface FormFieldRendererProps {
   disabled?: boolean
   error?: string
   labelActions?: ReactNode
+  /** When 'sheet', question label is emphasized (hero). */
+  formVariant?: FormVariant
+  /** When 'poll' or 'survey', scale fields can render as emoji chips. */
+  formKind?: FormKind
 }
 
 export default function FormFieldRenderer({
@@ -73,15 +81,20 @@ export default function FormFieldRenderer({
   disabled = false,
   error,
   labelActions,
+  formVariant = 'default',
+  formKind,
 }: FormFieldRendererProps) {
   const id = `field-${field.name}`
+  const isHeroLabel = formVariant === 'sheet'
   const labelNode = (
-    <span className="inline-flex flex-wrap items-center gap-3">
-      <span className="inline-flex min-w-0 items-center gap-1">
-        <span className="truncate">{field.label}</span>
-        {field.required ? <span className="text-rose-600 dark:text-rose-400" aria-hidden>*</span> : null}
+    <span className={isHeroLabel ? 'text-lg font-semibold text-stone-900 dark:text-stone-50 sm:text-xl' : undefined}>
+      <span className="inline-flex flex-wrap items-center gap-3">
+        <span className="inline-flex min-w-0 items-center gap-1">
+          <span className="truncate">{field.label}</span>
+          {field.required ? <span className="text-rose-600 dark:text-rose-400" aria-hidden>*</span> : null}
+        </span>
+        {labelActions ? <span className="inline-flex shrink-0 items-center">{labelActions}</span> : null}
       </span>
-      {labelActions ? <span className="inline-flex shrink-0 items-center">{labelActions}</span> : null}
     </span>
   )
 
@@ -238,13 +251,32 @@ export default function FormFieldRenderer({
     )
   }
 
-  if ((t === 'scale' || t === 'scale_1_10')) {
+  if (t === 'scale' || t === 'scale_1_10') {
+    const useChips = (formKind === 'poll' || formKind === 'survey')
+    const scaleValue = typeof value === 'string' ? value : ''
+    const chipsValue = useChips && scaleValue && !['2', '4', '6', '8', '10'].includes(scaleValue)
+      ? '6'
+      : scaleValue
+    if (useChips) {
+      return (
+        <ScaleChipsField
+          id={id}
+          name={field.name}
+          label={labelNode}
+          value={chipsValue}
+          onChange={(v) => handleChange(v)}
+          disabled={disabled}
+          required={field.required}
+          error={error}
+        />
+      )
+    }
     return (
       <Scale1To10Field
         id={id}
         name={field.name}
         label={labelNode}
-        value={typeof value === 'string' ? value : ''}
+        value={scaleValue}
         onChange={(v) => handleChange(v)}
         disabled={disabled}
         required={field.required}

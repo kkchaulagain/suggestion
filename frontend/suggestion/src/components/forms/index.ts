@@ -4,6 +4,8 @@ export type {
   FormFieldRendererProps,
   FormFieldConfig,
   FormFieldType,
+  FormKind,
+  FormVariant,
 } from './FormFieldRenderer'
 
 export {
@@ -14,6 +16,7 @@ export {
   RadioField,
   StarRatingField,
   Scale1To10Field,
+  ScaleChipsField,
   ImageUploadField,
   NameField,
   EmailField,
@@ -32,6 +35,7 @@ export type {
   RadioFieldProps,
   StarRatingFieldProps,
   Scale1To10FieldProps,
+  ScaleChipsFieldProps,
   ImageUploadFieldProps,
   NameFieldProps,
   EmailFieldProps,

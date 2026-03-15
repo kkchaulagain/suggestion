@@ -274,6 +274,23 @@ describe('FormFieldRenderer', () => {
     expect(onChange).toHaveBeenCalledWith('score', '3')
   })
 
+  test('renders scale as emoji chips when formKind is poll', () => {
+    const onChange = jest.fn()
+    render(
+      <FormFieldRenderer
+        field={{ name: 'satisfaction', label: 'How satisfied?', type: 'scale', required: true }}
+        value=""
+        onChange={onChange}
+        formKind="poll"
+      />,
+    )
+    expect(screen.getByText(/How satisfied?/i)).toBeInTheDocument()
+    const neutralButton = screen.getByRole('button', { name: /Neutral/i })
+    expect(neutralButton).toBeInTheDocument()
+    fireEvent.click(neutralButton)
+    expect(onChange).toHaveBeenCalledWith('satisfaction', '6')
+  })
+
   test('renders rating type as StarRatingField', () => {
     const onChange = jest.fn()
     const options = ['★ 1 Star', '★★ 2 Stars', '★★★ 3 Stars', '★★★★ 4 Stars', '★★★★★ 5 Stars']

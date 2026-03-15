@@ -117,6 +117,7 @@ const formStepSchema = new mongoose.Schema(
 );
 
 const FORM_KINDS = ['form', 'poll', 'survey'] as const;
+const FORM_STYLES = ['default', 'drawer'] as const;
 
 const feedbackFormSchema = new mongoose.Schema(
   {
@@ -124,6 +125,15 @@ const feedbackFormSchema = new mongoose.Schema(
       type: String,
       enum: { values: FORM_KINDS, message: 'Kind must be form, poll, or survey' },
       default: 'form',
+    },
+    formStyle: {
+      type: String,
+      enum: { values: FORM_STYLES, message: 'Form style must be default or drawer' },
+      default: 'default',
+    },
+    drawerDefaultOpen: {
+      type: Boolean,
+      default: true,
     },
     businessId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -141,6 +151,46 @@ const feedbackFormSchema = new mongoose.Schema(
       type: String,
       trim: true,
       maxlength: 1000,
+    },
+    metaTitle: {
+      type: String,
+      trim: true,
+      maxlength: 120,
+    },
+    metaDescription: {
+      type: String,
+      trim: true,
+      maxlength: 160,
+    },
+    landingHeadline: {
+      type: String,
+      trim: true,
+      maxlength: 120,
+    },
+    landingDescription: {
+      type: String,
+      trim: true,
+      maxlength: 300,
+    },
+    landingCtaText: {
+      type: String,
+      trim: true,
+      maxlength: 40,
+    },
+    landingEmoji: {
+      type: String,
+      trim: true,
+      maxlength: 4,
+    },
+    thankYouHeadline: {
+      type: String,
+      trim: true,
+      maxlength: 120,
+    },
+    thankYouMessage: {
+      type: String,
+      trim: true,
+      maxlength: 300,
     },
     showResultsPublic: {
       type: Boolean,
