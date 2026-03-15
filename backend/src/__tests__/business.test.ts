@@ -8,7 +8,7 @@ const User = require('../models/User');
 const { buildBusiness } = require('./factories/businessFactory');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'default_secret_key';
-let adminToken;
+let adminToken: string;
 
 beforeAll(async () => {
   await connect();
@@ -33,11 +33,11 @@ afterAll(async () => {
   await disconnect();
 });
 
-const authGet = (path) =>
+const authGet = (path: string) =>
   request(app).get(path).set('Authorization', `Bearer ${adminToken}`);
-const authPut = (path) =>
+const authPut = (path: string) =>
   request(app).put(path).set('Authorization', `Bearer ${adminToken}`);
-const authDelete = (path) =>
+const authDelete = (path: string) =>
   request(app).delete(path).set('Authorization', `Bearer ${adminToken}`);
 
 describe('GET /api/v1/business', () => {
@@ -63,7 +63,7 @@ describe('GET /api/v1/business', () => {
         owner: ownerId,
         businessname: 'Acme Corp',
         location: 'Lalitpur',
-        pancardNumber: 987654321,
+        pancardNumber: '987654321',
         description: 'Acme description',
       })
     );
@@ -74,7 +74,7 @@ describe('GET /api/v1/business', () => {
     expect(res.body.businesses[0]).toMatchObject({
       businessname: 'Acme Corp',
       location: 'Lalitpur',
-      pancardNumber: 987654321,
+      pancardNumber: '987654321',
       description: 'Acme description',
     });
     expect(res.body.businesses[0]).toHaveProperty('id');
@@ -102,7 +102,7 @@ describe('GET /api/v1/business/:id', () => {
       buildBusiness({
         businessname: 'Acme Corp',
         location: 'Lalitpur',
-        pancardNumber: 987654321,
+        pancardNumber: '987654321',
         description: 'Acme description',
       })
     );
@@ -112,7 +112,7 @@ describe('GET /api/v1/business/:id', () => {
     expect(res.body.business).toMatchObject({
       businessname: 'Acme Corp',
       location: 'Lalitpur',
-      pancardNumber: 987654321,
+      pancardNumber: '987654321',
       description: 'Acme description',
     });
     expect(res.body.business).toHaveProperty('id', String(created._id));
@@ -144,7 +144,7 @@ describe('Delete /api/v1/bussines/:id',()=>
         buildBusiness({
           businessname:'aaru group',
           location:'Nepal',
-          pancardNumber:90090902,
+          pancardNumber: '90090902',
           description:'Tryinging to do ',
         })
       );
@@ -189,7 +189,7 @@ it('should return 400 if no valid fields sent', async () => {
     buildBusiness({
       businessname: 'Himalayan Traders',
       location: 'Kathmandu',
-      pancardNumber: 123456789,
+      pancardNumber: '123456789',
       description: 'Trading company in Kathmandu',
     })
   );
@@ -210,7 +210,7 @@ it('should not allow owner to be changed', async () => {
     buildBusiness({
       businessname: 'Everest Enterprises',
       location: 'Pokhara',
-      pancardNumber: 987654321,
+      pancardNumber: '987654321',
       description: 'Trekking and tourism company',
     })
   );
@@ -232,7 +232,7 @@ it('should return 200 and update only sent fields', async () => {
     buildBusiness({
       businessname: 'Pashupatinath Handicrafts',
       location: 'Bhaktapur',
-      pancardNumber: 456789123,
+      pancardNumber: '456789123',
       description: 'Traditional handicrafts from Bhaktapur',
     })
   );

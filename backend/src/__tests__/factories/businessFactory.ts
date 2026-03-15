@@ -2,9 +2,10 @@ const mongoose = require('mongoose');
 
 const defaults = {
   owner: new mongoose.Types.ObjectId(),
+  type: 'commercial',
   businessname: 'Test Business',
   location: 'Kathmandu',
-  pancardNumber: 123456789,
+  pancardNumber: '123456789',
   description: 'Test business description',
 };
 

@@ -1,4 +1,5 @@
 import { UserCircle } from 'lucide-react'
+import { getAvatarPresetById } from '../../constants/avatars'
 
 export type AvatarSize = 'sm' | 'md' | 'lg'
 
@@ -17,7 +18,9 @@ const iconSizes: Record<AvatarSize, string> = {
 export interface AvatarProps {
   /** Image URL. When provided, renders an img; otherwise shows fallback. */
   src?: string | null
-  /** Optional name for initials fallback (e.g. "Jane Doe" → "JD"). Not used when src is provided. */
+  /** Preset avatar id (e.g. avatar-1). When provided with no src, renders the preset icon. */
+  avatarId?: string | null
+  /** Optional name for initials fallback (e.g. "Jane Doe" → "JD"). Not used when src or avatarId is provided. */
   name?: string | null
   size?: AvatarSize
   /** Accessible description of the avatar (e.g. "Profile photo"). */
@@ -26,10 +29,17 @@ export interface AvatarProps {
 }
 
 /**
- * Reusable avatar: image, initials, or icon fallback.
+ * Reusable avatar: image, preset icon, initials, or icon fallback.
  * Use for profile pictures and consistent user representation across the app.
  */
-export default function Avatar({ src, name, size = 'md', alt = 'User avatar', className = '' }: AvatarProps) {
+export default function Avatar({
+  src,
+  avatarId,
+  name,
+  size = 'md',
+  alt = 'User avatar',
+  className = '',
+}: AvatarProps) {
   const sizeClass = sizeClasses[size]
   const iconSize = iconSizes[size]
 
@@ -43,6 +53,20 @@ export default function Avatar({ src, name, size = 'md', alt = 'User avatar', cl
         alt={alt}
         className={`${sizeClass} ${baseClass} object-cover ${className}`}
       />
+    )
+  }
+
+  const preset = getAvatarPresetById(avatarId)
+  if (preset) {
+    const Icon = preset.icon
+    return (
+      <div
+        className={`${sizeClass} ${baseClass} ${className}`}
+        role="img"
+        aria-label={alt}
+      >
+        <Icon className={iconSize} />
+      </div>
     )
   }
 

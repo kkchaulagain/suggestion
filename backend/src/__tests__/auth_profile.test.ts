@@ -49,9 +49,10 @@ describe('Auth Profile Endpoints', () => {
 
     await Business.create({
       owner: businessUser._id,
+      type: 'commercial',
       businessname: 'Test Business',
       location: 'Test Location',
-      pancardNumber: 12345678,
+      pancardNumber: '12345678',
       description: 'Test Description',
     });
   });
@@ -66,6 +67,17 @@ describe('Auth Profile Endpoints', () => {
       expect(res.body.success).toBe(true);
       expect(res.body.data.email).toBe('user@example.com');
       expect(res.body.data.name).toBe('Regular User');
+      expect(res.body.data).toHaveProperty('avatarId');
+    });
+
+    it('returns avatarId when user has avatarId set', async () => {
+      await User.findByIdAndUpdate(userId, { avatarId: 'avatar-2' });
+      const res = await request(app)
+        .get('/api/auth/me')
+        .set('Cookie', [`token=${userToken}`])
+        .expect(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.avatarId).toBe('avatar-2');
     });
 
     it('returns 404 if user not found', async () => {
@@ -152,6 +164,33 @@ describe('Auth Profile Endpoints', () => {
 
       const updatedUser = await User.findById(userId);
       expect(updatedUser.name).toBe('Updated Name');
+    });
+
+    it('returns 200 and updates avatarId when provided', async () => {
+      const res = await request(app)
+        .put('/api/auth/me')
+        .set('Cookie', [`token=${userToken}`])
+        .send({ name: 'Regular User', avatarId: 'avatar-3' })
+        .expect(200);
+
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.avatarId).toBe('avatar-3');
+
+      const updatedUser = await User.findById(userId);
+      expect(updatedUser.avatarId).toBe('avatar-3');
+    });
+
+    it('returns 200 and clears avatarId when set to null', async () => {
+      await User.findByIdAndUpdate(userId, { avatarId: 'avatar-1' });
+      const res = await request(app)
+        .put('/api/auth/me')
+        .set('Cookie', [`token=${userToken}`])
+        .send({ name: 'Regular User', avatarId: null })
+        .expect(200);
+
+      expect(res.body.success).toBe(true);
+      const updatedUser = await User.findById(userId);
+      expect(updatedUser.avatarId).toBeUndefined();
     });
 
     it('returns 400 if name is missing', async () => {

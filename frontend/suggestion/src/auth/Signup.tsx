@@ -3,8 +3,9 @@ import type { FormEvent, JSX } from 'react'
 import axios from 'axios'
 import { userapi } from '../utils/apipath'
 import { useNavigate } from 'react-router-dom'
-import { Building2, CheckCircle, CreditCard, Lock, Mail, MapPin, User } from 'lucide-react'
-import { Button, Input, Select, Textarea, ErrorMessage, ThemeToggle, Label } from '../components/ui'
+import { Building2, CheckCircle, CreditCard, Lock, Mail, MapPin, User, UserCircle } from 'lucide-react'
+import { Button, Input, Textarea, ErrorMessage, ThemeToggle, Label } from '../components/ui'
+import AvatarPicker from '../components/AvatarPicker'
 import PhoneInput from 'react-phone-input-2'
 import '../styles/react-phone-input-2.css'
 
@@ -18,6 +19,7 @@ type FieldErrors = {
   description?: string
   pancardNumber?: string
   businessname?: string
+  avatarId?: string
   general?: string
 }
 
@@ -34,6 +36,7 @@ export default function Signup(): JSX.Element {
   const [description, setDescription] = useState('')
   const [pancardNumber, setPancardNumber] = useState('')
   const [businessname, setBusinessname] = useState('')
+  const [avatarId, setAvatarId] = useState<string | null>(null)
   const [errors, setErrors] = useState<FieldErrors>({})
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
@@ -41,13 +44,14 @@ export default function Signup(): JSX.Element {
     e.preventDefault()
     setErrors({})
 
-    // Prepare data based on role
     const data: Record<string, unknown> = { name, email, password, phone, role }
-    if (role === 'business') {
-      data.location = location
-      data.description = description
-      data.pancardNumber = pancardNumber ? parseInt(pancardNumber) : undefined
+    if (role === 'user') {
+      if (avatarId) data.avatarId = avatarId
+    } else {
       data.businessname = businessname
+      data.description = description
+      if (location.trim()) data.location = location.trim()
+      if (pancardNumber.trim()) data.pancardNumber = pancardNumber.trim()
     }
 
     try {
@@ -90,6 +94,7 @@ export default function Signup(): JSX.Element {
           description: mapped.description,
           pancardNumber: mapped.pancardNumber,
           businessname: mapped.businessname,
+          avatarId: mapped.avatarId,
           general: mapped.general,
         } as FieldErrors)
       } else if (typeof errMsg === 'string' || typeof message === 'string') {
@@ -100,7 +105,7 @@ export default function Signup(): JSX.Element {
     }
   }
 
-  const isBusiness = role === 'business'
+  const isBusiness = role === 'business' || role === 'governmentservices'
 
   const authBackground =
     'bg-[radial-gradient(55rem_28rem_at_90%_-20%,#c8efe3_5%,transparent_65%),radial-gradient(42rem_25rem_at_-10%_120%,#ffcfa6_5%,transparent_65%),linear-gradient(140deg,#fffdf8_0%,#f5fbff_100%)] dark:bg-[radial-gradient(55rem_28rem_at_90%_-20%,rgba(45,212,191,0.12)_5%,transparent_65%),linear-gradient(140deg,#0f172a_0%,#1e293b_100%)]'
@@ -211,26 +216,71 @@ export default function Signup(): JSX.Element {
                 {errors.phone ? <ErrorMessage message={errors.phone} size="sm" className="mt-0.5" /> : null}
               </div>
 
-              <Select
-                id="role"
-                label="Account Type"
-                value={role}
-                onChange={(value) => {
-                  setRole(value as UserRole)
-                  setErrors((prev) => ({ ...prev, role: undefined }))
-                  if (value !== 'business') {
-                    setLocation('')
-                    setDescription('')
-                    setPancardNumber('')
-                  }
-                }}
-                options={[
-                  { value: 'user', label: 'User' },
-                  { value: 'business', label: 'Business' },
-                  { value: 'governmentservices', label: 'Government' },
-                ]}
-                error={errors.role}
-              />
+              <div className="space-y-2">
+                <Label>Account Type</Label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRole('user')
+                      setErrors((prev) => ({ ...prev, role: undefined }))
+                      setLocation('')
+                      setDescription('')
+                      setPancardNumber('')
+                      setBusinessname('')
+                    }}
+                    className={`flex flex-col items-center gap-2 rounded-xl border-2 p-4 text-left transition ${
+                      role === 'user'
+                        ? 'border-emerald-500 bg-emerald-50 dark:border-emerald-400 dark:bg-emerald-900/20'
+                        : 'border-slate-200 bg-white hover:border-slate-300 dark:border-slate-600 dark:bg-slate-800 dark:hover:border-slate-500'
+                    }`}
+                  >
+                    <UserCircle className="h-8 w-8 text-slate-600 dark:text-slate-300" />
+                    <span className="font-semibold text-slate-800 dark:text-slate-100">Personal</span>
+                    <span className="text-xs text-slate-500 dark:text-slate-400">Just you, no paperwork. We&apos;ll create your space in the background.</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRole('business')
+                      setErrors((prev) => ({ ...prev, role: undefined }))
+                    }}
+                    className={`flex flex-col items-center gap-2 rounded-xl border-2 p-4 text-left transition ${
+                      role === 'business'
+                        ? 'border-emerald-500 bg-emerald-50 dark:border-emerald-400 dark:bg-emerald-900/20'
+                        : 'border-slate-200 bg-white hover:border-slate-300 dark:border-slate-600 dark:bg-slate-800 dark:hover:border-slate-500'
+                    }`}
+                  >
+                    <Building2 className="h-8 w-8 text-slate-600 dark:text-slate-300" />
+                    <span className="font-semibold text-slate-800 dark:text-slate-100">Business</span>
+                    <span className="text-xs text-slate-500 dark:text-slate-400">For shops, brands & orgs. You&apos;ll add business details next.</span>
+                  </button>
+                </div>
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRole('governmentservices')
+                      setErrors((prev) => ({ ...prev, role: undefined }))
+                    }}
+                    className={`text-xs font-medium text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 ${
+                      role === 'governmentservices' ? 'text-emerald-600 dark:text-emerald-400' : ''
+                    }`}
+                  >
+                    I&apos;m signing up as Government
+                  </button>
+                </div>
+                {errors.role ? <ErrorMessage message={errors.role} size="sm" /> : null}
+              </div>
+
+              {role === 'user' && (
+                <AvatarPicker
+                  value={avatarId}
+                  onChange={setAvatarId}
+                  label="Pick your vibe"
+                  aria-label="Choose your avatar"
+                />
+              )}
 
               {isBusiness && (
                 <>
@@ -249,7 +299,7 @@ export default function Signup(): JSX.Element {
                   />
                   <Input
                     id="location"
-                    label={<>Location <span className="text-gray-400">(required for business)</span></>}
+                    label={<>Location <span className="text-gray-400">(optional)</span></>}
                     type="text"
                     value={location}
                     onChange={(v) => {
@@ -276,11 +326,11 @@ export default function Signup(): JSX.Element {
 
                   <Input
                     id="pancardNumber"
-                    label={<>PAN Card Number <span className="text-gray-400">(required for business)</span></>}
+                    label={<>PAN Card Number <span className="text-gray-400">(optional)</span></>}
                     type="text"
                     value={pancardNumber}
                     onChange={(v) => {
-                      setPancardNumber(v.replace(/[^0-9]/g, ''))
+                      setPancardNumber(v)
                       setErrors((prev) => ({ ...prev, pancardNumber: undefined }))
                     }}
                     placeholder="Enter PAN card number"

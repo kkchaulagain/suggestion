@@ -131,30 +131,37 @@ describe('Signup Component', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/login')
   })
 
-  test('shows business-only fields and sanitizes PAN to digits', () => {
+  test('with Personal selected, shows avatar picker and hides business fields', () => {
     renderSignup()
 
-    fireEvent.change(screen.getByLabelText(/Account Type/i), {
-      target: { value: 'business' },
-    })
+    expect(screen.getByText(/Pick your vibe/i)).toBeInTheDocument()
+    expect(screen.queryByLabelText(/Business Name/i)).not.toBeInTheDocument()
+  })
+
+  test('with Business selected, shows business fields and hides avatar picker', () => {
+    renderSignup()
+
+    fireEvent.click(screen.getByRole('button', { name: /Business/i }))
 
     expect(screen.getByLabelText(/Business Name/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/Location/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/Description/i)).toBeInTheDocument()
+    expect(screen.queryByText(/Pick your vibe/i)).not.toBeInTheDocument()
+  })
 
-    const panInput = screen.getByLabelText(/PAN Card Number/i) as HTMLInputElement
-    fireEvent.change(panInput, { target: { value: 'AB12-34x' } })
-    expect(panInput.value).toBe('1234')
+  test('switching to Personal hides business fields and shows avatar picker', () => {
+    renderSignup()
 
-    fireEvent.change(screen.getByLabelText(/Account Type/i), {
-      target: { value: 'user' },
-    })
+    fireEvent.click(screen.getByRole('button', { name: /Business/i }))
+    expect(screen.getByLabelText(/Business Name/i)).toBeInTheDocument()
 
+    fireEvent.click(screen.getByRole('button', { name: /Personal/i }))
     expect(screen.queryByLabelText(/Business Name/i)).not.toBeInTheDocument()
+    expect(screen.getByText(/Pick your vibe/i)).toBeInTheDocument()
   })
 
   interface SignupSuccessResponse { data: { message: string } }
-  test('submits business payload with parsed pancard number', async () => {
+  test('submits business payload with business fields', async () => {
     mockedAxios.post.mockResolvedValueOnce({
       data: { message: 'Business created successfully' },
     } as SignupSuccessResponse)
@@ -170,9 +177,7 @@ describe('Signup Component', () => {
     fireEvent.change(screen.getByLabelText(/^Password$/i), {
       target: { value: '12345678' },
     })
-    fireEvent.change(screen.getByLabelText(/Account Type/i), {
-      target: { value: 'business' },
-    })
+    fireEvent.click(screen.getByRole('button', { name: /Business/i }))
     fireEvent.change(screen.getByLabelText(/Business Name/i), {
       target: { value: 'Acme Traders' },
     })
@@ -199,10 +204,32 @@ describe('Signup Component', () => {
         businessname: 'Acme Traders',
         location: 'Kathmandu',
         description: 'Retail store',
-        pancardNumber: 123456,
+        pancardNumber: '123456',
       }),
       expect.anything(),
     )
+  })
+
+  test('submits personal payload with role user and optional avatarId', async () => {
+    mockedAxios.post.mockResolvedValueOnce({
+      data: { message: 'User registered successfully' },
+    } as SignupSuccessResponse)
+
+    renderSignup()
+
+    fireEvent.change(screen.getByLabelText(/^Name$/i), { target: { value: 'Jane' } })
+    fireEvent.change(screen.getByLabelText(/^Email$/i), { target: { value: 'jane@example.com' } })
+    fireEvent.change(screen.getByLabelText(/^Password$/i), { target: { value: 'secret123' } })
+    fireEvent.click(screen.getByRole('button', { name: /Sign Up/i }))
+
+    await waitFor(() => {
+      expect(mockedAxios.post).toHaveBeenCalled()
+    })
+
+    const payload = mockedAxios.post.mock.calls[0][1]
+    expect(payload.role).toBe('user')
+    expect(payload.businessname).toBeUndefined()
+    expect(payload.description).toBeUndefined()
   })
 
   test('shows field-level error from single field response shape', async () => {
