@@ -1,5 +1,6 @@
 const app = require('./app');
 const { connect } = require('./db');
+const { logger } = require('./logger');
 
 const PORT = process.env.PORT || 3000;
 
@@ -17,6 +18,6 @@ async function start() {
 }
 
 start().catch((err: unknown) => {
-  console.error(err);
+  logger.error('Server start failed', err);
   process.exit(1);
 });
