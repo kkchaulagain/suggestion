@@ -1,20 +1,29 @@
 /**
  * Branding for the public form render experience (footer, SEO suffix).
  * Configure via env: VITE_APP_NAME, VITE_APP_TAGLINE, VITE_APP_LOGO_URL.
+ *
+ * Keep this file Jest-safe by avoiding direct `import.meta` syntax at parse time.
  */
-function getEnv(): Record<string, string | undefined> {
+type EnvMap = Record<string, string | undefined>
+
+function getProcessEnv(): EnvMap {
   if (typeof process !== 'undefined' && process.env) {
-    return process.env as Record<string, string | undefined>
+    return process.env as EnvMap
   }
   return {}
 }
 
-// Vite injects at build time; use import.meta.env only when available (browser)
-const viteEnv =
-  typeof import.meta !== 'undefined' && (import.meta as { env?: Record<string, string> }).env
-    ? (import.meta as { env: Record<string, string> }).env
-    : null
-const env = viteEnv ?? getEnv()
+function getViteEnv(): EnvMap | null {
+  try {
+    return new Function(
+      'return typeof import.meta !== "undefined" && import.meta.env ? import.meta.env : null'
+    )() as EnvMap | null
+  } catch {
+    return null
+  }
+}
+
+const env = getViteEnv() ?? getProcessEnv()
 
 export const branding = {
   /** Site/app name shown in footer and as title suffix (e.g. "My Company") */
