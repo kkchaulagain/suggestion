@@ -1,2 +1,3 @@
 #!/usr/bin/env sh
-npm run check:coverage && npm run check:diff-cover
+# Run lint + tests (no coverage). Use check:coverage + check:diff-cover in CI.
+npm run check
