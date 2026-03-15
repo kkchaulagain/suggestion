@@ -23,7 +23,12 @@ import UsersPage from './pages/business-dashboard/pages/UsersPage'
 
 function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter
+      future={{
+        v7_startTransition: true,
+        v7_relativeSplatPath: true,
+      }}
+    >
       <ThemeProvider>
         <AuthProvider>
           <Routes>

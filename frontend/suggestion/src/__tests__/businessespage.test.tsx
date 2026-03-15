@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom'
-import { MemoryRouter } from 'react-router-dom'
+import { TestRouter } from './test-router'
 import axios from 'axios'
 
 import BusinessesPage from '../pages/business-dashboard/pages/BusinessesPage'
@@ -16,9 +16,9 @@ jest.mock('../context/AuthContext', () => ({
 
 function renderBusinessesPage() {
   return render(
-    <MemoryRouter>
+    <TestRouter>
       <BusinessesPage />
-    </MemoryRouter>,
+    </TestRouter>,
   )
 }
 

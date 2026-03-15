@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import '@testing-library/jest-dom'
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { Route, Routes } from 'react-router-dom'
+import { TestRouter } from './test-router'
 import axios from 'axios'
 
 import CreateFormPage from '../pages/business-dashboard/pages/CreateFormPage'
@@ -25,12 +26,12 @@ jest.mock('react-router-dom', () => ({
 
 function renderCreateFormPage(path = '/dashboard/forms/create') {
   return render(
-    <MemoryRouter initialEntries={[path]}>
+    <TestRouter initialEntries={[path]}>
       <Routes>
         <Route path="/dashboard/forms/create" element={<CreateFormPage />} />
         <Route path="/dashboard/forms/:formId/edit" element={<CreateFormPage />} />
       </Routes>
-    </MemoryRouter>,
+    </TestRouter>,
   )
 }
 

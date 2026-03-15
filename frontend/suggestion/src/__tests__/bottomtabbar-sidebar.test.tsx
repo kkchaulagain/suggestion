@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import '@testing-library/jest-dom'
-import { MemoryRouter } from 'react-router-dom'
+import { TestRouter } from './test-router'
 import { FileText, Inbox } from 'lucide-react'
 
 import BottomTabBar from '../pages/business-dashboard/components/BottomTabBar'
@@ -14,9 +14,9 @@ const items = [
 describe('BottomTabBar', () => {
   test('renders shortened labels and links', () => {
     render(
-      <MemoryRouter initialEntries={['/dashboard/submissions']}>
+      <TestRouter initialEntries={['/dashboard/submissions']}>
         <BottomTabBar items={items} />
-      </MemoryRouter>,
+      </TestRouter>,
     )
 
     expect(screen.getByRole('navigation', { name: /main navigation/i })).toBeInTheDocument()
@@ -28,9 +28,9 @@ describe('BottomTabBar', () => {
 describe('Sidebar', () => {
   test('renders brand text and nav links', () => {
     render(
-      <MemoryRouter initialEntries={['/dashboard/forms']}>
+      <TestRouter initialEntries={['/dashboard/forms']}>
         <Sidebar items={items} />
-      </MemoryRouter>,
+      </TestRouter>,
     )
 
     expect(screen.getByText('Suggestion Suite')).toBeInTheDocument()

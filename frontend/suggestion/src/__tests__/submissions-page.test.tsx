@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom'
-import { MemoryRouter } from 'react-router-dom'
+import { TestRouter } from './test-router'
 import axios from 'axios'
 
 import SubmissionsPage from '../pages/business-dashboard/pages/SubmissionsPage'
@@ -24,9 +24,9 @@ describe('SubmissionsPage', () => {
       .mockResolvedValueOnce({ data: { submissions: [], total: 0 } })
 
     render(
-      <MemoryRouter>
+      <TestRouter>
         <SubmissionsPage />
-      </MemoryRouter>,
+      </TestRouter>,
     )
 
     expect(screen.getByText(/Loading submissions/i)).toBeInTheDocument()
@@ -47,9 +47,9 @@ describe('SubmissionsPage', () => {
       .mockRejectedValueOnce(new Error('Network error'))
 
     render(
-      <MemoryRouter>
+      <TestRouter>
         <SubmissionsPage />
-      </MemoryRouter>,
+      </TestRouter>,
     )
 
     await waitFor(() => {
@@ -76,9 +76,9 @@ describe('SubmissionsPage', () => {
       .mockResolvedValueOnce({ data: { submissions, total: 1 } })
 
     render(
-      <MemoryRouter>
+      <TestRouter>
         <SubmissionsPage />
-      </MemoryRouter>,
+      </TestRouter>,
     )
 
     await waitFor(() => {
@@ -124,9 +124,9 @@ describe('SubmissionsPage', () => {
       .mockResolvedValueOnce({ data: { submissions, total: 1 } })
 
     render(
-      <MemoryRouter>
+      <TestRouter>
         <SubmissionsPage />
-      </MemoryRouter>,
+      </TestRouter>,
     )
 
     await waitFor(() => {
@@ -157,9 +157,9 @@ describe('SubmissionsPage', () => {
       .mockResolvedValueOnce({ data: { submissions, total: 1 } })
 
     render(
-      <MemoryRouter>
+      <TestRouter>
         <SubmissionsPage />
-      </MemoryRouter>,
+      </TestRouter>,
     )
 
     await waitFor(() => {
@@ -189,9 +189,9 @@ describe('SubmissionsPage', () => {
       .mockResolvedValueOnce({ data: { submissions, total: 1 } })
 
     render(
-      <MemoryRouter>
+      <TestRouter>
         <SubmissionsPage />
-      </MemoryRouter>,
+      </TestRouter>,
     )
 
     await waitFor(() => {
@@ -242,9 +242,9 @@ describe('SubmissionsPage', () => {
     })
 
     render(
-      <MemoryRouter initialEntries={['/dashboard/submissions?formId=f-results&tab=results']}>
+      <TestRouter initialEntries={['/dashboard/submissions?formId=f-results&tab=results']}>
         <SubmissionsPage />
-      </MemoryRouter>,
+      </TestRouter>,
     )
 
     await waitFor(() => {
@@ -266,9 +266,9 @@ describe('SubmissionsPage', () => {
       .mockResolvedValueOnce({ data: { submissions: [], total: 0 } })
 
     render(
-      <MemoryRouter>
+      <TestRouter>
         <SubmissionsPage />
-      </MemoryRouter>,
+      </TestRouter>,
     )
 
     // Wait for initial load
@@ -299,9 +299,9 @@ describe('SubmissionsPage', () => {
       .mockResolvedValueOnce({ data: { submissions: [], total: 0 } })
 
     render(
-      <MemoryRouter>
+      <TestRouter>
         <SubmissionsPage />
-      </MemoryRouter>,
+      </TestRouter>,
     )
 
     await waitFor(() => {
@@ -338,9 +338,9 @@ describe('SubmissionsPage', () => {
       .mockRejectedValueOnce(new Error('Form not found'))
 
     render(
-      <MemoryRouter>
+      <TestRouter>
         <SubmissionsPage />
-      </MemoryRouter>,
+      </TestRouter>,
     )
 
     await waitFor(() => {
@@ -365,9 +365,9 @@ describe('SubmissionsPage', () => {
       .mockResolvedValueOnce({ data: { submissions: [], total: 0 } })
 
     render(
-      <MemoryRouter>
+      <TestRouter>
         <SubmissionsPage />
-      </MemoryRouter>,
+      </TestRouter>,
     )
 
     await waitFor(() => {
@@ -400,9 +400,9 @@ describe('SubmissionsPage', () => {
       .mockResolvedValueOnce({ data: { submissions: [], total: 0 } })
 
     render(
-      <MemoryRouter>
+      <TestRouter>
         <SubmissionsPage />
-      </MemoryRouter>,
+      </TestRouter>,
     )
 
     await waitFor(() => {
@@ -435,9 +435,9 @@ describe('SubmissionsPage', () => {
       .mockResolvedValueOnce({ data: { submissions: [], total: 0 } })
 
     render(
-      <MemoryRouter initialEntries={['/dashboard/submissions?formId=f-from-url']}>
+      <TestRouter initialEntries={['/dashboard/submissions?formId=f-from-url']}>
         <SubmissionsPage />
-      </MemoryRouter>,
+      </TestRouter>,
     )
 
     await waitFor(() => {
@@ -486,9 +486,9 @@ describe('SubmissionsPage', () => {
     })
 
     render(
-      <MemoryRouter>
+      <TestRouter>
         <SubmissionsPage />
-      </MemoryRouter>,
+      </TestRouter>,
     )
 
     await waitFor(() => {

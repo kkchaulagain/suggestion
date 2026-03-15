@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom'
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { Route, Routes } from 'react-router-dom'
+import { TestRouter } from './test-router'
 import axios from 'axios'
 
 import ProtectedRoute from '../component/ProtectedRoutes'
@@ -93,13 +94,13 @@ describe('ProtectedRoute component', () => {
     })
 
     render(
-      <MemoryRouter>
+      <TestRouter>
         <AuthProvider>
           <ProtectedRoute>
             <div>Private Content</div>
           </ProtectedRoute>
         </AuthProvider>
-      </MemoryRouter>,
+      </TestRouter>,
     )
 
     await waitFor(() => {
@@ -109,7 +110,7 @@ describe('ProtectedRoute component', () => {
 
   test('redirects to login when user is not logged in', () => {
     render(
-      <MemoryRouter
+      <TestRouter
         initialEntries={['/dashboard']}
       >
         <AuthProvider>
@@ -125,7 +126,7 @@ describe('ProtectedRoute component', () => {
             <Route path="/login" element={<div>Login Route</div>} />
           </Routes>
         </AuthProvider>
-      </MemoryRouter>,
+      </TestRouter>,
     )
 
     expect(screen.queryByText('Private Content')).not.toBeInTheDocument()
@@ -281,14 +282,14 @@ describe('App routing', () => {
 describe('Legacy business pages', () => {
   test('businessdashboard redirects to main dashboard forms route', () => {
     render(
-      <MemoryRouter
+      <TestRouter
         initialEntries={['/old-business-dashboard']}
       >
         <Routes>
           <Route path="/old-business-dashboard" element={<BusinessDashboard />} />
           <Route path="/dashboard/forms" element={<div>Main Dashboard Forms Route</div>} />
         </Routes>
-      </MemoryRouter>,
+      </TestRouter>,
     )
 
     expect(screen.getByText('Main Dashboard Forms Route')).toBeInTheDocument()
@@ -296,9 +297,9 @@ describe('Legacy business pages', () => {
 
   test('suggestion form page shows migration guidance text', () => {
     render(
-      <MemoryRouter>
+      <TestRouter>
         <SuggestionForm />
-      </MemoryRouter>,
+      </TestRouter>,
     )
 
     expect(screen.getByRole('heading', { name: /Suggestion Form Builder/i })).toBeInTheDocument()

@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom'
-import { MemoryRouter, Route, Routes, useParams } from 'react-router-dom'
+import { Route, Routes, useParams } from 'react-router-dom'
+import { TestRouter } from './test-router'
 import axios from 'axios'
 
 import { ThemeProvider } from '../context/ThemeContext'
@@ -45,11 +46,11 @@ function renderFormRenderPage(formId: string) {
   mockedUseParams.mockReturnValue({ formId })
   return render(
     <ThemeProvider>
-      <MemoryRouter initialEntries={[`/feedback-forms/${formId}`]}>
+      <TestRouter initialEntries={[`/feedback-forms/${formId}`]}>
         <Routes>
           <Route path="/feedback-forms/:formId" element={<FormRenderPage />} />
         </Routes>
-      </MemoryRouter>
+      </TestRouter>
     </ThemeProvider>,
   )
 }
@@ -233,11 +234,11 @@ describe('FormRenderPage', () => {
     mockedUseParams.mockReturnValue({})
     render(
       <ThemeProvider>
-        <MemoryRouter initialEntries={['/feedback-forms']}>
+        <TestRouter initialEntries={['/feedback-forms']}>
           <Routes>
             <Route path="/feedback-forms" element={<FormRenderPage />} />
           </Routes>
-        </MemoryRouter>
+        </TestRouter>
       </ThemeProvider>,
     )
     await waitFor(() => {
