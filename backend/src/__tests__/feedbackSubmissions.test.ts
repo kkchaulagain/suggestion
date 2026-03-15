@@ -226,6 +226,46 @@ describe('Feedback Submissions API', () => {
       expect(submission.responses.fullName).toBe('Anonymous');
     });
 
+    it('accepts "Anonymous" as email value when allowAnonymous is true', async () => {
+      const { businessId } = await createBusinessAuth();
+      const form = await FeedbackForm.create({
+        businessId,
+        title: 'Anonymous email form',
+        fields: [
+          { name: 'email', label: 'Email Address', type: 'email', required: true, allowAnonymous: true },
+        ],
+      });
+
+      const res = await request(app)
+        .post(`/api/feedback-forms/${form._id}/submit`)
+        .send({ email: 'Anonymous' })
+        .expect(201);
+
+      const submission = await FeedbackSubmission.findById(res.body.submissionId).lean();
+      expect(submission.responses.email).toBe('Anonymous');
+    });
+
+    it('accepts empty email when allowAnonymous is true on email field', async () => {
+      const { businessId } = await createBusinessAuth();
+      const form = await FeedbackForm.create({
+        businessId,
+        title: 'Anonymous email form',
+        fields: [
+          { name: 'email', label: 'Email Address', type: 'email', required: true, allowAnonymous: true },
+          { name: 'comment', label: 'Comment', type: 'short_text', required: false },
+        ],
+      });
+
+      const res = await request(app)
+        .post(`/api/feedback-forms/${form._id}/submit`)
+        .send({ email: '', comment: 'Great' })
+        .expect(201);
+
+      expect(res.body).toHaveProperty('submissionId');
+      const submission = await FeedbackSubmission.findById(res.body.submissionId).lean();
+      expect(submission.responses.email).toBe('');
+    });
+
     it('still requires name when allowAnonymous is false', async () => {
       const { businessId } = await createBusinessAuth();
       const form = await FeedbackForm.create({

@@ -207,6 +207,25 @@ describe('FormFieldRenderer', () => {
     expect(screen.queryByLabelText(/submit anonymously/i)).not.toBeInTheDocument()
   })
 
+  test('renders email field with anonymous checkbox when allowAnonymous is true', () => {
+    const onChange = jest.fn()
+    render(
+      <FormFieldRenderer
+        field={{
+          name: 'userEmail',
+          label: 'Email Address',
+          type: 'email',
+          required: false,
+          allowAnonymous: true,
+        }}
+        value=""
+        onChange={onChange}
+      />,
+    )
+    expect(screen.getByText('Email Address')).toBeInTheDocument()
+    expect(screen.getByLabelText(/submit anonymously/i)).toBeInTheDocument()
+  })
+
   test('renders email field as email input', () => {
     const onChange = jest.fn()
     render(

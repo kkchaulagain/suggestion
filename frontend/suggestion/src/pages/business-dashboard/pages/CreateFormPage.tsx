@@ -80,6 +80,7 @@ export interface FormTemplate {
 }
 
 const OPTION_TYPES: FeedbackFieldType[] = ['checkbox', 'radio']
+const ANONYMOUS_CAPABLE_TYPES: FeedbackFieldType[] = ['name', 'email']
 
 const fieldTypeOptions: Array<{ value: FeedbackFieldType; label: string }> = [
   { value: 'name', label: 'Name' },
@@ -295,7 +296,7 @@ function createField(type: FeedbackFieldType, count: number): FeedbackField {
     required: false,
     placeholder: '',
     options: OPTION_TYPES.includes(type) ? ['Option 1'] : undefined,
-    allowAnonymous: type === 'name' ? false : undefined,
+    allowAnonymous: ANONYMOUS_CAPABLE_TYPES.includes(type) ? false : undefined,
   }
 }
 
@@ -475,7 +476,7 @@ function SortableFieldRow({
               Required field
             </label>
 
-            {field.type === 'name' ? (
+            {ANONYMOUS_CAPABLE_TYPES.includes(field.type) ? (
               <label className={`inline-flex cursor-pointer items-center gap-2 text-sm font-medium ${
                 field.required ? 'text-slate-400 dark:text-slate-500' : 'text-slate-700 dark:text-slate-300'
               }`}>
@@ -713,7 +714,7 @@ export default function CreateFormPage() {
       ...field,
       type,
       options: OPTION_TYPES.includes(type) ? (field.options?.length ? field.options : ['Option 1']) : undefined,
-      allowAnonymous: type === 'name' ? (field.allowAnonymous ?? false) : undefined,
+      allowAnonymous: ANONYMOUS_CAPABLE_TYPES.includes(type) ? (field.allowAnonymous ?? false) : undefined,
     }))
     setError('')
   }
@@ -726,7 +727,7 @@ export default function CreateFormPage() {
     updateField(fieldId, (field) => ({
       ...field,
       required,
-      allowAnonymous: required && field.type === 'name' ? false : field.allowAnonymous,
+      allowAnonymous: required && ANONYMOUS_CAPABLE_TYPES.includes(field.type) ? false : field.allowAnonymous,
     }))
   }
 
@@ -914,7 +915,7 @@ export default function CreateFormPage() {
         options: OPTION_TYPES.includes(field.type)
           ? (field.options ?? []).map((option) => option.trim()).filter(Boolean)
           : undefined,
-        allowAnonymous: field.type === 'name' ? (field.allowAnonymous ?? false) : undefined,
+        allowAnonymous: ANONYMOUS_CAPABLE_TYPES.includes(field.type) ? (field.allowAnonymous ?? false) : undefined,
       })),
     }
 

@@ -520,7 +520,7 @@ describe('CreateFormPage', () => {
       })
     })
 
-    test('shows Allow anonymous checkbox only for Name field type', async () => {
+    test('shows Allow anonymous checkbox only for Name and Email field types', async () => {
       renderCreateFormPage()
       goToFormBuilder()
 
@@ -532,6 +532,15 @@ describe('CreateFormPage', () => {
 
       const nameRow = getFieldRow('Name 4')
       expect(within(nameRow).getByLabelText(/allow anonymous/i)).toBeInTheDocument()
+
+      fireEvent.click(screen.getByRole('button', { name: /\+ Add new field/i }))
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: /Add new field/i })).toBeInTheDocument()
+      })
+      fireEvent.click(screen.getByRole('button', { name: /^Email$/i }))
+
+      const emailRow = getFieldRow('Email 5')
+      expect(within(emailRow).getByLabelText(/allow anonymous/i)).toBeInTheDocument()
 
       // Subject row (short_text) should NOT have allow anonymous
       const subjectRow = getFieldRow('subject')
@@ -594,6 +603,40 @@ describe('CreateFormPage', () => {
               expect.objectContaining({
                 name: 'name_4',
                 type: 'name',
+                allowAnonymous: true,
+                required: false,
+              }),
+            ]),
+          }),
+          expect.any(Object),
+        )
+      })
+    })
+
+    test('saves Email field with allowAnonymous in payload', async () => {
+      mockedAxios.post.mockResolvedValueOnce({ data: {} })
+      renderCreateFormPage()
+      goToFormBuilder()
+
+      fireEvent.click(screen.getByRole('button', { name: /\+ Add new field/i }))
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: /Add new field/i })).toBeInTheDocument()
+      })
+      fireEvent.click(screen.getByRole('button', { name: /^Email$/i }))
+
+      const emailRow = getFieldRow('Email 4')
+      fireEvent.click(within(emailRow).getByLabelText(/allow anonymous/i))
+
+      fireEvent.click(screen.getByRole('button', { name: /save form/i }))
+
+      await waitFor(() => {
+        expect(mockedAxios.post).toHaveBeenCalledWith(
+          feedbackFormsApi,
+          expect.objectContaining({
+            fields: expect.arrayContaining([
+              expect.objectContaining({
+                name: 'email_4',
+                type: 'email',
                 allowAnonymous: true,
                 required: false,
               }),

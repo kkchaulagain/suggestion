@@ -19,6 +19,7 @@ async function uploadImage(file: File): Promise<string> {
 }
 
 type FormValues = Record<string, string | string[] | File | undefined>
+const ANONYMOUS_CAPABLE_TYPES = new Set(['name', 'email'])
 
 function getInitialValues(fields: FeedbackFormField[]): FormValues {
   const initial: FormValues = {}
@@ -38,7 +39,7 @@ function validateRequired(
 ): Record<string, string> {
   const errors: Record<string, string> = {}
   for (const field of fields) {
-    if (!field.required) continue
+    if (!field.required || (field.allowAnonymous && ANONYMOUS_CAPABLE_TYPES.has(field.type))) continue
     const v = values[field.name]
     if (field.type === 'checkbox') {
       const arr = Array.isArray(v) ? v : []

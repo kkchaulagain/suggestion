@@ -177,6 +177,7 @@ export default function FormFieldRenderer({
       placeholder={field.placeholder}
       disabled={disabled}
       required={field.required}
+      isAnonymous={field.allowAnonymous}
       error={error}
       />
     )
