@@ -11,26 +11,34 @@ async function createBusinessAuth() {
   const password = 'Password123!';
   const phone = `+97798${String(10000000 + Math.floor(Math.random() * 90000000))}`;
 
-  await request(app).post('/api/auth/register').send({
-    name: 'Business Owner',
-    email,
-    password,
-    phone,
-    role: 'business',
-    location: 'City Center',
-    pancardNumber: 1234567,
-    description: 'Business profile',
-    businessname: 'Acme Business',
-  });
+  const registerRes = await request(app)
+    .post('/api/auth/register')
+    .send({
+      name: 'Business Owner',
+      email,
+      password,
+      phone,
+      role: 'business',
+      location: 'City Center',
+      pancardNumber: 1234567,
+      description: 'Business profile',
+      businessname: 'Acme Business',
+    });
+  if (registerRes.status !== 201) {
+    throw new Error(`Register failed: ${registerRes.status} ${JSON.stringify(registerRes.body)}`);
+  }
 
   const loginRes = await request(app).post('/api/auth/login').send({ email, password }).expect(200);
   const token = loginRes.body?.token || loginRes.body?.data?.token;
   const user = await User.findOne({ email: email.toLowerCase() }).select('_id').lean();
   const business = user ? await Business.findOne({ owner: user._id }).lean() : null;
+  if (!business?._id) {
+    throw new Error('Business not found after register');
+  }
 
   return {
     authHeader: { Authorization: `Bearer ${token}` },
-    businessId: business?._id?.toString(),
+    businessId: business._id.toString(),
   };
 }
 
@@ -66,6 +74,8 @@ describe('Pages API', () => {
 
   afterEach(async () => {
     await Page.deleteMany({});
+    await Business.deleteMany({});
+    await User.deleteMany({});
   });
 
   describe('GET /api/pages', () => {
