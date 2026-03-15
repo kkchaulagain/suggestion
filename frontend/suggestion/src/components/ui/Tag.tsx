@@ -1,11 +1,12 @@
 import type { ReactNode } from 'react'
 import { X } from 'lucide-react'
 
-export type TagVariant = 'default' | 'emerald'
+export type TagVariant = 'default' | 'emerald' | 'stone'
 
 const variantClasses: Record<TagVariant, string> = {
   default: 'rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-700 dark:bg-slate-700 dark:text-slate-200',
   emerald: 'rounded-full bg-emerald-100 px-2.5 py-1 text-xs text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300',
+  stone: 'rounded-lg border border-stone-200 bg-stone-50 px-2 py-0.5 text-xs font-medium text-stone-600 dark:border-stone-600 dark:bg-stone-800 dark:text-stone-400',
 }
 
 export interface TagProps {

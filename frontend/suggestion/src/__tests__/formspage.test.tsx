@@ -104,7 +104,7 @@ describe('FormsPage', () => {
     await waitFor(() => {
       expect(screen.getByText(/Customer Feedback/i)).toBeInTheDocument()
     })
-    expect(screen.getByText('1 question - 0 required')).toBeInTheDocument()
+    expect(screen.getByText('1 question · 0 required')).toBeInTheDocument()
     expect(screen.getByText(/Questions included:/i)).toBeInTheDocument()
     expect(screen.getByText(/Comment/)).toBeInTheDocument()
 
@@ -344,7 +344,7 @@ describe('FormsPage', () => {
       expect(screen.getByText(/Walk-in Form/i)).toBeInTheDocument()
     })
 
-    expect(screen.getByText('2 questions - 1 required')).toBeInTheDocument()
+    expect(screen.getByText('2 questions · 1 required')).toBeInTheDocument()
     expect(screen.queryByText(/Business ID:/i)).not.toBeInTheDocument()
   })
   

@@ -34,10 +34,10 @@ export default function BusinessDashboardLayout() {
   }, [location.pathname])
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-slate-100 to-emerald-50 text-slate-900 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 dark:text-slate-100">
+    <div className="min-h-screen bg-[#fafaf9] text-stone-900 dark:bg-stone-950 dark:text-stone-100">
       <div className="flex min-h-screen">
         <Sidebar items={navItems} />
-        <div className="flex-1 flex flex-col lg:ml-0">
+        <div className="flex-1 flex flex-col bg-[#fafaf9] dark:bg-stone-950 lg:ml-0">
           <TopHeader title={pageTitle} />
           <main className="flex-1 p-4 pb-20 sm:p-6 lg:pb-6">
             <Outlet />
