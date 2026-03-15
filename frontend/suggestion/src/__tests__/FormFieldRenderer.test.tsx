@@ -62,14 +62,14 @@ test('field-type components are exported from index', () => {
 })
 
 describe('FormFieldRenderer', () => {
-  test('renders short_text as Input', () => {
+  test('renders text as Input', () => {
     const onChange = jest.fn()
     render(
       <FormFieldRenderer
         field={{
           name: 'email',
           label: 'Email',
-          type: 'short_text',
+          type: 'text',
           required: true,
         }}
         value=""
@@ -82,13 +82,13 @@ describe('FormFieldRenderer', () => {
     expect(onChange).toHaveBeenCalledWith('email', 'a@b.com')
   })
 
-  test('passing error to short_text highlights the input and shows message', () => {
+  test('passing error to text highlights the input and shows message', () => {
     render(
       <FormFieldRenderer
         field={{
           name: 'comment',
           label: 'Comment',
-          type: 'short_text',
+          type: 'text',
           required: true,
         }}
         value=""
@@ -101,10 +101,10 @@ describe('FormFieldRenderer', () => {
     expect(screen.getByText('Comment is required.')).toBeInTheDocument()
   })
 
-  test('renders big_text as Textarea', () => {
+  test('renders textarea as Textarea', () => {
     render(
       <FormFieldRenderer
-        field={{ name: 'bio', label: 'Bio', type: 'big_text', required: false }}
+        field={{ name: 'bio', label: 'Bio', type: 'textarea', required: false }}
         value=""
         onChange={() => {}}
       />,
@@ -252,14 +252,14 @@ describe('FormFieldRenderer', () => {
     expect(screen.getByText('Invalid email address')).toBeInTheDocument()
   })
 
-  test('renders scale_1_10 as Scale1To10Field', () => {
+  test('renders scale as Scale1To10Field', () => {
     const onChange = jest.fn()
     render(
       <FormFieldRenderer
         field={{
           name: 'score',
           label: 'Score (1-10)',
-          type: 'scale_1_10',
+          type: 'scale',
           required: true,
         }}
         value=""

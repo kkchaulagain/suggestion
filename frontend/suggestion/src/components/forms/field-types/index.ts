@@ -24,6 +24,24 @@ export type { NameFieldProps } from './NameField'
 
 export { default as EmailField } from './EmailField'
 export type { EmailFieldProps } from './EmailField'
+
 export { default as Scale1To10Field } from './Scale1To10Field'
 export type { Scale1To10FieldProps } from './Scale1To10Field'
 
+export { default as PhoneField } from './PhoneField'
+export type { PhoneFieldProps } from './PhoneField'
+
+export { default as DateField } from './DateField'
+export type { DateFieldProps } from './DateField'
+
+export { default as TimeField } from './TimeField'
+export type { TimeFieldProps } from './TimeField'
+
+export { default as NumberField } from './NumberField'
+export type { NumberFieldProps } from './NumberField'
+
+export { default as UrlField } from './UrlField'
+export type { UrlFieldProps } from './UrlField'
+
+export { default as DropdownField } from './DropdownField'
+export type { DropdownFieldProps } from './DropdownField'

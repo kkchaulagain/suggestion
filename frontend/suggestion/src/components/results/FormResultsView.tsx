@@ -11,8 +11,8 @@ import RatingQuestionResults from './RatingQuestionResults'
 import TextQuestionResults from './TextQuestionResults'
 import ResultsSummary from './ResultsSummary'
 
-const CHOICE_TYPES = ['radio', 'checkbox', 'scale_1_10', 'rating']
-const TEXT_TYPES = ['short_text', 'long_text', 'big_text', 'name', 'image_upload']
+const CHOICE_TYPES = ['radio', 'checkbox', 'scale', 'scale_1_10', 'rating']
+const TEXT_TYPES = ['text', 'textarea', 'short_text', 'long_text', 'big_text', 'name', 'image', 'image_upload']
 
 interface FormResultsViewProps {
   formId: string
@@ -119,7 +119,7 @@ export default function FormResultsView({
       />
       <div className="space-y-4">
         {fieldEntries.map(([fieldName, fieldData]) => {
-          if (fieldData.type === 'scale_1_10' && isChoiceFieldResult(fieldData)) {
+          if ((fieldData.type === 'scale' || fieldData.type === 'scale_1_10') && isChoiceFieldResult(fieldData)) {
             return (
               <ScaleQuestionResults
                 key={fieldName}

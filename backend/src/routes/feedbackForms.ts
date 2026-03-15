@@ -49,10 +49,18 @@ function normalizeFields(fields: FeedbackFieldInput[] | null | undefined): Feedb
 const FORM_KINDS = ['form', 'poll', 'survey'] as const;
 type FormKind = (typeof FORM_KINDS)[number];
 
+interface FormStepInput {
+  id?: string;
+  title?: string;
+  description?: string;
+  order?: number;
+}
+
 interface FeedbackFormPayload {
   title?: string;
   description?: string;
   fields?: FeedbackFieldInput[];
+  steps?: FormStepInput[];
   kind?: FormKind;
   showResultsPublic?: boolean;
   businessId?: Types.ObjectId;
@@ -62,8 +70,14 @@ interface RequestBody {
   title?: string;
   description?: string;
   fields?: FeedbackFieldInput[];
+  steps?: FormStepInput[];
   kind?: string;
   showResultsPublic?: boolean;
+}
+
+function normalizeSteps(steps: unknown): FormStepInput[] | undefined {
+  if (!Array.isArray(steps)) return undefined;
+  return steps.filter((s) => s && typeof s === 'object') as FormStepInput[];
 }
 
 function buildPayload(body: RequestBody): FeedbackFormPayload {
@@ -77,6 +91,10 @@ function buildPayload(body: RequestBody): FeedbackFormPayload {
   }
   if (Object.prototype.hasOwnProperty.call(body, 'fields')) {
     payload.fields = normalizeFields(body.fields);
+  }
+  if (Object.prototype.hasOwnProperty.call(body, 'steps')) {
+    const steps = normalizeSteps(body.steps);
+    if (steps) payload.steps = steps;
   }
   if (Object.prototype.hasOwnProperty.call(body, 'kind') && typeof body.kind === 'string') {
     const k = body.kind.toLowerCase().trim();
@@ -164,7 +182,7 @@ function validateSubmissionPayload(
     const name = field.name;
     const value = raw[name];
 
-    const isAnonymousAllowed = field.type === 'name' && (field as { allowAnonymous?: boolean }).allowAnonymous;
+    const isAnonymousAllowed = (field as { allowAnonymous?: boolean }).allowAnonymous === true;
 
     if (field.required && !isAnonymousAllowed) {
       if (value === undefined || value === null) {
@@ -445,8 +463,8 @@ router.get('/:id/results', optionalAuthAndBusiness, async (req: Request, res: Re
     const submissions = await FeedbackSubmission.find(query).select('responses submittedAt').lean();
     const totalResponses = submissions.length;
     const byField: Record<string, { label: string; type: string; options?: { option: string; count: number; percentage: number }[]; responseCount?: number; sampleAnswers?: string[] }> = {};
-    const choiceTypes = ['radio', 'checkbox', 'scale_1_10', 'rating'];
-    const textTypes = ['short_text', 'long_text', 'big_text', 'name', 'image_upload'];
+    const choiceTypes = ['radio', 'checkbox', 'scale', 'rating', 'dropdown'];
+    const textTypes = ['text', 'textarea', 'email', 'phone', 'number', 'date', 'time', 'url', 'image'];
     const fields = formDoc.fields || [];
     for (const field of fields) {
       const fname = field.name;
@@ -458,7 +476,7 @@ router.get('/:id/results', optionalAuthAndBusiness, async (req: Request, res: Re
         optionsList.forEach((opt) => { counts[opt] = 0; });
         for (const sub of submissions as { responses?: Record<string, unknown> }[]) {
           const val = sub.responses?.[fname];
-          if ((ftype === 'radio' || ftype === 'scale_1_10' || ftype === 'rating') && typeof val === 'string' && val.trim() !== '') {
+          if ((ftype === 'radio' || ftype === 'scale' || ftype === 'rating' || ftype === 'dropdown') && typeof val === 'string' && val.trim() !== '') {
             counts[val] = (counts[val] ?? 0) + 1;
           } else if (ftype === 'checkbox' && Array.isArray(val)) {
             for (const v of val) {

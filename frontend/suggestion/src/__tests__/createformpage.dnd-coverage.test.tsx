@@ -153,7 +153,7 @@ describe('CreateFormPage drag coverage', () => {
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: /add new field/i })).toBeInTheDocument()
     })
-    fireEvent.click(screen.getByRole('button', { name: /^short text$/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^Text$/i }))
 
     fireEvent.click(screen.getByTestId('dnd-end-reorder'))
 
@@ -166,6 +166,6 @@ describe('CreateFormPage drag coverage', () => {
       expect(resetButton).toBeDisabled()
     })
 
-    expect(screen.getByText('Short answer 4')).toBeInTheDocument()
+    expect(screen.getByText('Text field 4')).toBeInTheDocument()
   })
 })

@@ -16,7 +16,13 @@ export {
   Scale1To10Field,
   ImageUploadField,
   NameField,
-  EmailField
+  EmailField,
+  PhoneField,
+  DateField,
+  TimeField,
+  NumberField,
+  UrlField,
+  DropdownField,
 } from './field-types'
 export type {
   FieldWrapperProps,
@@ -28,5 +34,11 @@ export type {
   Scale1To10FieldProps,
   ImageUploadFieldProps,
   NameFieldProps,
-  EmailFieldProps
+  EmailFieldProps,
+  PhoneFieldProps,
+  DateFieldProps,
+  TimeFieldProps,
+  NumberFieldProps,
+  UrlFieldProps,
+  DropdownFieldProps,
 } from './field-types'

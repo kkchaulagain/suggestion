@@ -9,7 +9,7 @@ describe('ScaleQuestionResults', () => {
         fieldName="score"
         data={{
           label: 'Score (1-10)',
-          type: 'scale_1_10',
+          type: 'scale',
           options: [
             { option: '5', count: 2, percentage: 40 },
             { option: '7', count: 3, percentage: 60 },
@@ -34,7 +34,7 @@ describe('ScaleQuestionResults', () => {
         fieldName="s"
         data={{
           label: 'Scale',
-          type: 'scale_1_10',
+          type: 'scale',
           options: [{ option: '1', count: 0, percentage: 0 }],
         }}
       />,
@@ -49,7 +49,7 @@ describe('ScaleQuestionResults', () => {
         fieldName="s"
         data={{
           label: 'Scale',
-          type: 'scale_1_10',
+          type: 'scale',
           options: [
             { option: '1', count: 0, percentage: 0 },
             { option: '2', count: 0, percentage: 0 },

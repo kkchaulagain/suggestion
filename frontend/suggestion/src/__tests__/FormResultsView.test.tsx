@@ -116,7 +116,7 @@ describe('FormResultsView', () => {
         byField: {
           comment: {
             label: 'Comment',
-            type: 'short_text',
+            type: 'text',
             responseCount: 2,
             sampleAnswers: ['First answer', 'Second answer'],
           },
@@ -160,7 +160,7 @@ describe('FormResultsView', () => {
     })
   })
 
-  it('shows scale_1_10 field with average and distribution table', async () => {
+  it('shows scale field with average and distribution table', async () => {
     mockedAxios.get.mockResolvedValueOnce({
       data: {
         formId: 'form-1',
@@ -169,7 +169,7 @@ describe('FormResultsView', () => {
         byField: {
           score: {
             label: 'How would you rate?',
-            type: 'scale_1_10',
+            type: 'scale',
             options: [
               { option: '7', count: 2, percentage: 50 },
               { option: '8', count: 1, percentage: 25 },

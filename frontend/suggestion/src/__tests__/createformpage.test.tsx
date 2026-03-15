@@ -66,10 +66,10 @@ describe('CreateFormPage', () => {
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: /Add new field/i })).toBeInTheDocument()
     })
-    fireEvent.click(screen.getByRole('button', { name: /^Short Text$/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^Text$/i }))
 
     await waitFor(() => {
-      expect(screen.getByDisplayValue('Short answer 4')).toBeInTheDocument()
+      expect(screen.getByDisplayValue('Text field 4')).toBeInTheDocument()
     })
   })
 
@@ -128,7 +128,7 @@ describe('CreateFormPage', () => {
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: /Add new field/i })).toBeInTheDocument()
     })
-    fireEvent.click(screen.getByRole('button', { name: /^Short Text$/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^Text$/i }))
     // New field's editor opens with More options still expanded from first field
     fireEvent.change(screen.getByLabelText(/field name/i), {
       target: { value: 'duplicate_name' },
@@ -222,9 +222,9 @@ describe('CreateFormPage', () => {
           title: 'Existing form',
           description: 'Loaded description',
           fields: [
-            { name: 'subject', label: 'Subject line', type: 'short_text', required: true },
-            { name: 'description', label: 'Details', type: 'big_text', required: false },
-            { name: 'attachment', label: 'Photo', type: 'image_upload', required: false },
+            { name: 'subject', label: 'Subject line', type: 'text', required: true },
+            { name: 'description', label: 'Details', type: 'textarea', required: false },
+            { name: 'attachment', label: 'Photo', type: 'image', required: false },
           ],
         },
       },
@@ -374,8 +374,8 @@ describe('CreateFormPage', () => {
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: /Add new field/i })).toBeInTheDocument()
     })
-    fireEvent.click(screen.getByRole('button', { name: /^Short Text$/i }))
-    const customFieldRow = getFieldRow('Short answer 4')
+    fireEvent.click(screen.getByRole('button', { name: /^Text$/i }))
+    const customFieldRow = getFieldRow('Text field 4')
     fireEvent.change(within(customFieldRow).getByLabelText(/label/i), {
       target: { value: 'Comment' },
     })
@@ -394,16 +394,16 @@ describe('CreateFormPage', () => {
             {
               name: 'subject',
               label: 'subject',
-              type: 'short_text',
+              type: 'text',
               required: true,
               placeholder: undefined,
               options: undefined,
-              allowAnonymous: undefined,
+              allowAnonymous: false,
             },
             {
               name: 'description',
               label: 'description',
-              type: 'big_text',
+              type: 'textarea',
               required: false,
               placeholder: undefined,
               options: undefined,
@@ -412,7 +412,7 @@ describe('CreateFormPage', () => {
             {
               name: 'attachment',
               label: 'attachment',
-              type: 'image_upload',
+              type: 'image',
               required: false,
               placeholder: undefined,
               options: undefined,
@@ -421,11 +421,11 @@ describe('CreateFormPage', () => {
             {
               name: 'comment',
               label: 'Comment',
-              type: 'short_text',
+              type: 'text',
               required: false,
               placeholder: undefined,
               options: undefined,
-              allowAnonymous: undefined,
+              allowAnonymous: false,
             },
           ],
         },
@@ -544,9 +544,9 @@ describe('CreateFormPage', () => {
             title: 'Existing form',
             description: 'Desc',
             fields: [
-              { name: 'subject', label: 'Subject', type: 'short_text', required: true },
-              { name: 'description', label: 'Description', type: 'big_text', required: false },
-              { name: 'attachment', label: 'Attachment', type: 'image_upload', required: false },
+              { name: 'subject', label: 'Subject', type: 'text', required: true },
+              { name: 'description', label: 'Description', type: 'textarea', required: false },
+              { name: 'attachment', label: 'Attachment', type: 'image', required: false },
             ],
           },
         },
@@ -572,10 +572,10 @@ describe('CreateFormPage', () => {
       await waitFor(() => {
         expect(screen.getByRole('heading', { name: /Add new field/i })).toBeInTheDocument()
       })
-      fireEvent.click(screen.getByRole('button', { name: /^Name$/i }))
+      fireEvent.click(screen.getByRole('button', { name: /Text \(Name\)/i }))
 
       await waitFor(() => {
-        expect(screen.getByText('Name 4')).toBeInTheDocument()
+        expect(screen.getByText('Text field 4')).toBeInTheDocument()
       })
     })
 
@@ -587,12 +587,12 @@ describe('CreateFormPage', () => {
       await waitFor(() => {
         expect(screen.getByRole('heading', { name: /Add new field/i })).toBeInTheDocument()
       })
-      fireEvent.click(screen.getByRole('button', { name: /^Name$/i }))
+      fireEvent.click(screen.getByRole('button', { name: /Text \(Name\)/i }))
 
-      const nameRow = getFieldRow('Name 4')
+      const nameRow = getFieldRow('Text field 4')
       expect(within(nameRow).getByLabelText(/allow anonymous/i)).toBeInTheDocument()
 
-      // Subject row (short_text) should NOT have allow anonymous
+      // Subject row (text) should NOT have allow anonymous
       const subjectRow = getFieldRow('subject')
       fireEvent.click(within(subjectRow).getByRole('button', { name: /edit/i }))
       expect(within(subjectRow).queryByLabelText(/allow anonymous/i)).not.toBeInTheDocument()
@@ -606,9 +606,9 @@ describe('CreateFormPage', () => {
       await waitFor(() => {
         expect(screen.getByRole('heading', { name: /Add new field/i })).toBeInTheDocument()
       })
-      fireEvent.click(screen.getByRole('button', { name: /^Name$/i }))
+      fireEvent.click(screen.getByRole('button', { name: /Text \(Name\)/i }))
 
-      const nameRow = getFieldRow('Name 4')
+      const nameRow = getFieldRow('Text field 4')
       const requiredCheckbox = within(nameRow).getByLabelText(/required field/i)
       const anonymousCheckbox = within(nameRow).getByLabelText(/allow anonymous/i)
 
@@ -638,9 +638,9 @@ describe('CreateFormPage', () => {
       await waitFor(() => {
         expect(screen.getByRole('heading', { name: /Add new field/i })).toBeInTheDocument()
       })
-      fireEvent.click(screen.getByRole('button', { name: /^Name$/i }))
+      fireEvent.click(screen.getByRole('button', { name: /Text \(Name\)/i }))
 
-      const nameRow = getFieldRow('Name 4')
+      const nameRow = getFieldRow('Text field 4')
       fireEvent.click(within(nameRow).getByLabelText(/allow anonymous/i))
 
       fireEvent.click(screen.getByRole('button', { name: /save form/i }))
@@ -651,8 +651,8 @@ describe('CreateFormPage', () => {
           expect.objectContaining({
             fields: expect.arrayContaining([
               expect.objectContaining({
-                name: 'name_4',
-                type: 'name',
+                name: 'text_field_4',
+                type: 'text',
                 allowAnonymous: true,
                 required: false,
               }),

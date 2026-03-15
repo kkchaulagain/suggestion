@@ -1,6 +1,12 @@
 const mongoose = require('mongoose');
 const { FEEDBACK_FIELD_TYPES } = require('./FeedbackForm');
 
+const LEGACY_FIELD_TYPES = [
+  'short_text', 'long_text', 'big_text', 'image_upload', 'name', 'scale_1_10',
+];
+
+const SNAPSHOT_FIELD_TYPES = [...FEEDBACK_FIELD_TYPES, ...LEGACY_FIELD_TYPES];
+
 const formSnapshotFieldSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
@@ -9,7 +15,7 @@ const formSnapshotFieldSchema = new mongoose.Schema(
       type: String,
       required: true,
       enum: {
-        values: FEEDBACK_FIELD_TYPES,
+        values: SNAPSHOT_FIELD_TYPES,
         message: 'Field type `{VALUE}` is not supported',
       },
     },

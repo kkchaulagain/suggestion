@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import axios from 'axios'
-import { Home, Send } from 'lucide-react'
+import { Home, Send, ChevronLeft, ChevronRight } from 'lucide-react'
 import { feedbackFormsApi, uploadApi } from '../../utils/apipath'
-import type { FeedbackFormConfig, FeedbackFormField } from './types'
+import type { FeedbackFormConfig, FeedbackFormField, FormStep } from './types'
 import { Button, Card, ErrorMessage, ThemeToggle } from '../../components/ui'
 import { EmptyState } from '../../components/layout'
 import { FormFieldRenderer } from '../../components/forms'
@@ -32,7 +32,7 @@ function getInitialValues(fields: FeedbackFormField[]): FormValues {
   return initial
 }
 
-function validateRequired(
+function validateRequiredForFields(
   fields: FeedbackFormField[],
   values: FormValues
 ): Record<string, string> {
@@ -61,13 +61,29 @@ function buildSubmitPayload(
     const v = values[field.name]
     if (field.type === 'checkbox') {
       payload[field.name] = Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : []
-    } else if (field.type === 'image_upload') {
+    } else if (field.type === 'image_upload' || field.type === 'image') {
       payload[field.name] = typeof v === 'string' ? v : ''
     } else {
       payload[field.name] = typeof v === 'string' ? v : (v !== undefined && v !== null ? String(v) : '')
     }
   }
   return payload
+}
+
+function getStepsWithFields(
+  steps: FormStep[] | undefined,
+  fields: FeedbackFormField[]
+): { step: FormStep; fields: FeedbackFormField[] }[] {
+  if (!steps || steps.length === 0) {
+    return [{ step: { id: '__default', title: '', description: undefined, order: 0 }, fields }]
+  }
+  const sorted = [...steps].sort((a, b) => a.order - b.order)
+  return sorted.map((step) => ({
+    step,
+    fields: fields
+      .filter((f) => f.stepId === step.id)
+      .sort((a, b) => (a.stepOrder ?? 0) - (b.stepOrder ?? 0)),
+  }))
 }
 
 import FormRenderFooter from './FormRenderFooter'
@@ -82,6 +98,15 @@ export default function FormRenderPage() {
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [submitted, setSubmitted] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [currentStepIndex, setCurrentStepIndex] = useState(0)
+
+  const stepsWithFields = useMemo(
+    () => (config ? getStepsWithFields(config.steps, config.fields) : []),
+    [config]
+  )
+  const isMultistep = stepsWithFields.length > 1
+  const totalSteps = stepsWithFields.length
+  const currentStepData = stepsWithFields[currentStepIndex]
 
   const loadForm = useCallback(async () => {
     if (!formId) {
@@ -127,11 +152,31 @@ export default function FormRenderPage() {
     setSubmitError(null)
   }, [])
 
+  const handleNext = useCallback(() => {
+    if (!currentStepData) return
+    const errors = validateRequiredForFields(currentStepData.fields, values)
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors)
+      return
+    }
+    setFieldErrors({})
+    setCurrentStepIndex((i) => Math.min(i + 1, totalSteps - 1))
+  }, [currentStepData, values, totalSteps])
+
+  const handleBack = useCallback(() => {
+    setCurrentStepIndex((i) => Math.max(i - 1, 0))
+    setFieldErrors({})
+  }, [])
+
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault()
       if (!config || !formId) return
-      const errors = validateRequired(config.fields, values)
+
+      const allFields = isMultistep
+        ? stepsWithFields.flatMap((s) => s.fields)
+        : config.fields
+      const errors = validateRequiredForFields(allFields, values)
       const hasErrors = Object.keys(errors).length > 0
       if (hasErrors) {
         setFieldErrors(errors)
@@ -144,7 +189,7 @@ export default function FormRenderPage() {
       try {
         const resolvedValues = { ...values }
         for (const field of config.fields) {
-          if (field.type === 'image_upload') {
+          if (field.type === 'image_upload' || field.type === 'image') {
             const v = values[field.name]
             if (v instanceof File) {
               resolvedValues[field.name] = await uploadImage(v)
@@ -163,7 +208,7 @@ export default function FormRenderPage() {
         setSubmitting(false)
       }
     },
-    [config, formId, values]
+    [config, formId, values, isMultistep, stepsWithFields]
   )
 
   if (loading) {
@@ -229,6 +274,11 @@ export default function FormRenderPage() {
     )
   }
 
+  const fieldsToRender = isMultistep && currentStepData
+    ? currentStepData.fields
+    : config.fields
+  const isLastStep = currentStepIndex === totalSteps - 1
+
   return (
     <div className="relative">
       <div className="absolute right-0 top-0 p-2">
@@ -236,30 +286,78 @@ export default function FormRenderPage() {
       </div>
       <Card className="rounded-xl sm:p-8">
         <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">{config.title}</h1>
-      {config.description ? (
-        <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{config.description}</p>
-      ) : null}
-
-      <form onSubmit={handleSubmit} className="mt-6 space-y-5" noValidate>
-        {config.fields.map((field) => (
-          <FormFieldRenderer
-            key={field.name}
-            field={field as FormFieldConfig}
-            value={values[field.name]}
-            onChange={updateValue}
-            error={fieldErrors[field.name]}
-          />
-        ))}
-
-        {submitError && Object.keys(fieldErrors).length === 0 ? (
-          <ErrorMessage message={submitError} />
+        {config.description ? (
+          <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{config.description}</p>
         ) : null}
 
-        <Button type="submit" variant="primary" size="md" disabled={submitting} className="w-full">
-          <Send className="h-4 w-4" />
-          {submitting ? 'Submitting...' : 'Submit'}
-        </Button>
-      </form>
+        {isMultistep && currentStepData ? (
+          <div className="mt-4">
+            <div className="flex items-center gap-2" aria-label={`Step ${currentStepIndex + 1} of ${totalSteps}`}>
+              {stepsWithFields.map((_, i) => (
+                <div
+                  key={i}
+                  className={`h-1.5 flex-1 rounded-full transition-colors ${
+                    i <= currentStepIndex
+                      ? 'bg-emerald-500 dark:bg-emerald-400'
+                      : 'bg-slate-200 dark:bg-slate-700'
+                  }`}
+                />
+              ))}
+            </div>
+            <p className="mt-2 text-xs font-medium text-slate-500 dark:text-slate-400">
+              Step {currentStepIndex + 1} of {totalSteps}
+              {currentStepData.step.title ? ` — ${currentStepData.step.title}` : ''}
+            </p>
+            {currentStepData.step.description ? (
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{currentStepData.step.description}</p>
+            ) : null}
+          </div>
+        ) : null}
+
+        <form onSubmit={handleSubmit} className="mt-6 space-y-5" noValidate>
+          {fieldsToRender.map((field) => (
+            <FormFieldRenderer
+              key={field.name}
+              field={field as FormFieldConfig}
+              value={values[field.name]}
+              onChange={updateValue}
+              error={fieldErrors[field.name]}
+            />
+          ))}
+
+          {submitError && Object.keys(fieldErrors).length === 0 ? (
+            <ErrorMessage message={submitError} />
+          ) : null}
+
+          {isMultistep ? (
+            <div className="flex gap-3 pt-2">
+              {currentStepIndex > 0 ? (
+                <Button type="button" variant="secondary" size="md" onClick={handleBack} className="flex-1">
+                  <ChevronLeft className="h-4 w-4" />
+                  Back
+                </Button>
+              ) : (
+                <div className="flex-1" />
+              )}
+              {isLastStep ? (
+                <Button type="submit" variant="primary" size="md" disabled={submitting} className="flex-1">
+                  <Send className="h-4 w-4" />
+                  {submitting ? 'Submitting...' : 'Submit'}
+                </Button>
+              ) : (
+                <Button type="button" variant="primary" size="md" onClick={handleNext} className="flex-1">
+                  Next
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+          ) : (
+            <Button type="submit" variant="primary" size="md" disabled={submitting} className="w-full">
+              <Send className="h-4 w-4" />
+              {submitting ? 'Submitting...' : 'Submit'}
+            </Button>
+          )}
+        </form>
       </Card>
       <FormRenderFooter />
     </div>

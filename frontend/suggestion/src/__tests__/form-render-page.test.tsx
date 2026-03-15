@@ -23,7 +23,7 @@ const mockFormConfig = {
     description: 'Tell us what you think.',
     showResultsPublic: true,
     fields: [
-      { name: 'comment', label: 'Comment', type: 'short_text', required: true, placeholder: 'Your comment' },
+      { name: 'comment', label: 'Comment', type: 'text', required: true, placeholder: 'Your comment' },
       { name: 'rating', label: 'Rating', type: 'radio', required: true, options: ['Good', 'Bad'] },
     ],
   },
@@ -35,9 +35,9 @@ const mockFormWithCheckboxBigTextImage = {
     title: 'Survey',
     description: 'Optional description.',
     fields: [
-      { name: 'notes', label: 'Notes', type: 'big_text', required: false, placeholder: 'Long answer...' },
+      { name: 'notes', label: 'Notes', type: 'textarea', required: false, placeholder: 'Long answer...' },
       { name: 'agree', label: 'I agree', type: 'checkbox', required: true, options: ['Yes', 'No'] },
-      { name: 'photo', label: 'Upload photo', type: 'image_upload', required: false },
+      { name: 'photo', label: 'Upload photo', type: 'image', required: false },
     ],
   },
 }
@@ -75,7 +75,7 @@ describe('FormRenderPage', () => {
     expect(screen.getByText(/Tell us what you think/i)).toBeInTheDocument()
   })
 
-  test('renders fields by type: short_text and radio with options', async () => {
+  test('renders fields by type: text and radio with options', async () => {
     mockedAxios.get.mockResolvedValueOnce({ data: mockFormConfig })
 
     renderFormRenderPage('form-1')
@@ -190,7 +190,7 @@ describe('FormRenderPage', () => {
         description: 'No results link.',
         showResultsPublic: false,
         fields: [
-          { name: 'comment', label: 'Comment', type: 'short_text', required: false },
+          { name: 'comment', label: 'Comment', type: 'text', required: false },
         ],
       },
     }
@@ -256,7 +256,7 @@ describe('FormRenderPage', () => {
     })
   })
 
-  test('renders big_text, checkbox, and image_upload fields', async () => {
+  test('renders textarea, checkbox, and image fields', async () => {
     mockedAxios.get.mockResolvedValueOnce({ data: mockFormWithCheckboxBigTextImage })
 
     renderFormRenderPage('form-2')
@@ -302,7 +302,7 @@ describe('FormRenderPage', () => {
         feedbackForm: {
           _id: 'f3',
           title: 'No Description Form',
-          fields: [{ name: 'x', label: 'X', type: 'short_text', required: false }],
+          fields: [{ name: 'x', label: 'X', type: 'text', required: false }],
         },
       },
     })
@@ -322,8 +322,8 @@ describe('FormRenderPage', () => {
         title: 'With Photo',
         description: '',
         fields: [
-          { name: 'comment', label: 'Comment', type: 'short_text', required: false },
-          { name: 'photo', label: 'Photo', type: 'image_upload', required: false },
+          { name: 'comment', label: 'Comment', type: 'text', required: false },
+          { name: 'photo', label: 'Photo', type: 'image', required: false },
         ],
       },
     }
