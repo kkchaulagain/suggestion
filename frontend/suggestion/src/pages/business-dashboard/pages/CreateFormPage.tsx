@@ -49,7 +49,7 @@ import { feedbackFormsApi } from '../../../utils/apipath'
 import { Button, Card, ErrorMessage, Input, Modal, Select, Textarea } from '../../../components/ui'
 import { EmptyState } from '../../../components/layout'
 
-type FeedbackFieldType = 'checkbox' | 'radio' | 'short_text' | 'long_text' | 'big_text' | 'image_upload' | 'name' | 'email'
+type FeedbackFieldType = 'checkbox' | 'radio' | 'short_text' | 'long_text' | 'big_text' | 'image_upload' | 'name' | 'email' | 'scale_1_10' | 'rating'
 
 interface FeedbackField {
   clientId?: string
@@ -84,7 +84,13 @@ export interface FormTemplate {
   kind?: FormKind
 }
 
+/** Types that show the editable options list in the builder */
 const OPTION_TYPES: FeedbackFieldType[] = ['checkbox', 'radio']
+
+/** Types that have options (editable or fixed). Used for payload and validation. */
+const TYPES_WITH_OPTIONS: FeedbackFieldType[] = ['checkbox', 'radio', 'scale_1_10', 'rating']
+
+const SCALE_1_10_OPTIONS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']
 
 const fieldTypeOptions: Array<{ value: FeedbackFieldType; label: string }> = [
   { value: 'name', label: 'Name' },
@@ -94,6 +100,8 @@ const fieldTypeOptions: Array<{ value: FeedbackFieldType; label: string }> = [
   { value: 'big_text', label: 'Paragraph' },
   { value: 'checkbox', label: 'Checkbox' },
   { value: 'radio', label: 'Radio' },
+  { value: 'scale_1_10', label: 'Scale 1–10' },
+  { value: 'rating', label: 'Rating (stars)' },
   { value: 'image_upload', label: 'Image Upload' },
 ]
 
@@ -119,6 +127,42 @@ const FORM_TEMPLATES: FormTemplate[] = [
     ],
   },
   {
+    id: 'poll-meeting-time',
+    label: 'Meeting Time Poll',
+    description: 'Let people vote for their preferred meeting or event time.',
+    iconName: 'BarChart2',
+    title: 'When works best?',
+    formDescription: 'Vote for your preferred time. We will schedule based on the results.',
+    kind: 'poll',
+    fields: [
+      {
+        name: 'preferred_time',
+        label: 'When works best for you?',
+        type: 'radio',
+        required: true,
+        options: ['Morning (9am–12pm)', 'Afternoon (12pm–5pm)', 'Evening (5pm–8pm)'],
+      },
+    ],
+  },
+  {
+    id: 'poll-satisfaction',
+    label: 'Satisfaction Poll',
+    description: 'Quick one-question satisfaction check.',
+    iconName: 'BarChart2',
+    title: 'How satisfied are you?',
+    formDescription: 'Your feedback helps us improve.',
+    kind: 'poll',
+    fields: [
+      {
+        name: 'satisfaction',
+        label: 'How satisfied are you with your experience?',
+        type: 'radio',
+        required: true,
+        options: ['Very satisfied', 'Satisfied', 'Neutral', 'Dissatisfied', 'Very dissatisfied'],
+      },
+    ],
+  },
+  {
     id: 'survey',
     label: 'Survey',
     description: 'Multiple questions: ratings, choices, and open feedback.',
@@ -130,6 +174,35 @@ const FORM_TEMPLATES: FormTemplate[] = [
       { name: 'rating', label: 'Overall rating', type: 'radio', required: true, options: ['Poor', 'Fair', 'Good', 'Excellent'] },
       { name: 'category', label: 'Category', type: 'radio', required: false, options: ['Quality', 'Service', 'Value', 'Other'] },
       { name: 'comments', label: 'Additional comments', type: 'short_text', required: false, placeholder: '' },
+    ],
+  },
+  {
+    id: 'survey-event-feedback',
+    label: 'Event Feedback Survey',
+    description: 'Collect feedback after an event: rating, highlights, and recommendations.',
+    iconName: 'ListChecks',
+    title: 'Event Feedback',
+    formDescription: 'Thank you for attending. Please share your feedback so we can improve future events.',
+    kind: 'survey',
+    fields: [
+      { name: 'rating', label: 'How would you rate this event?', type: 'radio', required: true, options: STAR_RATING_OPTIONS },
+      { name: 'highlight', label: 'What was the best part?', type: 'short_text', required: false, placeholder: 'e.g. keynote, networking, venue' },
+      { name: 'improve', label: 'What could we improve?', type: 'long_text', required: false, placeholder: '' },
+      { name: 'attend_again', label: 'Would you attend again?', type: 'radio', required: true, options: ['Yes', 'No', 'Maybe'] },
+    ],
+  },
+  {
+    id: 'survey-quick-feedback',
+    label: 'Quick Feedback Survey',
+    description: 'Short 3-question survey: rating, recommendation, and optional comment.',
+    iconName: 'ListChecks',
+    title: 'Quick Feedback',
+    formDescription: 'A few quick questions to help us serve you better.',
+    kind: 'survey',
+    fields: [
+      { name: 'rating', label: 'Overall experience', type: 'radio', required: true, options: ['Poor', 'Fair', 'Good', 'Excellent'] },
+      { name: 'recommend', label: 'Would you recommend us?', type: 'radio', required: true, options: ['Yes', 'No', 'Maybe'] },
+      { name: 'comment', label: 'Anything else? (optional)', type: 'short_text', required: false, placeholder: '' },
     ],
   },
   {
@@ -308,6 +381,8 @@ function makeDefaultLabel(type: FeedbackFieldType, count: number): string {
     big_text: 'Paragraph',
     checkbox: 'Checkbox group',
     radio: 'Single choice',
+    scale_1_10: 'Scale 1–10',
+    rating: 'Rating',
     image_upload: 'Attachment',
     name: 'Name',
     email: 'Email',
@@ -318,6 +393,14 @@ function makeDefaultLabel(type: FeedbackFieldType, count: number): string {
 
 function createField(type: FeedbackFieldType, count: number): FeedbackField {
   const label = makeDefaultLabel(type, count)
+  const options =
+    type === 'scale_1_10'
+      ? [...SCALE_1_10_OPTIONS]
+      : type === 'rating'
+        ? [...STAR_RATING_OPTIONS]
+        : OPTION_TYPES.includes(type)
+          ? ['Option 1']
+          : undefined
   return {
     clientId: makeClientId(),
     name: toFieldName(label),
@@ -325,7 +408,7 @@ function createField(type: FeedbackFieldType, count: number): FeedbackField {
     type,
     required: false,
     placeholder: '',
-    options: OPTION_TYPES.includes(type) ? ['Option 1'] : undefined,
+    options,
     allowAnonymous: type === 'name' ? false : undefined,
   }
 }
@@ -336,10 +419,12 @@ function getTypeLabel(type: FeedbackFieldType): string {
 
 function normalizeLoadedFields(fields: FeedbackField[] | undefined): FeedbackField[] {
   return fields?.length
-    ? fields.map((field, index) => ({
-        ...field,
-        clientId: field.clientId || `loaded-${index}-${field.name}`,
-      }))
+    ? fields.map((field, index) => {
+        const base = { ...field, clientId: field.clientId || `loaded-${index}-${field.name}` }
+        if (field.type === 'scale_1_10') return { ...base, options: [...SCALE_1_10_OPTIONS] }
+        if (field.type === 'rating') return { ...base, options: [...STAR_RATING_OPTIONS] }
+        return base
+      })
     : defaultFields
 }
 
@@ -747,12 +832,22 @@ export default function CreateFormPage() {
   }
 
   const handleFieldTypeChange = (fieldId: string, type: FeedbackFieldType) => {
-    updateField(fieldId, (field) => ({
-      ...field,
-      type,
-      options: OPTION_TYPES.includes(type) ? (field.options?.length ? field.options : ['Option 1']) : undefined,
-      allowAnonymous: type === 'name' ? (field.allowAnonymous ?? false) : undefined,
-    }))
+    updateField(fieldId, (field) => {
+      const options =
+        type === 'scale_1_10'
+          ? [...SCALE_1_10_OPTIONS]
+          : type === 'rating'
+            ? [...STAR_RATING_OPTIONS]
+            : OPTION_TYPES.includes(type)
+              ? (field.options?.length ? field.options : ['Option 1'])
+              : undefined
+      return {
+        ...field,
+        type,
+        options,
+        allowAnonymous: type === 'name' ? (field.allowAnonymous ?? false) : undefined,
+      }
+    })
     setError('')
   }
 
@@ -922,10 +1017,10 @@ export default function CreateFormPage() {
       }
       seenNames.add(normalizedName.toLowerCase())
 
-      if (OPTION_TYPES.includes(field.type)) {
+      if (TYPES_WITH_OPTIONS.includes(field.type)) {
         const validOptions = (field.options ?? []).map((option) => option.trim()).filter(Boolean)
         if (validOptions.length === 0) {
-          return 'Checkbox and radio fields need at least one option.'
+          return 'Checkbox, radio, scale, and rating fields need at least one option.'
         }
       }
     }
@@ -950,7 +1045,7 @@ export default function CreateFormPage() {
         type: field.type,
         required: field.required,
         placeholder: field.placeholder?.trim() || undefined,
-        options: OPTION_TYPES.includes(field.type)
+        options: TYPES_WITH_OPTIONS.includes(field.type)
           ? (field.options ?? []).map((option) => option.trim()).filter(Boolean)
           : undefined,
         allowAnonymous: field.type === 'name' ? (field.allowAnonymous ?? false) : undefined,

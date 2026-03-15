@@ -4,6 +4,7 @@ import {
   FormFieldRenderer,
   isStarRatingOptions,
   StarRatingField,
+  Scale1To10Field,
   FieldWrapper,
   ShortTextField,
   BigTextField,
@@ -53,6 +54,8 @@ test('field-type components are exported from index', () => {
   expect(BigTextField).toBeDefined()
   expect(CheckboxField).toBeDefined()
   expect(RadioField).toBeDefined()
+  expect(StarRatingField).toBeDefined()
+  expect(Scale1To10Field).toBeDefined()
   expect(ImageUploadField).toBeDefined()
   expect(NameField).toBeDefined()
   expect(EmailField).toBeDefined()
@@ -248,4 +251,62 @@ describe('FormFieldRenderer', () => {
     expect(input).toHaveAttribute('aria-invalid', 'true')
     expect(screen.getByText('Invalid email address')).toBeInTheDocument()
   })
+
+  test('renders scale_1_10 as Scale1To10Field', () => {
+    const onChange = jest.fn()
+    render(
+      <FormFieldRenderer
+        field={{
+          name: 'score',
+          label: 'Score (1-10)',
+          type: 'scale_1_10',
+          required: true,
+        }}
+        value=""
+        onChange={onChange}
+      />,
+    )
+    expect(screen.getByText('Score (1-10)')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /7 out of 10/i })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /7 out of 10/i }))
+    expect(onChange).toHaveBeenCalledWith('score', '7')
+  })
+
+  test('renders rating type as StarRatingField', () => {
+    const onChange = jest.fn()
+    const options = ['★ 1 Star', '★★ 2 Stars', '★★★ 3 Stars', '★★★★ 4 Stars', '★★★★★ 5 Stars']
+    render(
+      <FormFieldRenderer
+        field={{
+          name: 'stars',
+          label: 'Rate us',
+          type: 'rating',
+          required: true,
+          options,
+        }}
+        value=""
+        onChange={onChange}
+      />,
+    )
+    expect(screen.getByText('Rate us')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /3 stars/i }))
+    expect(onChange).toHaveBeenCalledWith('stars', '★★★ 3 Stars')
+  })
+})
+
+test('Scale1To10Field is exported and renderable', () => {
+  const onChange = jest.fn()
+  render(
+    <Scale1To10Field
+      id="score"
+      name="score"
+      label="Score"
+      value="5"
+      onChange={onChange}
+    />,
+  )
+  expect(screen.getByRole('group', { name: /score/i })).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: /5 out of 10/i })).toHaveAttribute('aria-pressed', 'true')
+  fireEvent.click(screen.getByRole('button', { name: /8 out of 10/i }))
+  expect(onChange).toHaveBeenCalledWith('8')
 })

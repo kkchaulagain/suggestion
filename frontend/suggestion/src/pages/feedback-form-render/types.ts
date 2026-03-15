@@ -6,7 +6,9 @@ export type FeedbackFieldType =
   | 'radio'
   | 'image_upload'
   | 'name'
-  |'email'
+  | 'email'
+  | 'scale_1_10'
+  | 'rating'
 
 export interface FeedbackFormField {
   name: string

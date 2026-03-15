@@ -13,6 +13,7 @@ export {
   CheckboxField,
   RadioField,
   StarRatingField,
+  Scale1To10Field,
   ImageUploadField,
   NameField,
   EmailField
@@ -24,6 +25,7 @@ export type {
   CheckboxFieldProps,
   RadioFieldProps,
   StarRatingFieldProps,
+  Scale1To10FieldProps,
   ImageUploadFieldProps,
   NameFieldProps,
   EmailFieldProps

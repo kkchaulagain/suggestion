@@ -1,4 +1,6 @@
 export { default as FormResultsView } from './FormResultsView'
 export { default as ResultsSummary } from './ResultsSummary'
 export { default as ChoiceQuestionResults } from './ChoiceQuestionResults'
+export { default as ScaleQuestionResults } from './ScaleQuestionResults'
+export { default as RatingQuestionResults } from './RatingQuestionResults'
 export { default as TextQuestionResults } from './TextQuestionResults'

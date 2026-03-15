@@ -9,6 +9,8 @@ const FEEDBACK_FIELD_TYPES = [
   'radio',
   'name',
   'email',
+  'scale_1_10',
+  'rating',
 ];
 
 const feedbackFieldSchema = new mongoose.Schema(

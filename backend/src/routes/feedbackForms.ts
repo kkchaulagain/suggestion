@@ -390,7 +390,7 @@ router.get('/:id/results', async (req: Request, res: Response) => {
     const submissions = await FeedbackSubmission.find(query).select('responses submittedAt').lean();
     const totalResponses = submissions.length;
     const byField: Record<string, { label: string; type: string; options?: { option: string; count: number; percentage: number }[]; responseCount?: number; sampleAnswers?: string[] }> = {};
-    const choiceTypes = ['radio', 'checkbox'];
+    const choiceTypes = ['radio', 'checkbox', 'scale_1_10', 'rating'];
     const textTypes = ['short_text', 'long_text', 'big_text', 'name', 'image_upload'];
     const fields = formDoc.fields || [];
     for (const field of fields) {
@@ -403,7 +403,7 @@ router.get('/:id/results', async (req: Request, res: Response) => {
         optionsList.forEach((opt) => { counts[opt] = 0; });
         for (const sub of submissions as { responses?: Record<string, unknown> }[]) {
           const val = sub.responses?.[fname];
-          if (ftype === 'radio' && typeof val === 'string' && val.trim() !== '') {
+          if ((ftype === 'radio' || ftype === 'scale_1_10' || ftype === 'rating') && typeof val === 'string' && val.trim() !== '') {
             counts[val] = (counts[val] ?? 0) + 1;
           } else if (ftype === 'checkbox' && Array.isArray(val)) {
             for (const v of val) {

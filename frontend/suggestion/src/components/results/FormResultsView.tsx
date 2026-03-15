@@ -6,10 +6,12 @@ import { isChoiceFieldResult } from '../../types/results'
 import { ErrorMessage } from '../ui'
 import { EmptyState } from '../layout'
 import ChoiceQuestionResults from './ChoiceQuestionResults'
+import ScaleQuestionResults from './ScaleQuestionResults'
+import RatingQuestionResults from './RatingQuestionResults'
 import TextQuestionResults from './TextQuestionResults'
 import ResultsSummary from './ResultsSummary'
 
-const CHOICE_TYPES = ['radio', 'checkbox']
+const CHOICE_TYPES = ['radio', 'checkbox', 'scale_1_10', 'rating']
 const TEXT_TYPES = ['short_text', 'long_text', 'big_text', 'name', 'image_upload']
 
 interface FormResultsViewProps {
@@ -112,6 +114,24 @@ export default function FormResultsView({
       />
       <div className="space-y-4">
         {fieldEntries.map(([fieldName, fieldData]) => {
+          if (fieldData.type === 'scale_1_10' && isChoiceFieldResult(fieldData)) {
+            return (
+              <ScaleQuestionResults
+                key={fieldName}
+                fieldName={fieldName}
+                data={fieldData}
+              />
+            )
+          }
+          if (fieldData.type === 'rating' && isChoiceFieldResult(fieldData)) {
+            return (
+              <RatingQuestionResults
+                key={fieldName}
+                fieldName={fieldName}
+                data={fieldData}
+              />
+            )
+          }
           if (CHOICE_TYPES.includes(fieldData.type) && isChoiceFieldResult(fieldData)) {
             return (
               <ChoiceQuestionResults

@@ -6,7 +6,7 @@ export interface ResultOption {
 
 export interface ChoiceFieldResult {
   label: string
-  type: 'radio' | 'checkbox'
+  type: 'radio' | 'checkbox' | 'scale_1_10' | 'rating'
   options: ResultOption[]
 }
 

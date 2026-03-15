@@ -7,7 +7,8 @@ import {
   StarRatingField,
   ImageUploadField,
   NameField,
-  EmailField
+  EmailField,
+  Scale1To10Field,
 } from './field-types'
 import { isStarRatingOptions } from './formFieldUtils'
 
@@ -20,6 +21,8 @@ export type FormFieldType =
   | 'image_upload'
   | 'name'
   | 'email'
+  | 'scale_1_10'
+  | 'rating'
 
 export interface FormFieldConfig {
   name: string
@@ -101,6 +104,37 @@ export default function FormFieldRenderer({
         options={field.options}
         onChange={(v) => handleChange(v)}
         disabled={disabled}
+        error={error}
+      />
+    )
+  }
+
+  if (field.type === 'scale_1_10') {
+    return (
+      <Scale1To10Field
+        id={id}
+        name={field.name}
+        label={labelNode}
+        value={typeof value === 'string' ? value : ''}
+        onChange={(v) => handleChange(v)}
+        disabled={disabled}
+        required={field.required}
+        error={error}
+      />
+    )
+  }
+
+  if (field.type === 'rating' && field.options?.length) {
+    return (
+      <StarRatingField
+        id={id}
+        name={field.name}
+        label={labelNode}
+        value={typeof value === 'string' ? value : ''}
+        options={field.options}
+        onChange={(v) => handleChange(v)}
+        disabled={disabled}
+        required={field.required}
         error={error}
       />
     )

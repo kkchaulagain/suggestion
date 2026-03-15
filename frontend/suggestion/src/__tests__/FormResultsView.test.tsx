@@ -144,4 +144,80 @@ describe('FormResultsView', () => {
       )
     })
   })
+
+  it('shows scale_1_10 field with average and distribution table', async () => {
+    mockedAxios.get.mockResolvedValueOnce({
+      data: {
+        formId: 'form-1',
+        formTitle: 'Score Survey',
+        totalResponses: 4,
+        byField: {
+          score: {
+            label: 'How would you rate?',
+            type: 'scale_1_10',
+            options: [
+              { option: '7', count: 2, percentage: 50 },
+              { option: '8', count: 1, percentage: 25 },
+              { option: '9', count: 1, percentage: 25 },
+            ],
+          },
+        },
+        responsesOverTime: [],
+      },
+    })
+
+    render(<FormResultsView formId="form-1" />)
+
+    await waitFor(() => {
+      expect(screen.getByText(/Score Survey/i)).toBeInTheDocument()
+      expect(screen.getByText(/How would you rate?/i)).toBeInTheDocument()
+    })
+
+    expect(screen.getByText(/out of 10 average/i)).toBeInTheDocument()
+    const table = screen.getByTestId('results-table-score')
+    expect(table).toBeInTheDocument()
+    expect(table).toHaveTextContent('Score')
+    expect(table).toHaveTextContent('7')
+    expect(table).toHaveTextContent('8')
+    expect(table).toHaveTextContent('9')
+    expect(table).toHaveTextContent('2')
+    expect(table).toHaveTextContent('50%')
+  })
+
+  it('shows rating field with average and distribution table', async () => {
+    mockedAxios.get.mockResolvedValueOnce({
+      data: {
+        formId: 'form-1',
+        formTitle: 'Feedback',
+        totalResponses: 2,
+        byField: {
+          stars: {
+            label: 'Rate your experience',
+            type: 'rating',
+            options: [
+              { option: '★★★★ 4 Stars', count: 1, percentage: 50 },
+              { option: '★★★★★ 5 Stars', count: 1, percentage: 50 },
+            ],
+          },
+        },
+        responsesOverTime: [],
+      },
+    })
+
+    render(<FormResultsView formId="form-1" />)
+
+    await waitFor(() => {
+      expect(screen.getByText(/Feedback/i)).toBeInTheDocument()
+      expect(screen.getByText(/Rate your experience/i)).toBeInTheDocument()
+    })
+
+    expect(screen.getByText(/out of 5 average/i)).toBeInTheDocument()
+    const table = screen.getByTestId('results-table-stars')
+    expect(table).toBeInTheDocument()
+    expect(table).toHaveTextContent('Rating')
+    expect(table).toHaveTextContent('★★★★ 4 Stars')
+    expect(table).toHaveTextContent('★★★★★ 5 Stars')
+    expect(table).toHaveTextContent('1')
+    expect(table).toHaveTextContent('50%')
+  })
 })

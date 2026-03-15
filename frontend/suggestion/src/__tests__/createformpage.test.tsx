@@ -154,7 +154,7 @@ describe('CreateFormPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /save form/i }))
 
     await waitFor(() => {
-      expect(screen.getByText(/checkbox and radio fields need at least one option/i)).toBeInTheDocument()
+      expect(screen.getByText(/need at least one option/i)).toBeInTheDocument()
     })
   })
 
