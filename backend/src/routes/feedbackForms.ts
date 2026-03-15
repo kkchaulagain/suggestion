@@ -235,11 +235,7 @@ function validateSubmissionPayload(
     const name = field.name;
     const value = raw[name];
 
-<<<<<<< HEAD
     const isAnonymousAllowed = ANONYMOUS_FIELD_TYPES.has(field.type) && (field as { allowAnonymous?: boolean }).allowAnonymous === true;
-=======
-    const isAnonymousAllowed = (field as { allowAnonymous?: boolean }).allowAnonymous === true;
->>>>>>> main
 
     if (field.required && !isAnonymousAllowed) {
       if (value === undefined || value === null) {

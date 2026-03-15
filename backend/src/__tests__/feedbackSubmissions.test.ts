@@ -284,6 +284,24 @@ describe('Feedback Submissions API', () => {
       expect(res.body.error).toMatch(/required/);
     });
 
+    it('still requires checkbox values even when allowAnonymous is true', async () => {
+      const { businessId } = await createBusinessAuth();
+      const form = await FeedbackForm.create({
+        businessId,
+        title: 'Required checkbox form',
+        fields: [
+          { name: 'choices', label: 'Choices', type: 'checkbox', required: true, allowAnonymous: true },
+        ],
+      });
+
+      const res = await request(app)
+        .post(`/api/feedback-forms/${form._id}/submit`)
+        .send({ choices: [] })
+        .expect(400);
+
+      expect(res.body.error).toMatch(/required/);
+    });
+
     it('accepts optional checkbox with single value (normalized to array)', async () => {
       const { businessId } = await createBusinessAuth();
       const form = await FeedbackForm.create({

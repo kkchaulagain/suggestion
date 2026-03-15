@@ -104,7 +104,6 @@ export default function FormFieldRenderer({
 
   const t = field.type
 
-<<<<<<< HEAD
   if (t === 'text' && field.allowAnonymous !== undefined) {
     return (
       <NameField
@@ -120,9 +119,6 @@ export default function FormFieldRenderer({
       />
     )
   }
-
-=======
->>>>>>> main
   if (t === 'text' || t === 'short_text' || t === 'long_text') {
     return (
       <ShortTextField
@@ -163,6 +159,7 @@ export default function FormFieldRenderer({
         placeholder={field.placeholder}
         disabled={disabled}
         required={field.required}
+        isAnonymous={field.allowAnonymous}
         error={error}
       />
     )
@@ -381,25 +378,6 @@ export default function FormFieldRenderer({
       />
     )
   }
-<<<<<<< HEAD
-
-  if (t === 'email') {
-    return (
-      <EmailField
-        id={id}
-        label={labelNode}
-        value={typeof value === 'string' ? value : ''}
-        onChange={(v) => handleChange(v)}
-        placeholder={field.placeholder}
-        disabled={disabled}
-        required={field.required}
-        isAnonymous={field.allowAnonymous}
-        error={error}
-      />
-    )
-  }
-=======
->>>>>>> main
 
   return null
 }
