@@ -53,7 +53,7 @@ export default function EmailField(
               disabled={disabled}
               className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 dark:border-slate-600"
             />
-            Submit anonymously
+             Submit anonymously
           </label>
             ):null}
         </FieldWrapper>
