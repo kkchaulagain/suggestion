@@ -104,6 +104,7 @@ export default function FormFieldRenderer({
 
   const t = field.type
 
+<<<<<<< HEAD
   if (t === 'text' && field.allowAnonymous !== undefined) {
     return (
       <NameField
@@ -120,6 +121,8 @@ export default function FormFieldRenderer({
     )
   }
 
+=======
+>>>>>>> main
   if (t === 'text' || t === 'short_text' || t === 'long_text') {
     return (
       <ShortTextField
@@ -378,6 +381,7 @@ export default function FormFieldRenderer({
       />
     )
   }
+<<<<<<< HEAD
 
   if (t === 'email') {
     return (
@@ -394,6 +398,8 @@ export default function FormFieldRenderer({
       />
     )
   }
+=======
+>>>>>>> main
 
   return null
 }

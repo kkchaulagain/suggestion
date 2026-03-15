@@ -42,6 +42,7 @@ const mockFormWithCheckboxBigTextImage = {
       { name: 'notes', label: 'Notes', type: 'textarea', required: false, placeholder: 'Long answer...' },
       { name: 'agree', label: 'I agree', type: 'checkbox', required: true, options: ['Yes', 'No'] },
       { name: 'photo', label: 'Upload photo', type: 'image', required: false },
+<<<<<<< HEAD
     ],
   },
 }
@@ -54,6 +55,8 @@ const mockAnonymousEmailForm = {
     fields: [
       { name: 'email', label: 'Email Address', type: 'email', required: true, allowAnonymous: true, placeholder: 'you@example.com' },
       { name: 'comment', label: 'Comment', type: 'short_text', required: false, placeholder: 'Your comment' },
+=======
+>>>>>>> main
     ],
   },
 }

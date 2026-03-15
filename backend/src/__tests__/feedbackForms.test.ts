@@ -379,6 +379,7 @@ describe('Feedback Forms API', () => {
     expect(res.body.feedbackForm.fields[0].allowAnonymous).toBe(true);
   });
 
+<<<<<<< HEAD
   it('creates a feedback form with email field type and allowAnonymous', async () => {
     const { authHeader } = await createBusinessAuth();
 
@@ -397,6 +398,8 @@ describe('Feedback Forms API', () => {
     expect(res.body.feedbackForm.fields[0].allowAnonymous).toBe(true);
   });
 
+=======
+>>>>>>> main
   it('defaults allowAnonymous to false for text field when not provided', async () => {
     const { authHeader } = await createBusinessAuth();
 
