@@ -503,11 +503,25 @@ router.get('/:id/results', optionalAuthAndBusiness, async (req: Request, res: Re
     const query: Record<string, unknown> = { formId: new mongoose.Types.ObjectId(id) };
     const dateFromRaw = req.query.dateFrom;
     const dateToRaw = req.query.dateTo;
-    const dateFrom = dateFromRaw && typeof dateFromRaw === 'string' ? new Date(dateFromRaw) : null;
-    const dateTo = dateToRaw && typeof dateToRaw === 'string' ? new Date(dateToRaw) : null;
+    let dateFrom: Date | null = null;
+    let dateTo: Date | null = null;
+    if (dateFromRaw && typeof dateFromRaw === 'string') {
+      dateFrom = new Date(dateFromRaw);
+      if (Number.isNaN(dateFrom.getTime())) dateFrom = null;
+    }
+    if (dateToRaw && typeof dateToRaw === 'string') {
+      const parsed = new Date(dateToRaw);
+      if (!Number.isNaN(parsed.getTime())) {
+        if (/^\d{4}-\d{2}-\d{2}$/.test(dateToRaw.trim())) {
+          dateTo = new Date(dateToRaw.trim() + 'T23:59:59.999Z');
+        } else {
+          dateTo = parsed;
+        }
+      }
+    }
     const submittedAtFilter: Record<string, Date> = {};
-    if (dateFrom && !Number.isNaN(dateFrom.getTime())) submittedAtFilter.$gte = dateFrom;
-    if (dateTo && !Number.isNaN(dateTo.getTime())) submittedAtFilter.$lte = dateTo;
+    if (dateFrom) submittedAtFilter.$gte = dateFrom;
+    if (dateTo) submittedAtFilter.$lte = dateTo;
     if (Object.keys(submittedAtFilter).length > 0) {
       query.submittedAt = submittedAtFilter;
     }
