@@ -30,7 +30,7 @@ interface HeroPayload {
   headline: string
   subheadline: string
   variant?: 'centered' | 'split' | 'splitReversed' | 'centeredWithMediaBelow'
-  style?: 'default' | 'minimal' | 'dark'
+  style?: 'default' | 'minimal'
   mediaType?: 'none' | 'image' | 'icon'
   imageUrl?: string
   imageAlt?: string

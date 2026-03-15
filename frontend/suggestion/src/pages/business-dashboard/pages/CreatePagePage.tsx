@@ -57,7 +57,7 @@ interface HeroCta {
 }
 
 type HeroLayoutVariant = 'centered' | 'split' | 'splitReversed' | 'centeredWithMediaBelow'
-type HeroStyleVariant = 'default' | 'minimal' | 'dark'
+type HeroStyleVariant = 'default' | 'minimal'
 
 interface HeroPayload {
   headline: string
@@ -751,7 +751,6 @@ export default function CreatePagePage() {
             options={[
               { value: 'default', label: 'Default' },
               { value: 'minimal', label: 'Minimal' },
-              { value: 'dark', label: 'Dark' },
             ]}
             className="rounded-2xl border-stone-200 focus:border-violet-500 focus:ring-violet-500/20 dark:border-stone-700 dark:focus:border-violet-400 dark:focus:ring-violet-400/20"
           />

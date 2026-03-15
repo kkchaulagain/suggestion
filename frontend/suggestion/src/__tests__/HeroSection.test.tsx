@@ -1,3 +1,4 @@
+import type { ComponentProps } from 'react'
 import { render, screen } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { MemoryRouter } from 'react-router-dom'
@@ -48,8 +49,9 @@ describe('HeroSection', () => {
     expect(screen.getByRole('heading', { name: /test headline/i })).toBeInTheDocument()
   })
 
-  test('renders with style dark', () => {
-    renderHero({ ...defaultProps, style: 'dark' })
+  test('renders when style is dark (backwards compat: treated as default)', () => {
+    // Legacy CMS content may have saved style 'dark'; component maps it to default
+    renderHero({ ...defaultProps, style: 'dark' } as ComponentProps<typeof HeroSection>)
     expect(screen.getByRole('heading', { name: /test headline/i })).toBeInTheDocument()
   })
 })

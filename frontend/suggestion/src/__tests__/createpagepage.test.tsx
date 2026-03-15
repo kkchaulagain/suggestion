@@ -133,8 +133,8 @@ describe('CreatePagePage', () => {
     expect(layoutSelect).toHaveValue('splitReversed')
 
     const styleSelect = screen.getByLabelText(/^Style$/i)
-    fireEvent.change(styleSelect, { target: { value: 'dark' } })
-    expect(styleSelect).toHaveValue('dark')
+    fireEvent.change(styleSelect, { target: { value: 'minimal' } })
+    expect(styleSelect).toHaveValue('minimal')
   })
 
   test('inserts a paragraph block between existing blocks', async () => {

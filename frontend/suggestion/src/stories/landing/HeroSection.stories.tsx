@@ -13,7 +13,7 @@ const meta = {
     },
     style: {
       control: 'select',
-      options: ['default', 'minimal', 'dark'],
+      options: ['default', 'minimal'],
     },
   },
   args: {
@@ -86,16 +86,5 @@ export const Minimal: Story = {
     style: 'minimal',
     headline: 'Minimal hero',
     subheadline: 'Tighter spacing and smaller type.',
-  },
-}
-
-export const Dark: Story = {
-  args: {
-    ...Centered.args,
-    style: 'dark',
-    headline: 'Dark style hero',
-    subheadline: 'Dark background with light text and CTAs.',
-    primaryCta: { label: 'Get started', href: '/signup' },
-    secondaryCta: { label: 'Log in', href: '/login' },
   },
 }

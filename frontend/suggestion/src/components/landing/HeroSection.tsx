@@ -8,7 +8,7 @@ export interface HeroSectionCta {
 }
 
 export type HeroLayoutVariant = 'centered' | 'split' | 'splitReversed' | 'centeredWithMediaBelow'
-export type HeroStyleVariant = 'default' | 'minimal' | 'dark'
+export type HeroStyleVariant = 'default' | 'minimal'
 
 export interface HeroSectionProps {
   headline: string
@@ -23,7 +23,7 @@ export interface HeroSectionProps {
   media?: ReactNode
   /** Layout: where copy and media sit. Defaults to centered when no media, split when media present. */
   variant?: HeroLayoutVariant
-  /** Visual style. Default: default. */
+  /** Visual style. Dark mode is handled by the app theme; this only picks layout density (default vs minimal). */
   style?: HeroStyleVariant
 }
 
@@ -39,6 +39,7 @@ export default function HeroSection({
 }: HeroSectionProps) {
   const hasMedia = Boolean(media)
   const variant = variantProp ?? (hasMedia ? 'split' : 'centered')
+  const style = styleProp === 'dark' ? 'default' : styleProp
 
   const isCentered = variant === 'centered' || variant === 'centeredWithMediaBelow'
   const isSplit = variant === 'split' || variant === 'splitReversed'
@@ -64,17 +65,9 @@ export default function HeroSection({
       mediaWrap:
         'w-full max-w-md rounded-lg border border-stone-200 dark:border-stone-700 dark:bg-stone-800/50',
     },
-    dark: {
-      section: 'rounded-2xl bg-stone-900 px-6 py-10 dark:bg-stone-950',
-      badge:
-        'inline-block rounded-full border border-emerald-500/50 bg-emerald-500/20 px-3 py-1 text-sm font-medium text-emerald-300',
-      heading: 'mt-4 text-4xl font-bold tracking-tight text-white sm:text-5xl',
-      subheadline: 'mx-auto mt-4 max-w-2xl text-lg text-stone-300 lg:mx-0',
-      mediaWrap: 'w-full max-w-lg rounded-xl border border-stone-700 bg-stone-800/50',
-    },
   }
 
-  const s = styleClasses[styleProp]
+  const s = styleClasses[style]
 
   const layoutSectionClass =
     showMediaAside && variant === 'splitReversed'
@@ -102,8 +95,7 @@ export default function HeroSection({
               <Link to={primaryCta.href}>
                 <Button
                   variant="primary"
-                  size={styleProp === 'minimal' ? 'md' : 'lg'}
-                  className={styleProp === 'dark' ? 'bg-emerald-500 hover:bg-emerald-600 text-white' : ''}
+                  size={style === 'minimal' ? 'md' : 'lg'}
                 >
                   {primaryCta.label}
                 </Button>
@@ -113,8 +105,7 @@ export default function HeroSection({
               <Link to={secondaryCta.href}>
                 <Button
                   variant="secondary"
-                  size={styleProp === 'minimal' ? 'md' : 'lg'}
-                  className={styleProp === 'dark' ? 'border-stone-600 bg-stone-800 text-stone-200 hover:bg-stone-700' : ''}
+                  size={style === 'minimal' ? 'md' : 'lg'}
                 >
                   {secondaryCta.label}
                 </Button>
