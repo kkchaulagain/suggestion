@@ -579,5 +579,83 @@ describe('Feedback Forms API', () => {
       expect(res.body.formTitle).toBe('Owner-only results');
       expect(res.body.totalResponses).toBe(0);
     });
+
+    it('allows admin to get results when showResultsPublic is false', async () => {
+      const { businessId } = await createBusinessAuth();
+      const form = await FeedbackForm.create({
+        businessId,
+        title: 'Private form',
+        showResultsPublic: false,
+        fields: [{ name: 'v', label: 'V', type: 'radio', options: ['A'] }],
+      });
+      const { authHeader: adminHeader } = await createAdminAuth();
+      const res = await request(app)
+        .get(`/api/feedback-forms/${form._id}/results`)
+        .set(adminHeader)
+        .expect(200);
+      expect(res.body.formTitle).toBe('Private form');
+      expect(res.body.totalResponses).toBe(0);
+    });
+
+    it('filters results by dateFrom and dateTo when provided', async () => {
+      const { authHeader, businessId } = await createBusinessAuth();
+      const form = await FeedbackForm.create({
+        businessId,
+        title: 'Dated poll',
+        fields: [{ name: 'v', label: 'V', type: 'radio', options: ['A', 'B'] }],
+      });
+      const formSnapshot = [{ name: 'v', label: 'V', type: 'radio', options: ['A', 'B'] }];
+      const baseDate = new Date('2025-03-01T12:00:00Z');
+      await FeedbackSubmission.create([
+        { formId: form._id, businessId, formSnapshot, responses: { v: 'A' }, submittedAt: new Date(baseDate.getTime() + 86400000) },
+        { formId: form._id, businessId, formSnapshot, responses: { v: 'B' }, submittedAt: new Date(baseDate.getTime() + 86400000 * 2) },
+      ]);
+      const dateFrom = '2025-03-01T00:00:00.000Z';
+      const dateTo = '2025-03-05T00:00:00.000Z';
+      const res = await request(app)
+        .get(`/api/feedback-forms/${form._id}/results`)
+        .query({ dateFrom, dateTo })
+        .set(authHeader)
+        .expect(200);
+      expect(res.body.totalResponses).toBe(2);
+    });
+
+    it('returns aggregated results for scale_1_10 and rating field types', async () => {
+      const { authHeader, businessId } = await createBusinessAuth();
+      const starOptions = ['★ 1 Star', '★★ 2 Stars', '★★★ 3 Stars', '★★★★ 4 Stars', '★★★★★ 5 Stars'];
+      const form = await FeedbackForm.create({
+        businessId,
+        title: 'Scale and rating',
+        kind: 'survey',
+        fields: [
+          { name: 'score', label: 'Score', type: 'scale_1_10', options: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'] },
+          { name: 'stars', label: 'Stars', type: 'rating', options: starOptions },
+        ],
+      });
+      const formSnapshot = form.fields.map((f) => ({ name: f.name, label: f.label, type: f.type, options: f.options }));
+      await FeedbackSubmission.create([
+        { formId: form._id, businessId, formSnapshot, responses: { score: '7', stars: '★★★ 3 Stars' }, submittedAt: new Date() },
+        { formId: form._id, businessId, formSnapshot, responses: { score: '7', stars: '★★★★★ 5 Stars' }, submittedAt: new Date() },
+        { formId: form._id, businessId, formSnapshot, responses: { score: '8', stars: '★★★ 3 Stars' }, submittedAt: new Date() },
+      ]);
+      const res = await request(app).get(`/api/feedback-forms/${form._id}/results`).set(authHeader).expect(200);
+      expect(res.body.totalResponses).toBe(3);
+      expect(res.body.byField.score).toBeDefined();
+      expect(res.body.byField.score.type).toBe('scale_1_10');
+      expect(res.body.byField.score.options).toEqual(
+        expect.arrayContaining([
+          { option: '7', count: 2, percentage: 67 },
+          { option: '8', count: 1, percentage: 33 },
+        ])
+      );
+      expect(res.body.byField.stars).toBeDefined();
+      expect(res.body.byField.stars.type).toBe('rating');
+      expect(res.body.byField.stars.options).toEqual(
+        expect.arrayContaining([
+          { option: '★★★ 3 Stars', count: 2, percentage: 67 },
+          { option: '★★★★★ 5 Stars', count: 1, percentage: 33 },
+        ])
+      );
+    });
   });
 });

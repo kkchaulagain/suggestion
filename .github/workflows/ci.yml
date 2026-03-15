@@ -81,7 +81,7 @@ jobs:
 
       - name: Check diff coverage (backend)
         env:
-          DIFF_COVERAGE_THRESHOLD: ${{ secrets.DIFF_COVERAGE_THRESHOLD || '80' }}
+          DIFF_COVERAGE_THRESHOLD: ${{ secrets.DIFF_COVERAGE_THRESHOLD || '90' }}
         run: |
           if git diff --name-only origin/${{ github.base_ref }} -- backend/ | grep -q .; then
             git diff origin/${{ github.base_ref }} -- backend/ > backend/diff.txt
@@ -136,7 +136,7 @@ jobs:
 
       - name: Check diff coverage (frontend)
         env:
-          DIFF_COVERAGE_THRESHOLD: ${{ secrets.DIFF_COVERAGE_THRESHOLD || '80' }}
+          DIFF_COVERAGE_THRESHOLD: ${{ secrets.DIFF_COVERAGE_THRESHOLD || '90' }}
         run: |
           if git diff --name-only origin/${{ github.base_ref }} -- frontend/suggestion/ | grep -q .; then
             git diff origin/${{ github.base_ref }} -- frontend/suggestion/ > frontend/suggestion/diff.txt

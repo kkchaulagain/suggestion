@@ -2,11 +2,11 @@
 # Simulate CI pipeline locally (backend + frontend tests with coverage, then diff-cover).
 # Usage: ./scripts/run-ci-local.sh [backend|frontend|all]
 # Base branch for diff: origin/main (fetch first if needed).
-# Threshold: set DIFF_COVERAGE_THRESHOLD (default 80).
+# Threshold: set DIFF_COVERAGE_THRESHOLD (default 90).
 
 set -e
 BASE_BRANCH="${GITHUB_BASE_REF:-main}"
-DIFF_COVERAGE_THRESHOLD="${DIFF_COVERAGE_THRESHOLD:-80}"
+DIFF_COVERAGE_THRESHOLD="${DIFF_COVERAGE_THRESHOLD:-90}"
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
 

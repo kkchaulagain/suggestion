@@ -2,7 +2,7 @@
 
 ## Run CI pipeline locally (`run-ci-local.sh`)
 
-Simulates the GitHub Actions CI: runs tests with coverage for backend and/or frontend, then runs **diff-cover** so that **diff coverage must meet the threshold** (default **80%**) for changed files.
+Simulates the GitHub Actions CI: runs tests with coverage for backend and/or frontend, then runs **diff-cover** so that **diff coverage must meet the threshold** (default **90%**) for changed files.
 
 ### Prerequisites
 
@@ -22,11 +22,11 @@ Simulates the GitHub Actions CI: runs tests with coverage for backend and/or fro
 # Frontend only
 ./scripts/run-ci-local.sh frontend
 
-# Override threshold (default 80)
-DIFF_COVERAGE_THRESHOLD=70 ./scripts/run-ci-local.sh backend
+# Override threshold (default 90)
+DIFF_COVERAGE_THRESHOLD=80 ./scripts/run-ci-local.sh backend
 ```
 
-- **Threshold**: In CI, set the repo secret `DIFF_COVERAGE_THRESHOLD` (e.g. `70` or `80`) to override; default is **80%**. Locally, use the `DIFF_COVERAGE_THRESHOLD` env var.
+- **Threshold**: In CI, set the repo secret `DIFF_COVERAGE_THRESHOLD` (e.g. `80` or `90`) to override; default is **90%**. Locally, use the `DIFF_COVERAGE_THRESHOLD` env var.
 - **Backend** tests use MongoDB (e.g. in-memory). Ensure you can run them locally (or rely on CI for backend).
 - **Diff base branch**: uses `origin/main` by default, or `GITHUB_BASE_REF` if set (e.g. in CI).
 - If there are no changes in backend or frontend, the diff-coverage step is skipped for that part.
