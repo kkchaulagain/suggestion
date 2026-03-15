@@ -2,6 +2,7 @@ const request = require('supertest');
 const { connect, disconnect } = require('../db');
 const app = require('../app');
 const { FeedbackForm } = require('../models/FeedbackForm');
+const { FeedbackSubmission } = require('../models/FeedbackSubmission');
 const User = require('../models/User');
 const Business = require('../models/Business');
 
@@ -53,6 +54,7 @@ describe('Feedback Forms API', () => {
   });
 
   afterAll(async () => {
+    await FeedbackSubmission.deleteMany({});
     await FeedbackForm.deleteMany({});
     await Business.deleteMany({});
     await User.deleteMany({});
@@ -60,6 +62,7 @@ describe('Feedback Forms API', () => {
   });
 
   afterEach(async () => {
+    await FeedbackSubmission.deleteMany({});
     await FeedbackForm.deleteMany({});
     await Business.deleteMany({});
     await User.deleteMany({});
@@ -333,5 +336,326 @@ describe('Feedback Forms API', () => {
 
     expect(res.body.feedbackForm.fields[0].type).toBe('name');
     expect(res.body.feedbackForm.fields[0].allowAnonymous).toBe(false);
+  });
+
+  describe('form kind (form | poll | survey)', () => {
+    it('creates a form with kind poll and stores it', async () => {
+      const { authHeader, businessId } = await createBusinessAuth();
+      const res = await request(app)
+        .post('/api/feedback-forms')
+        .set(authHeader)
+        .send({
+          title: 'Quick poll',
+          kind: 'poll',
+          fields: [{ name: 'vote', label: 'Your vote', type: 'radio', options: ['A', 'B'] }],
+        })
+        .expect(201);
+      expect(res.body.feedbackForm.kind).toBe('poll');
+      expect(res.body.feedbackForm.title).toBe('Quick poll');
+      expect(res.body.feedbackForm.businessId).toBe(businessId);
+      const doc = await FeedbackForm.findById(res.body.feedbackForm._id).lean();
+      expect(doc).toBeTruthy();
+      expect(doc.kind).toBe('poll');
+    });
+
+    it('creates a form with kind survey and stores it', async () => {
+      const { authHeader } = await createBusinessAuth();
+      const res = await request(app)
+        .post('/api/feedback-forms')
+        .set(authHeader)
+        .send({
+          title: 'Survey',
+          kind: 'survey',
+          fields: [
+            { name: 'q1', label: 'Q1', type: 'radio', options: ['Yes', 'No'] },
+            { name: 'q2', label: 'Q2', type: 'short_text' },
+          ],
+        })
+        .expect(201);
+      expect(res.body.feedbackForm.kind).toBe('survey');
+      const doc = await FeedbackForm.findById(res.body.feedbackForm._id).lean();
+      expect(doc.kind).toBe('survey');
+    });
+
+    it('defaults kind to form when omitted (backward compatibility)', async () => {
+      const { authHeader } = await createBusinessAuth();
+      const res = await request(app)
+        .post('/api/feedback-forms')
+        .set(authHeader)
+        .send({
+          title: 'Legacy form',
+          fields: [{ name: 'comment', label: 'Comment', type: 'short_text' }],
+        })
+        .expect(201);
+      expect(res.body.feedbackForm.kind).toBe('form');
+      const doc = await FeedbackForm.findById(res.body.feedbackForm._id).lean();
+      expect(doc.kind).toBe('form');
+    });
+
+    it('defaults showResultsPublic to false and accepts true on create', async () => {
+      const { authHeader } = await createBusinessAuth();
+      const res = await request(app)
+        .post('/api/feedback-forms')
+        .set(authHeader)
+        .send({
+          title: 'Form without flag',
+          fields: [{ name: 'q', label: 'Q', type: 'short_text' }],
+        })
+        .expect(201);
+      expect(res.body.feedbackForm.showResultsPublic).toBe(false);
+      const withPublic = await request(app)
+        .post('/api/feedback-forms')
+        .set(authHeader)
+        .send({
+          title: 'Form with public results',
+          showResultsPublic: true,
+          fields: [{ name: 'q', label: 'Q', type: 'short_text' }],
+        })
+        .expect(201);
+      expect(withPublic.body.feedbackForm.showResultsPublic).toBe(true);
+      const doc = await FeedbackForm.findById(withPublic.body.feedbackForm._id).lean();
+      expect(doc.showResultsPublic).toBe(true);
+    });
+
+    it('returns kind in GET by id and list', async () => {
+      const { authHeader } = await createBusinessAuth();
+      const created = await request(app)
+        .post('/api/feedback-forms')
+        .set(authHeader)
+        .send({
+          title: 'Poll form',
+          kind: 'poll',
+          fields: [{ name: 'choice', label: 'Choice', type: 'radio', options: ['X', 'Y'] }],
+        })
+        .expect(201);
+      const formId = created.body.feedbackForm._id;
+      const getRes = await request(app).get(`/api/feedback-forms/${formId}`).expect(200);
+      expect(getRes.body.feedbackForm.kind).toBe('poll');
+      const listRes = await request(app).get('/api/feedback-forms').set(authHeader).expect(200);
+      const found = listRes.body.feedbackForms.find((f) => f._id === formId);
+      expect(found).toBeTruthy();
+      expect(found.kind).toBe('poll');
+    });
+  });
+
+  describe('GET /api/feedback-forms/:id/results', () => {
+    it('returns 404 for missing form', async () => {
+      const res = await request(app)
+        .get('/api/feedback-forms/507f1f77bcf86cd799439011/results')
+        .expect(404);
+      expect(res.body.error).toBe('Feedback form not found');
+    });
+
+    it('returns 400 for invalid form id', async () => {
+      await request(app)
+        .get('/api/feedback-forms/not-valid-id/results')
+        .expect(400);
+    });
+
+    it('returns aggregated results with no submissions (empty)', async () => {
+      const { authHeader } = await createBusinessAuth();
+      const createRes = await request(app)
+        .post('/api/feedback-forms')
+        .set(authHeader)
+        .send({
+          title: 'Empty poll',
+          kind: 'poll',
+          fields: [
+            { name: 'vote', label: 'Vote', type: 'radio', options: ['A', 'B'] },
+            { name: 'comment', label: 'Comment', type: 'short_text' },
+          ],
+        })
+        .expect(201);
+      const formId = createRes.body.feedbackForm._id;
+      const res = await request(app).get(`/api/feedback-forms/${formId}/results`).set(authHeader).expect(200);
+      expect(res.body.formId).toBe(formId.toString());
+      expect(res.body.formTitle).toBe('Empty poll');
+      expect(res.body.totalResponses).toBe(0);
+      expect(res.body.byField).toBeDefined();
+      expect(res.body.byField.vote).toEqual({ label: 'Vote', type: 'radio', options: [{ option: 'A', count: 0, percentage: 0 }, { option: 'B', count: 0, percentage: 0 }] });
+      expect(res.body.byField.comment).toEqual({ label: 'Comment', type: 'short_text', responseCount: 0, sampleAnswers: [] });
+      expect(Array.isArray(res.body.responsesOverTime)).toBe(true);
+      expect(res.body.responsesOverTime).toHaveLength(0);
+    });
+
+    it('returns correct counts and percentages for radio and checkbox', async () => {
+      const { authHeader, businessId } = await createBusinessAuth();
+      const form = await FeedbackForm.create({
+        businessId,
+        title: 'Poll',
+        kind: 'poll',
+        fields: [
+          { name: 'choice', label: 'Choice', type: 'radio', options: ['Yes', 'No'] },
+          { name: 'tags', label: 'Tags', type: 'checkbox', options: ['T1', 'T2'] },
+        ],
+      });
+      const formSnapshot = [
+        { name: 'choice', label: 'Choice', type: 'radio', options: ['Yes', 'No'] },
+        { name: 'tags', label: 'Tags', type: 'checkbox', options: ['T1', 'T2'] },
+      ];
+      await FeedbackSubmission.create([
+        { formId: form._id, businessId, formSnapshot, responses: { choice: 'Yes', tags: ['T1'] }, submittedAt: new Date() },
+        { formId: form._id, businessId, formSnapshot, responses: { choice: 'Yes', tags: ['T2'] }, submittedAt: new Date() },
+        { formId: form._id, businessId, formSnapshot, responses: { choice: 'No', tags: ['T1', 'T2'] }, submittedAt: new Date() },
+      ]);
+      const res = await request(app).get(`/api/feedback-forms/${form._id}/results`).set(authHeader).expect(200);
+      expect(res.body.totalResponses).toBe(3);
+      expect(res.body.byField.choice.options).toEqual(
+        expect.arrayContaining([
+          { option: 'Yes', count: 2, percentage: 67 },
+          { option: 'No', count: 1, percentage: 33 },
+        ])
+      );
+      expect(res.body.byField.tags.options).toEqual(
+        expect.arrayContaining([
+          { option: 'T1', count: 2, percentage: 67 },
+          { option: 'T2', count: 2, percentage: 67 },
+        ])
+      );
+      expect(res.body.responsesOverTime.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('returns responseCount and sampleAnswers for text fields', async () => {
+      const { authHeader, businessId } = await createBusinessAuth();
+      const form = await FeedbackForm.create({
+        businessId,
+        title: 'Survey',
+        fields: [
+          { name: 'comment', label: 'Comment', type: 'short_text' },
+        ],
+      });
+      const formSnapshot = [{ name: 'comment', label: 'Comment', type: 'short_text' }];
+      await FeedbackSubmission.create([
+        { formId: form._id, businessId, formSnapshot, responses: { comment: 'First' }, submittedAt: new Date() },
+        { formId: form._id, businessId, formSnapshot, responses: { comment: 'Second' }, submittedAt: new Date() },
+      ]);
+      const res = await request(app).get(`/api/feedback-forms/${form._id}/results`).set(authHeader).expect(200);
+      expect(res.body.totalResponses).toBe(2);
+      expect(res.body.byField.comment.responseCount).toBe(2);
+      expect(res.body.byField.comment.sampleAnswers).toEqual(expect.arrayContaining(['First', 'Second']));
+    });
+
+    it('allows unauthenticated access when showResultsPublic is true', async () => {
+      const { businessId } = await createBusinessAuth();
+      const form = await FeedbackForm.create({
+        businessId,
+        title: 'Public poll',
+        showResultsPublic: true,
+        fields: [{ name: 'v', label: 'V', type: 'radio', options: ['A'] }],
+      });
+      const res = await request(app)
+        .get(`/api/feedback-forms/${form._id}/results`)
+        .expect(200);
+      expect(res.body.formTitle).toBe('Public poll');
+      expect(res.body.totalResponses).toBe(0);
+    });
+
+    it('returns 403 when showResultsPublic is false and request has no auth', async () => {
+      const { businessId } = await createBusinessAuth();
+      const form = await FeedbackForm.create({
+        businessId,
+        title: 'Private results poll',
+        showResultsPublic: false,
+        fields: [{ name: 'v', label: 'V', type: 'radio', options: ['A'] }],
+      });
+      const res = await request(app)
+        .get(`/api/feedback-forms/${form._id}/results`)
+        .expect(403);
+      expect(res.body.error).toMatch(/not publicly available/i);
+    });
+
+    it('allows owner to get results when showResultsPublic is false', async () => {
+      const { authHeader, businessId } = await createBusinessAuth();
+      const form = await FeedbackForm.create({
+        businessId,
+        title: 'Owner-only results',
+        showResultsPublic: false,
+        fields: [{ name: 'v', label: 'V', type: 'radio', options: ['A'] }],
+      });
+      const res = await request(app)
+        .get(`/api/feedback-forms/${form._id}/results`)
+        .set(authHeader)
+        .expect(200);
+      expect(res.body.formTitle).toBe('Owner-only results');
+      expect(res.body.totalResponses).toBe(0);
+    });
+
+    it('allows admin to get results when showResultsPublic is false', async () => {
+      const { businessId } = await createBusinessAuth();
+      const form = await FeedbackForm.create({
+        businessId,
+        title: 'Private form',
+        showResultsPublic: false,
+        fields: [{ name: 'v', label: 'V', type: 'radio', options: ['A'] }],
+      });
+      const { authHeader: adminHeader } = await createAdminAuth();
+      const res = await request(app)
+        .get(`/api/feedback-forms/${form._id}/results`)
+        .set(adminHeader)
+        .expect(200);
+      expect(res.body.formTitle).toBe('Private form');
+      expect(res.body.totalResponses).toBe(0);
+    });
+
+    it('filters results by dateFrom and dateTo when provided', async () => {
+      const { authHeader, businessId } = await createBusinessAuth();
+      const form = await FeedbackForm.create({
+        businessId,
+        title: 'Dated poll',
+        fields: [{ name: 'v', label: 'V', type: 'radio', options: ['A', 'B'] }],
+      });
+      const formSnapshot = [{ name: 'v', label: 'V', type: 'radio', options: ['A', 'B'] }];
+      const baseDate = new Date('2025-03-01T12:00:00Z');
+      await FeedbackSubmission.create([
+        { formId: form._id, businessId, formSnapshot, responses: { v: 'A' }, submittedAt: new Date(baseDate.getTime() + 86400000) },
+        { formId: form._id, businessId, formSnapshot, responses: { v: 'B' }, submittedAt: new Date(baseDate.getTime() + 86400000 * 2) },
+      ]);
+      const dateFrom = '2025-03-01T00:00:00.000Z';
+      const dateTo = '2025-03-05T00:00:00.000Z';
+      const res = await request(app)
+        .get(`/api/feedback-forms/${form._id}/results`)
+        .query({ dateFrom, dateTo })
+        .set(authHeader)
+        .expect(200);
+      expect(res.body.totalResponses).toBe(2);
+    });
+
+    it('returns aggregated results for scale_1_10 and rating field types', async () => {
+      const { authHeader, businessId } = await createBusinessAuth();
+      const starOptions = ['★ 1 Star', '★★ 2 Stars', '★★★ 3 Stars', '★★★★ 4 Stars', '★★★★★ 5 Stars'];
+      const form = await FeedbackForm.create({
+        businessId,
+        title: 'Scale and rating',
+        kind: 'survey',
+        fields: [
+          { name: 'score', label: 'Score', type: 'scale_1_10', options: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'] },
+          { name: 'stars', label: 'Stars', type: 'rating', options: starOptions },
+        ],
+      });
+      const formSnapshot = form.fields.map((f) => ({ name: f.name, label: f.label, type: f.type, options: f.options }));
+      await FeedbackSubmission.create([
+        { formId: form._id, businessId, formSnapshot, responses: { score: '7', stars: '★★★ 3 Stars' }, submittedAt: new Date() },
+        { formId: form._id, businessId, formSnapshot, responses: { score: '7', stars: '★★★★★ 5 Stars' }, submittedAt: new Date() },
+        { formId: form._id, businessId, formSnapshot, responses: { score: '8', stars: '★★★ 3 Stars' }, submittedAt: new Date() },
+      ]);
+      const res = await request(app).get(`/api/feedback-forms/${form._id}/results`).set(authHeader).expect(200);
+      expect(res.body.totalResponses).toBe(3);
+      expect(res.body.byField.score).toBeDefined();
+      expect(res.body.byField.score.type).toBe('scale_1_10');
+      expect(res.body.byField.score.options).toEqual(
+        expect.arrayContaining([
+          { option: '7', count: 2, percentage: 67 },
+          { option: '8', count: 1, percentage: 33 },
+        ])
+      );
+      expect(res.body.byField.stars).toBeDefined();
+      expect(res.body.byField.stars.type).toBe('rating');
+      expect(res.body.byField.stars.options).toEqual(
+        expect.arrayContaining([
+          { option: '★★★ 3 Stars', count: 2, percentage: 67 },
+          { option: '★★★★★ 5 Stars', count: 1, percentage: 33 },
+        ])
+      );
+    });
   });
 });

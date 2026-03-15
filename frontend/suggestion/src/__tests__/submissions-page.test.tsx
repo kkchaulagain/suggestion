@@ -211,6 +211,54 @@ describe('SubmissionsPage', () => {
     })
   })
 
+  it('when formId and tab=results in URL shows Results tab and fetches results', async () => {
+    const resultsData = {
+      formId: 'f-results',
+      formTitle: 'Poll Form',
+      totalResponses: 1,
+      byField: {
+        vote: {
+          label: 'Vote',
+          type: 'radio',
+          options: [
+            { option: 'A', count: 1, percentage: 100 },
+            { option: 'B', count: 0, percentage: 0 },
+          ],
+        },
+      },
+      responsesOverTime: [],
+    }
+    mockedAxios.get.mockImplementation((url: string) => {
+      if (typeof url === 'string' && url.endsWith('/f-results/results')) {
+        return Promise.resolve({ data: resultsData })
+      }
+      if (typeof url === 'string' && url.includes('/f-results') && !url.endsWith('/results')) {
+        return Promise.resolve({ data: { feedbackForm: { _id: 'f-results', title: 'Poll Form', fields: [] } } })
+      }
+      if (typeof url === 'string' && url.includes('/submissions')) {
+        return Promise.resolve({ data: { submissions: [], total: 0 } })
+      }
+      return Promise.resolve({ data: { feedbackForms: [{ _id: 'f-results', title: 'Poll Form' }] } })
+    })
+
+    render(
+      <MemoryRouter initialEntries={['/dashboard/submissions?formId=f-results&tab=results']}>
+        <SubmissionsPage />
+      </MemoryRouter>,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText('Vote')).toBeInTheDocument()
+      expect(screen.getByText('A')).toBeInTheDocument()
+    })
+
+    expect(screen.getByText(/Poll Form/i)).toBeInTheDocument()
+    expect(mockedAxios.get).toHaveBeenCalledWith(
+      expect.stringMatching(/\/f-results\/results$/),
+      expect.any(Object),
+    )
+  })
+
   it('Apply filters re-fetches submissions with applied state', async () => {
     mockedAxios.get
       .mockResolvedValueOnce({ data: { feedbackForms: [{ _id: 'f1', title: 'F1' }] } })

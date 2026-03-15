@@ -22,6 +22,8 @@ export type { ImageUploadFieldProps } from './ImageUploadField'
 export { default as NameField } from './NameField'
 export type { NameFieldProps } from './NameField'
 
-export {default as EmailField} from './EmailField'
-export type {EmailFieldProps} from './EmailField'
+export { default as EmailField } from './EmailField'
+export type { EmailFieldProps } from './EmailField'
+export { default as Scale1To10Field } from './Scale1To10Field'
+export type { Scale1To10FieldProps } from './Scale1To10Field'
 

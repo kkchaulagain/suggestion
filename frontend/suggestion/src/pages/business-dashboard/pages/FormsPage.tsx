@@ -4,7 +4,7 @@ import axios from 'axios'
 import { Copy, Eye, Pencil, Plus, QrCode, Trash2, X } from 'lucide-react'
 import { useAuth } from '../../../context/AuthContext'
 import { feedbackFormsApi } from '../../../utils/apipath'
-import { Button, ErrorMessage, Modal } from '../../../components/ui'
+import { Button, ErrorMessage, Modal, Tag } from '../../../components/ui'
 import { PageHeader, EmptyState, FormCard, QRDisplay } from '../../../components/layout'
 
 interface FeedbackField {
@@ -15,12 +15,16 @@ interface FeedbackField {
   options?: string[]
 }
 
+export type FormKind = 'form' | 'poll' | 'survey'
+
 interface FeedbackForm {
   _id: string
   title: string
   description?: string
   businessId: string
   fields: FeedbackField[]
+  kind?: FormKind
+  showResultsPublic?: boolean
 }
 
 interface QrPayload {
@@ -33,6 +37,17 @@ function formatFieldsSummary(fields: FeedbackField[]): string {
   return fields.map((f) => f.label || f.name).join(', ')
 }
 
+function kindLabel(kind: FormKind | undefined): string {
+  switch (kind) {
+    case 'poll':
+      return 'Poll'
+    case 'survey':
+      return 'Survey'
+    default:
+      return 'Form'
+  }
+}
+
 export default function FormsPage() {
   const navigate = useNavigate()
   const [savedForms, setSavedForms] = useState<FeedbackForm[]>([])
@@ -43,7 +58,13 @@ export default function FormsPage() {
   const [deleteModalFormId, setDeleteModalFormId] = useState<string | null>(null)
   const [generatingFormId, setGeneratingFormId] = useState<string | null>(null)
   const [deletingFormId, setDeletingFormId] = useState<string | null>(null)
+  const [kindFilter, setKindFilter] = useState<FormKind | ''>('')
   const { getAuthHeaders } = useAuth()
+
+  const filteredForms = useMemo(() => {
+    if (!kindFilter) return savedForms
+    return savedForms.filter((f) => (f.kind ?? 'form') === kindFilter)
+  }, [savedForms, kindFilter])
 
   const authHeaders = useMemo(
     () => ({
@@ -152,6 +173,40 @@ export default function FormsPage() {
         }
       />
 
+      {savedForms.length > 0 ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs text-slate-600 dark:text-slate-400">Filter:</span>
+          <button
+            type="button"
+            onClick={() => setKindFilter('')}
+            className={`rounded px-2 py-1 text-xs font-medium ${!kindFilter ? 'bg-slate-200 dark:bg-slate-600' : 'bg-slate-100 dark:bg-slate-700'}`}
+          >
+            All
+          </button>
+          <button
+            type="button"
+            onClick={() => setKindFilter('form')}
+            className={`rounded px-2 py-1 text-xs font-medium ${kindFilter === 'form' ? 'bg-slate-200 dark:bg-slate-600' : 'bg-slate-100 dark:bg-slate-700'}`}
+          >
+            Form
+          </button>
+          <button
+            type="button"
+            onClick={() => setKindFilter('poll')}
+            className={`rounded px-2 py-1 text-xs font-medium ${kindFilter === 'poll' ? 'bg-slate-200 dark:bg-slate-600' : 'bg-slate-100 dark:bg-slate-700'}`}
+          >
+            Poll
+          </button>
+          <button
+            type="button"
+            onClick={() => setKindFilter('survey')}
+            className={`rounded px-2 py-1 text-xs font-medium ${kindFilter === 'survey' ? 'bg-slate-200 dark:bg-slate-600' : 'bg-slate-100 dark:bg-slate-700'}`}
+          >
+            Survey
+          </button>
+        </div>
+      ) : null}
+
       {loading ? (
         <EmptyState type="loading" message="Hold on, we're fetching your forms." />
       ) : savedForms.length === 0 ? (
@@ -159,19 +214,40 @@ export default function FormsPage() {
           type="empty"
           message="You don't have any forms yet. Tap Add Form above to create one and start collecting responses."
         />
+      ) : filteredForms.length === 0 ? (
+        <EmptyState type="empty" message="No forms match the selected filter." />
       ) : null}
 
-      <div className={savedForms.length > 0 ? 'space-y-0' : undefined}>
-        {savedForms.map((form) => {
+      <div className={filteredForms.length > 0 ? 'space-y-0' : undefined}>
+        {filteredForms.map((form) => {
           const questionCount = form.fields.length
           const requiredCount = form.fields.filter((field) => field.required).length
+          const kind = form.kind ?? 'form'
 
           return (
             <FormCard
               key={form._id}
               variant="flat"
               title={form.title}
-              subtitle={`${questionCount} ${questionCount === 1 ? 'question' : 'questions'} - ${requiredCount} required`}
+              subtitle={
+                <span className="flex flex-wrap items-center gap-2">
+                  <span data-testid={`form-kind-badge-${form._id}`}>
+                    <Tag className="text-xs">{kindLabel(kind)}</Tag>
+                  </span>
+                  <span
+                    data-testid={`form-results-visibility-${form._id}`}
+                    className={`rounded px-2 py-0.5 text-xs font-medium ${
+                      form.showResultsPublic
+                        ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300'
+                        : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400'
+                    }`}
+                    title={form.showResultsPublic ? 'Respondents can view results after submitting' : 'Results are only visible to you'}
+                  >
+                    {form.showResultsPublic ? 'Results public' : 'Results private'}
+                  </span>
+                  <span>{`${questionCount} ${questionCount === 1 ? 'question' : 'questions'} - ${requiredCount} required`}</span>
+                </span>
+              }
               description={form.description || undefined}
             >
               {form.fields.length > 0 ? (
@@ -205,6 +281,15 @@ export default function FormsPage() {
                 >
                   <Eye className="h-3.5 w-3.5" />
                   Responses
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="min-h-0 rounded bg-slate-100 px-2 py-1 text-xs font-medium dark:bg-slate-700"
+                  onClick={() => navigate(`/dashboard/submissions?formId=${encodeURIComponent(form._id)}&tab=results`)}
+                >
+                  Results
                 </Button>
                 <Button
                   type="button"

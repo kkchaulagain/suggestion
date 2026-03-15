@@ -6,7 +6,9 @@ export type FeedbackFieldType =
   | 'radio'
   | 'image_upload'
   | 'name'
-  |'email'
+  | 'email'
+  | 'scale_1_10'
+  | 'rating'
 
 export interface FeedbackFormField {
   name: string
@@ -18,11 +20,15 @@ export interface FeedbackFormField {
   allowAnonymous?: boolean
 }
 
+export type FormKind = 'form' | 'poll' | 'survey'
+
 export interface FeedbackFormConfig {
   _id: string
   title: string
   description?: string
   fields: FeedbackFormField[]
+  kind?: FormKind
+  showResultsPublic?: boolean
 }
 
 export interface FeedbackFormApiResponse {

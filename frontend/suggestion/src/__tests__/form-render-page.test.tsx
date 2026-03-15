@@ -20,6 +20,7 @@ const mockFormConfig = {
     _id: 'form-1',
     title: 'Customer Feedback',
     description: 'Tell us what you think.',
+    showResultsPublic: true,
     fields: [
       { name: 'comment', label: 'Comment', type: 'short_text', required: true, placeholder: 'Your comment' },
       { name: 'rating', label: 'Rating', type: 'radio', required: true, options: ['Good', 'Bad'] },
@@ -126,6 +127,87 @@ describe('FormRenderPage', () => {
       expect(screen.getByText(/Thank you/i)).toBeInTheDocument()
       expect(screen.getByText(/Your response has been recorded/i)).toBeInTheDocument()
     })
+  })
+
+  test('after submit shows See results link that points to results page', async () => {
+    mockedAxios.get.mockResolvedValueOnce({ data: mockFormConfig })
+    mockedAxios.post.mockResolvedValueOnce({ data: { message: 'Submission received' } })
+
+    renderFormRenderPage('form-1')
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /Customer Feedback/i })).toBeInTheDocument()
+    })
+
+    fireEvent.change(screen.getByPlaceholderText(/Your comment/i), { target: { value: 'Great' } })
+    fireEvent.click(screen.getByRole('radio', { name: /Good/i }))
+    fireEvent.click(screen.getByRole('button', { name: /Submit/i }))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('see-results-link')).toBeInTheDocument()
+    })
+    const seeResultsLink = screen.getByTestId('see-results-link')
+    expect(seeResultsLink).toHaveAttribute('href', '/feedback-forms/form-1/results')
+  })
+
+  test('after submit for poll shows Thanks for voting and See results', async () => {
+    const pollConfig = {
+      feedbackForm: {
+        _id: 'poll-1',
+        title: 'Quick Poll',
+        description: 'Vote now.',
+        kind: 'poll',
+        showResultsPublic: true,
+        fields: [
+          { name: 'vote', label: 'Your vote', type: 'radio', required: true, options: ['Yes', 'No'] },
+        ],
+      },
+    }
+    mockedAxios.get.mockResolvedValueOnce({ data: pollConfig })
+    mockedAxios.post.mockResolvedValueOnce({ data: { message: 'Submission received' } })
+
+    renderFormRenderPage('poll-1')
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /Quick Poll/i })).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('radio', { name: /Yes/i }))
+    fireEvent.click(screen.getByRole('button', { name: /Submit/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText(/Thanks for voting!/i)).toBeInTheDocument()
+      expect(screen.getByTestId('see-results-link')).toBeInTheDocument()
+    })
+  })
+
+  test('after submit does not show See results link when showResultsPublic is false', async () => {
+    const privateFormConfig = {
+      feedbackForm: {
+        _id: 'form-private',
+        title: 'Private Form',
+        description: 'No results link.',
+        showResultsPublic: false,
+        fields: [
+          { name: 'comment', label: 'Comment', type: 'short_text', required: false },
+        ],
+      },
+    }
+    mockedAxios.get.mockResolvedValueOnce({ data: privateFormConfig })
+    mockedAxios.post.mockResolvedValueOnce({ data: { message: 'Submission received' } })
+
+    renderFormRenderPage('form-private')
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /Private Form/i })).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /Submit/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText(/Your response has been recorded/i)).toBeInTheDocument()
+    })
+    expect(screen.queryByTestId('see-results-link')).not.toBeInTheDocument()
   })
 
   test('submit without required field shows validation error and highlights invalid field', async () => {

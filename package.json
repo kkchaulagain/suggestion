@@ -3,7 +3,18 @@
   "private": true,
   "description": "Suggestion app – backend API + frontend",
   "scripts": {
+    "check": "npm run check:backend && npm run check:frontend",
+    "check:backend": "cd backend && npm run lint && npm test -- --passWithNoTests",
+    "check:frontend": "cd frontend/suggestion && npm run lint && npm run build && npm test -- --passWithNoTests",
+    "check:coverage": "npm run check:backend:coverage && npm run check:frontend:coverage",
+    "check:backend:coverage": "cd backend && npm run lint && npm test -- --ci --coverage",
+    "check:frontend:coverage": "cd frontend/suggestion && npm run lint && npm run build && npm test -- --ci --coverage",
+    "check:diff-cover": "bash scripts/diff-cover-pre-push.sh",
+    "prepare": "husky",
     "deploy:backend": "fly deploy ./backend",
     "deploy:frontend": "fly deploy ./frontend/suggestion"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7"
   }
 }

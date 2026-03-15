@@ -23,6 +23,7 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import {
   ArrowLeft,
+  BarChart2,
   Briefcase,
   Bug,
   Calendar,
@@ -47,8 +48,11 @@ import { useAuth } from '../../../context/AuthContext'
 import { feedbackFormsApi } from '../../../utils/apipath'
 import { Button, Card, ErrorMessage, Input, Modal, Select, Textarea } from '../../../components/ui'
 import { EmptyState } from '../../../components/layout'
+import { type FormKind, type FormTemplate, FORM_TEMPLATES } from './formTemplates'
 
-type FeedbackFieldType = 'checkbox' | 'radio' | 'short_text' | 'long_text' | 'big_text' | 'image_upload' | 'name' | 'email'
+export type { FormKind, FormTemplate }
+
+type FeedbackFieldType = 'checkbox' | 'radio' | 'short_text' | 'long_text' | 'big_text' | 'image_upload' | 'name' | 'email' | 'scale_1_10' | 'rating'
 
 interface FeedbackField {
   clientId?: string
@@ -66,20 +70,18 @@ interface FeedbackFormResponse {
     title: string
     description?: string
     fields: FeedbackField[]
+    kind?: FormKind
+    showResultsPublic?: boolean
   }
 }
 
-export interface FormTemplate {
-  id: string
-  label: string
-  description: string
-  iconName: 'MessageSquare' | 'Calendar' | 'Bug' | 'Briefcase' | 'Star' | 'Mail' | 'CalendarClock' | 'Users'
-  title: string
-  formDescription: string
-  fields: Omit<FeedbackField, 'clientId'>[]
-}
-
+/** Types that show the editable options list in the builder */
 const OPTION_TYPES: FeedbackFieldType[] = ['checkbox', 'radio']
+
+/** Types that have options (editable or fixed). Used for payload and validation. */
+const TYPES_WITH_OPTIONS: FeedbackFieldType[] = ['checkbox', 'radio', 'scale_1_10', 'rating']
+
+const SCALE_1_10_OPTIONS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']
 
 const fieldTypeOptions: Array<{ value: FeedbackFieldType; label: string }> = [
   { value: 'name', label: 'Name' },
@@ -89,6 +91,8 @@ const fieldTypeOptions: Array<{ value: FeedbackFieldType; label: string }> = [
   { value: 'big_text', label: 'Paragraph' },
   { value: 'checkbox', label: 'Checkbox' },
   { value: 'radio', label: 'Radio' },
+  { value: 'scale_1_10', label: 'Scale 1–10' },
+  { value: 'rating', label: 'Rating (stars)' },
   { value: 'image_upload', label: 'Image Upload' },
 ]
 
@@ -99,161 +103,6 @@ const defaultFields: FeedbackField[] = [
 ]
 
 const STAR_RATING_OPTIONS = ['★ 1 Star', '★★ 2 Stars', '★★★ 3 Stars', '★★★★ 4 Stars', '★★★★★ 5 Stars']
-
-const FORM_TEMPLATES: FormTemplate[] = [
-  {
-    id: 'customer-feedback',
-    label: 'Customer Feedback',
-    description: 'Collect ratings and comments from customers.',
-    iconName: 'MessageSquare',
-    title: 'Customer Feedback',
-    formDescription: 'We value your feedback. Please take a moment to share your experience.',
-    fields: [
-      { name: 'name', label: 'Your name', type: 'short_text', required: true, placeholder: '' },
-      { name: 'email', label: 'Email', type: 'short_text', required: true, placeholder: '' },
-      { name: 'phone', label: 'Phone', type: 'short_text', required: false, placeholder: '' },
-      { name: 'visit_date', label: 'Visit / service date', type: 'short_text', required: false, placeholder: '' },
-      { name: 'overall_rating', label: 'Overall experience', type: 'radio', required: true, options: STAR_RATING_OPTIONS },
-      { name: 'enjoyed', label: 'What did you enjoy?', type: 'long_text', required: false, placeholder: '' },
-      { name: 'improve', label: 'What could we improve?', type: 'long_text', required: false, placeholder: '' },
-      { name: 'would_recommend', label: 'Would you recommend us?', type: 'radio', required: true, options: ['Yes', 'No', 'Maybe'] },
-      { name: 'comments', label: 'Any other comments?', type: 'big_text', required: false, placeholder: '' },
-    ],
-  },
-  {
-    id: 'event-registration',
-    label: 'Event Registration',
-    description: 'Register attendees for workshops and events.',
-    iconName: 'Calendar',
-    title: 'Event Registration',
-    formDescription: 'Register for our event. We will confirm your attendance by email.',
-    fields: [
-      { name: 'name', label: 'Full name', type: 'short_text', required: true, placeholder: '' },
-      { name: 'email', label: 'Email', type: 'short_text', required: true, placeholder: '' },
-      { name: 'phone', label: 'Phone', type: 'short_text', required: false, placeholder: '' },
-      { name: 'organisation', label: 'Organisation / company', type: 'short_text', required: false, placeholder: '' },
-      { name: 'event_name', label: 'Event you\'re registering for', type: 'short_text', required: true, placeholder: '' },
-      { name: 'attendees_count', label: 'Number of attendees', type: 'short_text', required: true, placeholder: '' },
-      { name: 'dietary_requests', label: 'Dietary requirements / special requests', type: 'long_text', required: false, placeholder: '' },
-      { name: 'how_heard', label: 'How did you hear about us?', type: 'radio', required: false, options: ['Social Media', 'Friend', 'Email', 'Website', 'Other'] },
-      { name: 'supporting_doc', label: 'Upload supporting document', type: 'image_upload', required: false, placeholder: '' },
-    ],
-  },
-  {
-    id: 'bug-report',
-    label: 'Bug / Issue Report',
-    description: 'Report bugs and technical issues.',
-    iconName: 'Bug',
-    title: 'Bug / Issue Report',
-    formDescription: 'Help us improve by describing the issue you encountered.',
-    fields: [
-      { name: 'name', label: 'Your name', type: 'short_text', required: true, placeholder: '' },
-      { name: 'email', label: 'Email', type: 'short_text', required: true, placeholder: '' },
-      { name: 'phone', label: 'Phone', type: 'short_text', required: false, placeholder: '' },
-      { name: 'issue_title', label: 'Issue title', type: 'short_text', required: true, placeholder: '' },
-      { name: 'system_area', label: 'Which part of the system?', type: 'short_text', required: false, placeholder: '' },
-      { name: 'steps_to_reproduce', label: 'Steps to reproduce', type: 'big_text', required: true, placeholder: '' },
-      { name: 'expected', label: 'Expected behaviour', type: 'long_text', required: false, placeholder: '' },
-      { name: 'actual', label: 'Actual behaviour', type: 'long_text', required: true, placeholder: '' },
-      { name: 'severity', label: 'Severity', type: 'radio', required: true, options: ['Low', 'Medium', 'High', 'Critical'] },
-      { name: 'screenshot', label: 'Screenshot / attachment', type: 'image_upload', required: false, placeholder: '' },
-    ],
-  },
-  {
-    id: 'job-application',
-    label: 'Job Application',
-    description: 'Collect applications for open positions.',
-    iconName: 'Briefcase',
-    title: 'Job Application',
-    formDescription: 'Apply for this position. We will review your application and get in touch.',
-    fields: [
-      { name: 'name', label: 'Full name', type: 'short_text', required: true, placeholder: '' },
-      { name: 'email', label: 'Email', type: 'short_text', required: true, placeholder: '' },
-      { name: 'phone', label: 'Phone', type: 'short_text', required: false, placeholder: '' },
-      { name: 'position', label: 'Position applied for', type: 'short_text', required: true, placeholder: '' },
-      { name: 'experience', label: 'Years of experience', type: 'radio', required: true, options: ['0–1', '1–3', '3–5', '5+'] },
-      { name: 'how_heard', label: 'How did you hear about this role?', type: 'radio', required: false, options: ['Website', 'LinkedIn', 'Referral', 'Other'] },
-      { name: 'cover_letter', label: 'Cover letter', type: 'big_text', required: true, placeholder: '' },
-      { name: 'links', label: 'Portfolio / LinkedIn / GitHub links', type: 'long_text', required: false, placeholder: '' },
-      { name: 'resume', label: 'Resume / CV', type: 'image_upload', required: true, placeholder: '' },
-    ],
-  },
-  {
-    id: 'product-review',
-    label: 'Product Review',
-    description: 'Gather product ratings and reviews.',
-    iconName: 'Star',
-    title: 'Product Review',
-    formDescription: 'Share your experience with this product.',
-    fields: [
-      { name: 'name', label: 'Your name', type: 'short_text', required: true, placeholder: '' },
-      { name: 'email', label: 'Email', type: 'short_text', required: true, placeholder: '' },
-      { name: 'phone', label: 'Phone', type: 'short_text', required: false, placeholder: '' },
-      { name: 'product_name', label: 'Product name', type: 'short_text', required: true, placeholder: '' },
-      { name: 'rating', label: 'Overall rating', type: 'radio', required: true, options: STAR_RATING_OPTIONS },
-      { name: 'liked', label: 'What did you like?', type: 'long_text', required: false, placeholder: '' },
-      { name: 'improve', label: 'What could be improved?', type: 'long_text', required: false, placeholder: '' },
-      { name: 'buy_again', label: 'Would you buy this again?', type: 'radio', required: true, options: ['Yes', 'No', 'Maybe'] },
-      { name: 'product_photo', label: 'Upload a product photo', type: 'image_upload', required: false, placeholder: '' },
-    ],
-  },
-  {
-    id: 'contact-inquiry',
-    label: 'Contact / Inquiry',
-    description: 'General contact and support inquiries.',
-    iconName: 'Mail',
-    title: 'Contact / Inquiry',
-    formDescription: 'Send us a message. We will respond as soon as possible.',
-    fields: [
-      { name: 'name', label: 'Your name', type: 'short_text', required: true, placeholder: '' },
-      { name: 'email', label: 'Email', type: 'short_text', required: true, placeholder: '' },
-      { name: 'phone', label: 'Phone', type: 'short_text', required: false, placeholder: '' },
-      { name: 'subject', label: 'Subject', type: 'short_text', required: true, placeholder: '' },
-      { name: 'inquiry_type', label: 'Inquiry type', type: 'radio', required: true, options: ['General', 'Support', 'Sales', 'Partnership', 'Other'] },
-      { name: 'message', label: 'Your message', type: 'big_text', required: true, placeholder: '' },
-      { name: 'preferred_contact', label: 'Preferred contact method', type: 'radio', required: false, options: ['Email', 'Phone'] },
-      { name: 'best_time', label: 'Best time to contact', type: 'short_text', required: false, placeholder: '' },
-    ],
-  },
-  {
-    id: 'appointment-booking',
-    label: 'Appointment / Booking',
-    description: 'Request appointments and bookings.',
-    iconName: 'CalendarClock',
-    title: 'Appointment / Booking Request',
-    formDescription: 'Request an appointment. We will confirm availability by email or phone.',
-    fields: [
-      { name: 'name', label: 'Your name', type: 'short_text', required: true, placeholder: '' },
-      { name: 'email', label: 'Email', type: 'short_text', required: true, placeholder: '' },
-      { name: 'phone', label: 'Phone', type: 'short_text', required: false, placeholder: '' },
-      { name: 'service', label: 'Service requested', type: 'short_text', required: true, placeholder: '' },
-      { name: 'preferred_date', label: 'Preferred date', type: 'short_text', required: true, placeholder: '' },
-      { name: 'preferred_time', label: 'Preferred time', type: 'radio', required: true, options: ['Morning', 'Afternoon', 'Evening'] },
-      { name: 'alt_date', label: 'Alternative date', type: 'short_text', required: false, placeholder: '' },
-      { name: 'notes', label: 'Special requirements / notes', type: 'long_text', required: false, placeholder: '' },
-      { name: 'how_found', label: 'How did you find us?', type: 'radio', required: false, options: ['Search', 'Referral', 'Social Media', 'Other'] },
-    ],
-  },
-  {
-    id: 'employee-survey',
-    label: 'Employee Survey',
-    description: 'Internal feedback and satisfaction survey.',
-    iconName: 'Users',
-    title: 'Employee Survey',
-    formDescription: 'Your feedback helps us improve the workplace. All responses are confidential.',
-    fields: [
-      { name: 'employee_name', label: 'Your name (optional)', type: 'short_text', required: false, placeholder: '' },
-      { name: 'department', label: 'Department (optional)', type: 'short_text', required: false, placeholder: '' },
-      { name: 'job_satisfaction', label: 'Job satisfaction', type: 'radio', required: true, options: STAR_RATING_OPTIONS },
-      { name: 'management', label: 'Management satisfaction', type: 'radio', required: true, options: STAR_RATING_OPTIONS },
-      { name: 'work_life_balance', label: 'Work-life balance', type: 'radio', required: true, options: STAR_RATING_OPTIONS },
-      { name: 'doing_well', label: 'What are we doing well?', type: 'long_text', required: false, placeholder: '' },
-      { name: 'improve', label: 'What could be improved?', type: 'long_text', required: false, placeholder: '' },
-      { name: 'recommend', label: 'Would you recommend working here?', type: 'radio', required: true, options: ['Yes', 'No', 'Maybe'] },
-      { name: 'comments', label: 'Additional comments', type: 'big_text', required: false, placeholder: '' },
-    ],
-  },
-]
 
 function makeClientId() {
   return `field-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
@@ -277,6 +126,8 @@ function makeDefaultLabel(type: FeedbackFieldType, count: number): string {
     big_text: 'Paragraph',
     checkbox: 'Checkbox group',
     radio: 'Single choice',
+    scale_1_10: 'Scale 1–10',
+    rating: 'Rating',
     image_upload: 'Attachment',
     name: 'Name',
     email: 'Email',
@@ -287,6 +138,14 @@ function makeDefaultLabel(type: FeedbackFieldType, count: number): string {
 
 function createField(type: FeedbackFieldType, count: number): FeedbackField {
   const label = makeDefaultLabel(type, count)
+  const options =
+    type === 'scale_1_10'
+      ? [...SCALE_1_10_OPTIONS]
+      : type === 'rating'
+        ? [...STAR_RATING_OPTIONS]
+        : OPTION_TYPES.includes(type)
+          ? ['Option 1']
+          : undefined
   return {
     clientId: makeClientId(),
     name: toFieldName(label),
@@ -294,7 +153,7 @@ function createField(type: FeedbackFieldType, count: number): FeedbackField {
     type,
     required: false,
     placeholder: '',
-    options: OPTION_TYPES.includes(type) ? ['Option 1'] : undefined,
+    options,
     allowAnonymous: type === 'name' ? false : undefined,
   }
 }
@@ -305,10 +164,12 @@ function getTypeLabel(type: FeedbackFieldType): string {
 
 function normalizeLoadedFields(fields: FeedbackField[] | undefined): FeedbackField[] {
   return fields?.length
-    ? fields.map((field, index) => ({
-        ...field,
-        clientId: field.clientId || `loaded-${index}-${field.name}`,
-      }))
+    ? fields.map((field, index) => {
+        const base = { ...field, clientId: field.clientId || `loaded-${index}-${field.name}` }
+        if (field.type === 'scale_1_10') return { ...base, options: [...SCALE_1_10_OPTIONS] }
+        if (field.type === 'rating') return { ...base, options: [...STAR_RATING_OPTIONS] }
+        return base
+      })
     : defaultFields
 }
 
@@ -340,6 +201,8 @@ const TEMPLATE_ICONS: Record<FormTemplate['iconName'], React.ComponentType<{ cla
   Mail,
   CalendarClock,
   Users,
+  BarChart2,
+  ListChecks,
 }
 
 function getFieldClientId(field: FeedbackField, index: number): string {
@@ -592,8 +455,10 @@ export default function CreateFormPage() {
   const [error, setError] = useState('')
   const [draggingFieldId, setDraggingFieldId] = useState<string | null>(null)
   const [overFieldId, setOverFieldId] = useState<string | null>(null)
+  const [formKind, setFormKind] = useState<FormKind>('form')
+  const [showResultsPublic, setShowResultsPublic] = useState(false)
 
-  const initialSnapshotRef = useRef<{ title: string; description: string; fieldsKey: string } | null>(null)
+  const initialSnapshotRef = useRef<{ title: string; description: string; fieldsKey: string; showResultsPublic: boolean } | null>(null)
   const initialFieldOrderRef = useRef<string[]>(defaultFields.map((field, index) => getFieldClientId(field, index)))
   const { getAuthHeaders } = useAuth()
   const getAuthHeadersRef = useRef(getAuthHeaders)
@@ -603,7 +468,8 @@ export default function CreateFormPage() {
     initialSnapshotRef.current !== null &&
     (title !== initialSnapshotRef.current.title ||
       description !== initialSnapshotRef.current.description ||
-      serializeFieldsForDirty(fields) !== initialSnapshotRef.current.fieldsKey)
+      serializeFieldsForDirty(fields) !== initialSnapshotRef.current.fieldsKey ||
+      showResultsPublic !== initialSnapshotRef.current.showResultsPublic)
 
   const handleSelectTemplate = (template: FormTemplate | null) => {
     if (template) {
@@ -611,21 +477,27 @@ export default function CreateFormPage() {
       setTitle(template.title)
       setDescription(template.formDescription)
       setFields(nextFields)
+      setFormKind(template.kind ?? 'form')
+      setShowResultsPublic(false)
       initialFieldOrderRef.current = nextFields.map((field, index) => getFieldClientId(field, index))
       initialSnapshotRef.current = {
         title: template.title,
         description: template.formDescription,
         fieldsKey: serializeFieldsForDirty(nextFields),
+        showResultsPublic: false,
       }
     } else {
       setTitle('Feedback form')
       setDescription('test')
       setFields(defaultFields)
+      setFormKind('form')
+      setShowResultsPublic(false)
       initialFieldOrderRef.current = defaultFields.map((field, index) => getFieldClientId(field, index))
       initialSnapshotRef.current = {
         title: 'Feedback form',
         description: 'test',
         fieldsKey: serializeFieldsForDirty(defaultFields),
+        showResultsPublic: false,
       }
     }
     setEditingFieldId(null)
@@ -651,15 +523,20 @@ export default function CreateFormPage() {
         const loadedTitle = data.feedbackForm.title || 'Feedback form'
         const loadedDescription = data.feedbackForm.description ?? ''
         const loadedFields = normalizeLoadedFields(data.feedbackForm.fields)
+        const loadedKind = data.feedbackForm.kind ?? 'form'
+        const loadedShowResultsPublic = data.feedbackForm.showResultsPublic ?? false
         setTitle(loadedTitle)
         setDescription(loadedDescription)
         setFields(loadedFields)
+        setFormKind(loadedKind)
+        setShowResultsPublic(loadedShowResultsPublic)
         initialFieldOrderRef.current = loadedFields.map((field, index) => getFieldClientId(field, index))
         setEditingFieldId(null)
         initialSnapshotRef.current = {
           title: loadedTitle,
           description: loadedDescription,
           fieldsKey: serializeFieldsForDirty(loadedFields),
+          showResultsPublic: loadedShowResultsPublic,
         }
       } catch (err: unknown) {
         if (!active) return
@@ -709,12 +586,22 @@ export default function CreateFormPage() {
   }
 
   const handleFieldTypeChange = (fieldId: string, type: FeedbackFieldType) => {
-    updateField(fieldId, (field) => ({
-      ...field,
-      type,
-      options: OPTION_TYPES.includes(type) ? (field.options?.length ? field.options : ['Option 1']) : undefined,
-      allowAnonymous: type === 'name' ? (field.allowAnonymous ?? false) : undefined,
-    }))
+    updateField(fieldId, (field) => {
+      const options =
+        type === 'scale_1_10'
+          ? [...SCALE_1_10_OPTIONS]
+          : type === 'rating'
+            ? [...STAR_RATING_OPTIONS]
+            : OPTION_TYPES.includes(type)
+              ? (field.options?.length ? field.options : ['Option 1'])
+              : undefined
+      return {
+        ...field,
+        type,
+        options,
+        allowAnonymous: type === 'name' ? (field.allowAnonymous ?? false) : undefined,
+      }
+    })
     setError('')
   }
 
@@ -884,10 +771,10 @@ export default function CreateFormPage() {
       }
       seenNames.add(normalizedName.toLowerCase())
 
-      if (OPTION_TYPES.includes(field.type)) {
+      if (TYPES_WITH_OPTIONS.includes(field.type)) {
         const validOptions = (field.options ?? []).map((option) => option.trim()).filter(Boolean)
         if (validOptions.length === 0) {
-          return 'Checkbox and radio fields need at least one option.'
+          return 'Checkbox, radio, scale, and rating fields need at least one option.'
         }
       }
     }
@@ -905,13 +792,15 @@ export default function CreateFormPage() {
     const payload = {
       title: title.trim(),
       description: description.trim(),
+      kind: formKind,
+      showResultsPublic,
       fields: fields.map((field) => ({
         name: toFieldName(field.name || field.label),
         label: field.label.trim(),
         type: field.type,
         required: field.required,
         placeholder: field.placeholder?.trim() || undefined,
-        options: OPTION_TYPES.includes(field.type)
+        options: TYPES_WITH_OPTIONS.includes(field.type)
           ? (field.options ?? []).map((option) => option.trim()).filter(Boolean)
           : undefined,
         allowAnonymous: field.type === 'name' ? (field.allowAnonymous ?? false) : undefined,
@@ -1037,6 +926,24 @@ export default function CreateFormPage() {
             placeholder="Briefly describe this form"
             rows={3}
           />
+          <div className="flex items-start gap-3 pt-1">
+            <input
+              id="form-show-results-public"
+              type="checkbox"
+              checked={showResultsPublic}
+              onChange={(e) => setShowResultsPublic(e.target.checked)}
+              className="mt-1 h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 dark:border-slate-600 dark:bg-slate-800"
+              aria-describedby="form-show-results-public-hint"
+            />
+            <div className="flex-1">
+              <label htmlFor="form-show-results-public" className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                Show results page to respondents
+              </label>
+              <p id="form-show-results-public-hint" className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                When enabled, respondents will see a &quot;See results&quot; link after submitting and can view aggregated results. Default is off.
+              </p>
+            </div>
+          </div>
         </div>
 
         <form
