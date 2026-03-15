@@ -322,9 +322,9 @@ describe('Feedback Forms API', () => {
 
     expect(res.body.feedbackForm.title).toBe('Extended types form');
     expect(res.body.feedbackForm.fields).toHaveLength(6);
-    const types = res.body.feedbackForm.fields.map((f) => f.type);
+    const types = res.body.feedbackForm.fields.map((f: { type: string }) => f.type);
     expect(types).toEqual(['phone', 'date', 'number', 'dropdown', 'url', 'time']);
-    const dropdownField = res.body.feedbackForm.fields.find((f) => f.type === 'dropdown');
+    const dropdownField = res.body.feedbackForm.fields.find((f: { type: string }) => f.type === 'dropdown');
     expect(dropdownField.options).toEqual(['Web', 'App', 'Other']);
   });
 
