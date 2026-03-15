@@ -60,6 +60,25 @@ async function createAdminAuth() {
   return { authHeader: { Authorization: `Bearer ${token}` } };
 }
 
+/** User with role that requires business profile but has none (no Business document). */
+async function createUserAuthNoBusiness() {
+  const suffix = `${Date.now()}_${Math.random().toString(16).slice(2)}`;
+  const email = `user_nobiz_${suffix}@example.com`;
+  const password = 'UserPass123!';
+  const phone = `+97798${String(30000000 + Math.floor(Math.random() * 70000000))}`;
+  await User.create({
+    name: 'User No Business',
+    email,
+    password,
+    phone,
+    role: 'user',
+    isActive: true,
+  });
+  const loginRes = await request(app).post('/api/auth/login').send({ email, password }).expect(200);
+  const token = loginRes.body?.token || loginRes.body?.data?.token;
+  return { authHeader: { Authorization: `Bearer ${token}` } };
+}
+
 describe('Pages API', () => {
   beforeAll(async () => {
     await connect();
@@ -111,6 +130,12 @@ describe('Pages API', () => {
       const res = await request(app).get('/api/pages').set(authHeader).expect(200);
       expect(res.body).toHaveProperty('pages');
       expect(Array.isArray(res.body.pages)).toBe(true);
+    });
+
+    it('returns 404 when user has no business profile', async () => {
+      const { authHeader } = await createUserAuthNoBusiness();
+      const res = await request(app).get('/api/pages').set(authHeader).expect(404);
+      expect(res.body.error).toMatch(/business profile not found/i);
     });
   });
 
@@ -181,6 +206,20 @@ describe('Pages API', () => {
         .send({ title: 'Admin Page', slug: 'admin-page' })
         .expect(400);
       expect(res.body.error).toMatch(/business profile required/i);
+    });
+
+    it('returns 400 on validation error when blocks have invalid type', async () => {
+      const { authHeader } = await createBusinessAuth();
+      const res = await request(app)
+        .post('/api/pages')
+        .set(authHeader)
+        .send({
+          title: 'Invalid Blocks',
+          slug: 'invalid-blocks',
+          blocks: [{ type: 'invalid_type', payload: {} }],
+        })
+        .expect(400);
+      expect(res.body.error).toMatch(/validation failed/i);
     });
   });
 
@@ -382,6 +421,46 @@ describe('Pages API', () => {
         .send({ slug: 'new-slug' })
         .expect(200);
       expect(res.body.page.slug).toBe('new-slug');
+    });
+
+    it('updates metaTitle, metaDescription, and status to draft', async () => {
+      const { authHeader, businessId } = await createBusinessAuth();
+      const page = await Page.create({
+        businessId,
+        slug: 'meta-page',
+        title: 'Meta Page',
+        status: 'published',
+        blocks: [],
+      });
+      const res = await request(app)
+        .put(`/api/pages/${page._id}`)
+        .set(authHeader)
+        .send({
+          metaTitle: 'SEO Title',
+          metaDescription: 'SEO description for the page.',
+          status: 'draft',
+        })
+        .expect(200);
+      expect(res.body.page.metaTitle).toBe('SEO Title');
+      expect(res.body.page.metaDescription).toBe('SEO description for the page.');
+      expect(res.body.page.status).toBe('draft');
+    });
+
+    it('returns 400 on validation error when updating with invalid blocks', async () => {
+      const { authHeader, businessId } = await createBusinessAuth();
+      const page = await Page.create({
+        businessId,
+        slug: 'valid-page',
+        title: 'Valid',
+        status: 'draft',
+        blocks: [{ type: 'heading', payload: { level: 1, text: 'Hi' } }],
+      });
+      const res = await request(app)
+        .put(`/api/pages/${page._id}`)
+        .set(authHeader)
+        .send({ blocks: [{ type: 'invalid_type', payload: {} }] })
+        .expect(400);
+      expect(res.body.error).toMatch(/validation failed/i);
     });
   });
 
