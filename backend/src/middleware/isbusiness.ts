@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 const User = require('../models/User');
+const { logger } = require('../logger');
 
 interface AuthRequest extends Request {
   id?: string;
@@ -40,7 +41,7 @@ export const isBusinessRole = async (req: AuthRequest, res: Response, next: Next
     req.user = user;
     next();
   } catch (error) {
-    console.error('Business role middleware error:', error);
+    logger.error('Business role middleware error:', error);
     return res.status(500).json({
       success: false,
       message: 'Internal server error',

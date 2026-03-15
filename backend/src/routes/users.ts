@@ -3,6 +3,7 @@ const express = require('express');
 const User = require('../models/User');
 const { isAuthenticated } = require('../middleware/isauthenticated');
 const { authorize } = require('../middleware/authorize');
+const { logger } = require('../logger');
 
 const router = express.Router();
 
@@ -65,7 +66,7 @@ router.get('/', isAuthenticated, authorize('admin'), async (req: Request, res: R
       },
     });
   } catch (err) {
-    console.error('List users error:', err);
+    logger.error('List users error:', err);
     return res.status(500).json({ success: false, message: 'Something went wrong' });
   }
 });
@@ -83,7 +84,7 @@ router.get('/:id', isAuthenticated, authorize('admin'), async (req: Request, res
       data: toPublicUser(user),
     });
   } catch (err) {
-    console.error('Get user error:', err);
+    logger.error('Get user error:', err);
     return res.status(500).json({ success: false, message: 'Something went wrong' });
   }
 });
@@ -123,7 +124,7 @@ router.put('/:id', isAuthenticated, authorize('admin'), async (req: Request, res
       data: toPublicUser(user),
     });
   } catch (err) {
-    console.error('Update user error:', err);
+    logger.error('Update user error:', err);
     return res.status(500).json({ success: false, message: 'Something went wrong' });
   }
 });
@@ -148,7 +149,7 @@ router.patch('/:id/deactivate', isAuthenticated, authorize('admin'), async (req:
       data: toPublicUser(user),
     });
   } catch (err) {
-    console.error('Deactivate user error:', err);
+    logger.error('Deactivate user error:', err);
     return res.status(500).json({ success: false, message: 'Something went wrong' });
   }
 });
@@ -168,7 +169,7 @@ router.patch('/:id/activate', isAuthenticated, authorize('admin'), async (req: R
       data: toPublicUser(user),
     });
   } catch (err) {
-    console.error('Activate user error:', err);
+    logger.error('Activate user error:', err);
     return res.status(500).json({ success: false, message: 'Something went wrong' });
   }
 });

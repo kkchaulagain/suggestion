@@ -1,3 +1,4 @@
+import type { Response } from 'express';
 import { isBusinessRole } from '../middleware/isbusiness';
 
 jest.mock('../models/User', () => ({
@@ -5,6 +6,8 @@ jest.mock('../models/User', () => ({
 }));
 
 const User = require('../models/User');
+
+type AuthRequest = Parameters<typeof isBusinessRole>[0];
 
 interface MockResponse {
   status: jest.Mock;
@@ -14,6 +17,14 @@ interface MockResponse {
 interface MockRequestWithId {
   id?: string;
   user?: { _id: string; role: string };
+}
+
+function asAuthRequest(req: MockRequestWithId): AuthRequest {
+  return req as unknown as AuthRequest;
+}
+
+function asResponse(res: MockResponse): Response {
+  return res as unknown as Response;
 }
 
 describe('isBusinessRole Middleware', () => {
@@ -33,7 +44,7 @@ describe('isBusinessRole Middleware', () => {
     const res = mockResponse();
     const next = jest.fn();
 
-    await isBusinessRole(req, res, next);
+    await isBusinessRole(asAuthRequest(req), asResponse(res), next);
 
     expect(res.status).toHaveBeenCalledWith(401);
     expect(next).not.toHaveBeenCalled();
@@ -46,7 +57,7 @@ describe('isBusinessRole Middleware', () => {
     const res = mockResponse();
     const next = jest.fn();
 
-    await isBusinessRole(req, res, next);
+    await isBusinessRole(asAuthRequest(req), asResponse(res), next);
 
     expect(User.findById).toHaveBeenCalledWith(req.id);
     expect(res.status).toHaveBeenCalledWith(404);
@@ -60,7 +71,7 @@ describe('isBusinessRole Middleware', () => {
     const res = mockResponse();
     const next = jest.fn();
 
-    await isBusinessRole(req, res, next);
+    await isBusinessRole(asAuthRequest(req), asResponse(res), next);
 
     expect(res.status).toHaveBeenCalledWith(403);
     expect(next).not.toHaveBeenCalled();
@@ -74,10 +85,30 @@ describe('isBusinessRole Middleware', () => {
     const res = mockResponse();
     const next = jest.fn();
 
-    await isBusinessRole(req, res, next);
+    await isBusinessRole(asAuthRequest(req), asResponse(res), next);
 
     expect(next).toHaveBeenCalled();
     expect(req.user).toEqual(businessUser);
     expect(res.status).not.toHaveBeenCalled();
+  });
+
+  it('returns 500 when User.findById throws', async () => {
+    User.findById.mockRejectedValue(new Error('DB connection lost'));
+
+    const req: MockRequestWithId = { id: '507f1f77bcf86cd799439011' };
+    const res = mockResponse();
+    const next = jest.fn();
+
+    await isBusinessRole(asAuthRequest(req), asResponse(res), next);
+
+    expect(res.status).toHaveBeenCalledWith(500);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        success: false,
+        message: 'Internal server error',
+        error: 'Server error',
+      }),
+    );
+    expect(next).not.toHaveBeenCalled();
   });
 });

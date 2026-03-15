@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 const express = require('express');
 const multer = require('multer');
 const { uploadToR2, isR2Configured } = require('../services/r2');
+const { logger } = require('../logger');
 
 const router = express.Router();
 
@@ -47,7 +48,7 @@ router.post('/', upload.single('file'), async (req: UploadRequest, res: Response
     }
     return res.status(200).json({ url: result.url });
   } catch (err) {
-    console.error('R2 upload error:', err);
+    logger.error('R2 upload error:', err);
     return res.status(500).json({ error: 'Failed to upload file' });
   }
 });

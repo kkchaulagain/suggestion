@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 const User = require('../models/User');
+const { logger } = require('../logger');
 
 export interface AuthorizedRequest extends Request {
   id?: string;
@@ -48,7 +49,7 @@ export function authorize(...allowedRoles: string[]) {
       req.user = user;
       next();
     } catch (error) {
-      console.error('Authorize middleware error:', error);
+      logger.error('Authorize middleware error:', error);
       return res.status(500).json({
         success: false,
         message: 'Internal server error',
