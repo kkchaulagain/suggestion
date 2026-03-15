@@ -168,22 +168,26 @@ describe('AuthContext refresh flow', () => {
     })
     expect((mockedAxios as unknown as jest.Mock).mock.calls[0][0].headers.get('Authorization')).toBe('Bearer refreshed-token')
 
-    await expect(
-      interceptorState.responseRejectedHandler?.({
-        config: { url: '/api/auth/login', headers: {}, withCredentials: false },
+    await act(async () => {
+      await expect(
+        interceptorState.responseRejectedHandler?.({
+          config: { url: '/api/auth/login', headers: {}, withCredentials: false },
+          response: { status: 401 },
+        }),
+      ).rejects.toMatchObject({
         response: { status: 401 },
-      }),
-    ).rejects.toMatchObject({
-      response: { status: 401 },
+      })
     })
 
-    await expect(
-      interceptorState.responseRejectedHandler?.({
-        config: { url: '/api/protected', headers: {}, _retry: true, withCredentials: false },
+    await act(async () => {
+      await expect(
+        interceptorState.responseRejectedHandler?.({
+          config: { url: '/api/protected', headers: {}, _retry: true, withCredentials: false },
+          response: { status: 401 },
+        }),
+      ).rejects.toMatchObject({
         response: { status: 401 },
-      }),
-    ).rejects.toMatchObject({
-      response: { status: 401 },
+      })
     })
   })
 
@@ -215,13 +219,15 @@ describe('AuthContext refresh flow', () => {
 
     mockedAxios.post.mockResolvedValueOnce({ data: { success: true, data: {} } })
 
-    await expect(
-      interceptorState.responseRejectedHandler?.({
-        config: { url: '/api/protected', headers: {}, withCredentials: false },
+    await act(async () => {
+      await expect(
+        interceptorState.responseRejectedHandler?.({
+          config: { url: '/api/protected', headers: {}, withCredentials: false },
+          response: { status: 401 },
+        }),
+      ).rejects.toMatchObject({
         response: { status: 401 },
-      }),
-    ).rejects.toMatchObject({
-      response: { status: 401 },
+      })
     })
 
     await waitFor(() => {
@@ -230,13 +236,15 @@ describe('AuthContext refresh flow', () => {
 
     mockedAxios.post.mockRejectedValueOnce(new Error('refresh failed'))
 
-    await expect(
-      interceptorState.responseRejectedHandler?.({
-        config: { url: '/api/protected-again', headers: {}, withCredentials: false },
+    await act(async () => {
+      await expect(
+        interceptorState.responseRejectedHandler?.({
+          config: { url: '/api/protected-again', headers: {}, withCredentials: false },
+          response: { status: 401 },
+        }),
+      ).rejects.toMatchObject({
         response: { status: 401 },
-      }),
-    ).rejects.toMatchObject({
-      response: { status: 401 },
+      })
     })
 
     expect(screen.getByTestId('user')).toHaveTextContent('none')
