@@ -80,4 +80,24 @@ describe('isBusinessRole Middleware', () => {
     expect(req.user).toEqual(businessUser);
     expect(res.status).not.toHaveBeenCalled();
   });
+
+  it('returns 500 when User.findById throws', async () => {
+    User.findById.mockRejectedValue(new Error('DB connection lost'));
+
+    const req: MockRequestWithId = { id: '507f1f77bcf86cd799439011' };
+    const res = mockResponse();
+    const next = jest.fn();
+
+    await isBusinessRole(req, res, next);
+
+    expect(res.status).toHaveBeenCalledWith(500);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        success: false,
+        message: 'Internal server error',
+        error: 'Server error',
+      }),
+    );
+    expect(next).not.toHaveBeenCalled();
+  });
 });

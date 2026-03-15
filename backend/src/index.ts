@@ -17,7 +17,11 @@ async function start() {
   });
 }
 
-start().catch((err: unknown) => {
+function onStartFailed(err: unknown): void {
   logger.error('Server start failed', err);
   process.exit(1);
-});
+}
+
+start().catch(onStartFailed);
+
+export { onStartFailed };
