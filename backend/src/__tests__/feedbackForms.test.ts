@@ -338,6 +338,88 @@ describe('Feedback Forms API', () => {
     expect(res.body.feedbackForm.fields[0].allowAnonymous).toBe(false);
   });
 
+  describe('steps', () => {
+    it('creates a form with valid steps and stores them', async () => {
+      const { authHeader, businessId } = await createBusinessAuth();
+
+      const res = await request(app)
+        .post('/api/feedback-forms')
+        .set(authHeader)
+        .send({
+          title: 'Multistep form',
+          fields: [
+            { name: 'q1', label: 'Q1', type: 'text', stepId: 'step-1', stepOrder: 0 },
+            { name: 'q2', label: 'Q2', type: 'text', stepId: 'step-2', stepOrder: 0 },
+          ],
+          steps: [
+            { id: 'step-1', title: 'Step 1', description: 'First', order: 0 },
+            { id: 'step-2', title: 'Step 2', order: 1 },
+          ],
+        })
+        .expect(201);
+
+      expect(res.body.feedbackForm.title).toBe('Multistep form');
+      expect(res.body.feedbackForm.steps).toHaveLength(2);
+      expect(res.body.feedbackForm.steps[0]).toMatchObject({ id: 'step-1', title: 'Step 1', order: 0 });
+      expect(res.body.feedbackForm.steps[1]).toMatchObject({ id: 'step-2', title: 'Step 2', order: 1 });
+    });
+
+    it('returns 400 when step ids are duplicated', async () => {
+      const { authHeader } = await createBusinessAuth();
+
+      const res = await request(app)
+        .post('/api/feedback-forms')
+        .set(authHeader)
+        .send({
+          title: 'Bad steps',
+          fields: [{ name: 'f1', label: 'F1', type: 'text' }],
+          steps: [
+            { id: 'same-id', title: 'Step A', order: 0 },
+            { id: 'same-id', title: 'Step B', order: 1 },
+          ],
+        })
+        .expect(400);
+
+      expect(res.body.error).toMatch(/step ids must be unique/i);
+    });
+
+    it('returns 400 when step order values are duplicated', async () => {
+      const { authHeader } = await createBusinessAuth();
+
+      const res = await request(app)
+        .post('/api/feedback-forms')
+        .set(authHeader)
+        .send({
+          title: 'Bad steps',
+          fields: [{ name: 'f1', label: 'F1', type: 'text' }],
+          steps: [
+            { id: 'step-a', title: 'Step A', order: 0 },
+            { id: 'step-b', title: 'Step B', order: 0 },
+          ],
+        })
+        .expect(400);
+
+      expect(res.body.error).toMatch(/step order values must be unique/i);
+    });
+
+    it('accepts create with steps not an array without setting payload.steps', async () => {
+      const { authHeader } = await createBusinessAuth();
+
+      const res = await request(app)
+        .post('/api/feedback-forms')
+        .set(authHeader)
+        .send({
+          title: 'Form without steps array',
+          fields: [{ name: 'f1', label: 'F1', type: 'text' }],
+          steps: null,
+        })
+        .expect(201);
+
+      expect(res.body.feedbackForm.title).toBe('Form without steps array');
+      expect(res.body.feedbackForm.steps).toBeUndefined();
+    });
+  });
+
   describe('form kind (form | poll | survey)', () => {
     it('creates a form with kind poll and stores it', async () => {
       const { authHeader, businessId } = await createBusinessAuth();

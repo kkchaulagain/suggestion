@@ -159,6 +159,24 @@ describe('CreateFormPage', () => {
     })
   })
 
+  test('validates checkbox fields with no valid options before save', async () => {
+    renderCreateFormPage()
+    goToFormBuilder()
+
+    fireEvent.click(screen.getByRole('button', { name: /\+ Add new field/i }))
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /Add new field/i })).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: /^Checkbox$/i }))
+    const checkboxFieldRow = getFieldRow('Checkbox group 4')
+    fireEvent.click(within(checkboxFieldRow).getByRole('button', { name: /remove option 1/i }))
+    fireEvent.click(screen.getByRole('button', { name: /save form/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText(/Checkbox, radio, dropdown, scale, and rating fields need at least one option/i)).toBeInTheDocument()
+    })
+  })
+
   test('selecting Poll template and saving sends kind poll in POST', async () => {
     mockedAxios.post.mockResolvedValueOnce({ data: { feedbackForm: { _id: 'new-poll' } } })
 

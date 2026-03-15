@@ -396,6 +396,75 @@ describe('FormRenderPage', () => {
     })
   })
 
+  test('multistep form: Next with valid step clears errors and advances', async () => {
+    const multistepForm = {
+      feedbackForm: {
+        _id: 'form-ms',
+        title: 'Two Step Form',
+        description: '',
+        fields: [
+          { name: 'a', label: 'Field A', type: 'text', required: true, stepId: 's1', stepOrder: 0 },
+          { name: 'b', label: 'Field B', type: 'text', required: false, stepId: 's2', stepOrder: 0 },
+        ],
+        steps: [
+          { id: 's1', title: 'Step 1', order: 0 },
+          { id: 's2', title: 'Step 2', order: 1 },
+        ],
+      },
+    }
+    mockedAxios.get.mockResolvedValueOnce({ data: multistepForm })
+
+    renderFormRenderPage('form-ms')
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /Two Step Form/i })).toBeInTheDocument()
+    })
+    expect(screen.getByLabelText(/Field A/i)).toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText(/Field A/i), { target: { value: 'filled' } })
+    fireEvent.click(screen.getByRole('button', { name: /Next/i }))
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/Field B/i)).toBeInTheDocument()
+    })
+    expect(screen.getByText(/Step 2 of 2/i)).toBeInTheDocument()
+  })
+
+  test('multistep form: Back clears errors and returns to previous step', async () => {
+    const multistepForm = {
+      feedbackForm: {
+        _id: 'form-ms2',
+        title: 'Two Step Form',
+        description: '',
+        fields: [
+          { name: 'a', label: 'Field A', type: 'text', required: false, stepId: 's1', stepOrder: 0 },
+          { name: 'b', label: 'Field B', type: 'text', required: false, stepId: 's2', stepOrder: 0 },
+        ],
+        steps: [
+          { id: 's1', title: 'Step 1', order: 0 },
+          { id: 's2', title: 'Step 2', order: 1 },
+        ],
+      },
+    }
+    mockedAxios.get.mockResolvedValueOnce({ data: multistepForm })
+
+    renderFormRenderPage('form-ms2')
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/Field A/i)).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: /Next/i }))
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/Field B/i)).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: /Back/i }))
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/Field A/i)).toBeInTheDocument()
+      expect(screen.queryByLabelText(/Field B/i)).not.toBeInTheDocument()
+    })
+  })
+
   test('star rating can be selected with keyboard (Enter)', async () => {
     const starOptions = ['★ 1 Star', '★★ 2 Stars', '★★★ 3 Stars', '★★★★ 4 Stars', '★★★★★ 5 Stars']
     mockedAxios.get.mockResolvedValueOnce({
