@@ -1,7 +1,7 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import axios from 'axios'
-import { MemoryRouter } from 'react-router-dom'
+import { TestRouter } from './test-router'
 
 import Login from '../auth/login'
 import { AuthProvider } from '../context/AuthContext'
@@ -30,13 +30,13 @@ jest.mock('react-router-dom', () => ({
 
 function renderLogin() {
   return render(
-    <MemoryRouter>
+    <TestRouter>
       <ThemeProvider>
         <AuthProvider>
           <Login />
         </AuthProvider>
       </ThemeProvider>
-    </MemoryRouter>
+    </TestRouter>
   )
 }
 

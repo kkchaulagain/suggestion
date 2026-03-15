@@ -1,6 +1,6 @@
 import { render, screen, fireEvent } from '@testing-library/react'
 import '@testing-library/jest-dom'
-import { MemoryRouter } from 'react-router-dom'
+import { TestRouter } from './test-router'
 
 import Dashboard from '../pages/Dashboard'
 
@@ -21,9 +21,9 @@ jest.mock('../context/AuthContext', () => ({
 
 function renderDashboard() {
   return render(
-    <MemoryRouter>
+    <TestRouter>
       <Dashboard />
-    </MemoryRouter>
+    </TestRouter>
   )
 }
 

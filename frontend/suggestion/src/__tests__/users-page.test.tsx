@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import '@testing-library/jest-dom'
-import { MemoryRouter } from 'react-router-dom'
+import { TestRouter } from './test-router'
 import axios from 'axios'
 
 import UsersPage from '../pages/business-dashboard/pages/UsersPage'
@@ -27,9 +27,9 @@ describe('UsersPage', () => {
     })
 
     render(
-      <MemoryRouter>
+      <TestRouter>
         <UsersPage />
-      </MemoryRouter>,
+      </TestRouter>,
     )
 
     expect(screen.getByText(/Loading users/i)).toBeInTheDocument()
@@ -46,9 +46,9 @@ describe('UsersPage', () => {
     mockedAxios.get.mockRejectedValue(new Error('Network error'))
 
     render(
-      <MemoryRouter>
+      <TestRouter>
         <UsersPage />
-      </MemoryRouter>,
+      </TestRouter>,
     )
 
     await waitFor(() => {
@@ -65,9 +65,9 @@ describe('UsersPage', () => {
     })
 
     render(
-      <MemoryRouter>
+      <TestRouter>
         <UsersPage />
-      </MemoryRouter>,
+      </TestRouter>,
     )
 
     await waitFor(() => {
@@ -102,9 +102,9 @@ describe('UsersPage', () => {
     })
 
     render(
-      <MemoryRouter>
+      <TestRouter>
         <UsersPage />
-      </MemoryRouter>,
+      </TestRouter>,
     )
 
     await waitFor(() => {
@@ -133,9 +133,9 @@ describe('UsersPage', () => {
     })
 
     render(
-      <MemoryRouter>
+      <TestRouter>
         <UsersPage />
-      </MemoryRouter>,
+      </TestRouter>,
     )
 
     await waitFor(() => {
@@ -163,9 +163,9 @@ describe('UsersPage', () => {
     })
 
     render(
-      <MemoryRouter>
+      <TestRouter>
         <UsersPage />
-      </MemoryRouter>,
+      </TestRouter>,
     )
 
     await waitFor(() => {
@@ -207,9 +207,9 @@ describe('UsersPage', () => {
     mockedAxios.put.mockRejectedValue(axiosError)
 
     render(
-      <MemoryRouter>
+      <TestRouter>
         <UsersPage />
-      </MemoryRouter>,
+      </TestRouter>,
     )
 
     await waitFor(() => {
@@ -240,9 +240,9 @@ describe('UsersPage', () => {
     mockedAxios.patch.mockResolvedValue({ data: { success: true } })
 
     render(
-      <MemoryRouter>
+      <TestRouter>
         <UsersPage />
-      </MemoryRouter>,
+      </TestRouter>,
     )
 
     await waitFor(() => {
@@ -280,9 +280,9 @@ describe('UsersPage', () => {
     mockedAxios.patch.mockResolvedValue({ data: { success: true } })
 
     render(
-      <MemoryRouter>
+      <TestRouter>
         <UsersPage />
-      </MemoryRouter>,
+      </TestRouter>,
     )
 
     await waitFor(
@@ -317,9 +317,9 @@ describe('UsersPage', () => {
     mockedAxios.patch.mockRejectedValue(new Error('Network error'))
 
     render(
-      <MemoryRouter>
+      <TestRouter>
         <UsersPage />
-      </MemoryRouter>,
+      </TestRouter>,
     )
 
     await waitFor(() => {

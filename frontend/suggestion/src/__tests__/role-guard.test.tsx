@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import '@testing-library/jest-dom'
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { Route, Routes } from 'react-router-dom'
+import { TestRouter } from './test-router'
 
 import RoleGuard from '../component/RoleGuard'
 
@@ -14,12 +15,12 @@ describe('RoleGuard', () => {
     mockUseAuth.mockReturnValue({ user: { _id: '1', name: 'Test', email: 't@t.com', role: 'user' } })
 
     render(
-      <MemoryRouter initialEntries={['/dashboard/users']}>
+      <TestRouter initialEntries={['/dashboard/users']}>
         <Routes>
           <Route path="/dashboard/users" element={<RoleGuard roles={['admin']}><div>Users Page</div></RoleGuard>} />
           <Route path="/dashboard" element={<div>Dashboard</div>} />
         </Routes>
-      </MemoryRouter>,
+      </TestRouter>,
     )
 
     expect(screen.getByText('Dashboard')).toBeInTheDocument()
@@ -30,12 +31,12 @@ describe('RoleGuard', () => {
     mockUseAuth.mockReturnValue({ user: null })
 
     render(
-      <MemoryRouter initialEntries={['/dashboard/users']}>
+      <TestRouter initialEntries={['/dashboard/users']}>
         <Routes>
           <Route path="/dashboard/users" element={<RoleGuard roles={['admin']}><div>Users Page</div></RoleGuard>} />
           <Route path="/dashboard" element={<div>Dashboard</div>} />
         </Routes>
-      </MemoryRouter>,
+      </TestRouter>,
     )
 
     expect(screen.getByText('Dashboard')).toBeInTheDocument()
@@ -46,12 +47,12 @@ describe('RoleGuard', () => {
     mockUseAuth.mockReturnValue({ user: { _id: '1', name: 'Admin', email: 'a@a.com', role: 'admin' } })
 
     render(
-      <MemoryRouter initialEntries={['/dashboard/users']}>
+      <TestRouter initialEntries={['/dashboard/users']}>
         <Routes>
           <Route path="/dashboard/users" element={<RoleGuard roles={['admin']}><div>Users Page</div></RoleGuard>} />
           <Route path="/dashboard" element={<div>Dashboard</div>} />
         </Routes>
-      </MemoryRouter>,
+      </TestRouter>,
     )
 
     expect(screen.getByText('Users Page')).toBeInTheDocument()
@@ -62,12 +63,12 @@ describe('RoleGuard', () => {
     mockUseAuth.mockReturnValue({ user: { _id: '1', name: 'Biz', email: 'b@b.com', role: 'business' } })
 
     render(
-      <MemoryRouter initialEntries={['/dashboard/businesses']}>
+      <TestRouter initialEntries={['/dashboard/businesses']}>
         <Routes>
           <Route path="/dashboard/businesses" element={<RoleGuard roles={['admin']}><div>Businesses Page</div></RoleGuard>} />
           <Route path="/dashboard" element={<div>Dashboard</div>} />
         </Routes>
-      </MemoryRouter>,
+      </TestRouter>,
     )
 
     expect(screen.getByText('Dashboard')).toBeInTheDocument()
@@ -78,12 +79,12 @@ describe('RoleGuard', () => {
     mockUseAuth.mockReturnValue({ user: { _id: '1', name: 'Admin', email: 'a@a.com', role: 'admin' } })
 
     render(
-      <MemoryRouter initialEntries={['/dashboard/businesses']}>
+      <TestRouter initialEntries={['/dashboard/businesses']}>
         <Routes>
           <Route path="/dashboard/businesses" element={<RoleGuard roles={['admin']}><div>Businesses Page</div></RoleGuard>} />
           <Route path="/dashboard" element={<div>Dashboard</div>} />
         </Routes>
-      </MemoryRouter>,
+      </TestRouter>,
     )
 
     expect(screen.getByText('Businesses Page')).toBeInTheDocument()

@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom'
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { Route, Routes } from 'react-router-dom'
+import { TestRouter } from './test-router'
 
 import CreateFormPage from '../pages/business-dashboard/pages/CreateFormPage'
 
@@ -110,11 +111,11 @@ jest.mock('@dnd-kit/sortable', () => {
 
 function renderCreateFormPage() {
   return render(
-    <MemoryRouter initialEntries={['/dashboard/forms/create']}>
+    <TestRouter initialEntries={['/dashboard/forms/create']}>
       <Routes>
         <Route path="/dashboard/forms/create" element={<CreateFormPage />} />
       </Routes>
-    </MemoryRouter>,
+    </TestRouter>,
   )
 }
 
