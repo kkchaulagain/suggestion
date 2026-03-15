@@ -4,6 +4,7 @@ import axios from 'axios'
 import { Eye, X } from 'lucide-react'
 import { useAuth } from '../../../context/AuthContext'
 import { feedbackFormsApi, feedbackFormSubmissionsApi } from '../../../utils/apipath'
+import { imageDisplayUrl } from '../../../utils/placeholderImage'
 import { Button, ErrorMessage, Modal, Tag } from '../../../components/ui'
 import { EmptyState, FormCard, PageHeader, Pagination } from '../../../components/layout'
 import { FormResultsView, getEmojiScaleDisplay } from '../../../components/results'
@@ -178,31 +179,38 @@ function ResponseDetailModal({
                 : typeof value === 'string'
                   ? value || '—'
                   : '—'
+            const isImageField = field.type === 'image' || field.type === 'image_upload'
             const isImage =
               typeof value === 'string' &&
               value.trim() !== '' &&
               isImageUrl(value, field.type)
             const imageUrl = isImage ? (value as string).trim() : null
+            const showImage = isImageField || isImage
+            const imageSrc = showImage
+              ? (isImageField ? imageDisplayUrl(imageUrl ?? undefined) : imageUrl!)
+              : ''
 
             return (
               <div key={field.name}>
                 <dt className="text-sm font-medium text-slate-700 dark:text-slate-300">{field.label}</dt>
                 <dd className="mt-0.5 text-sm text-slate-900 dark:text-slate-200">
-                  {imageUrl ? (
+                  {showImage ? (
                     <span className="block space-y-2">
                       <img
-                        src={imageUrl}
+                        src={imageSrc}
                         alt={field.label}
                         className="max-h-64 w-auto max-w-full rounded-lg border border-slate-200 object-contain dark:border-slate-600"
                       />
-                      <a
-                        href={imageUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs text-emerald-600 hover:underline dark:text-emerald-400"
-                      >
-                        Open in new tab
-                      </a>
+                      {imageUrl ? (
+                        <a
+                          href={imageUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-emerald-600 hover:underline dark:text-emerald-400"
+                        >
+                          Open in new tab
+                        </a>
+                      ) : null}
                     </span>
                   ) : (
                     displayText

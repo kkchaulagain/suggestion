@@ -28,6 +28,7 @@ import { Button, Card, ErrorMessage, Input, Modal, Select, Textarea } from '../.
 import { HeroSection, FeatureCard, CTASection } from '../../../components/landing'
 import ImageUploadCropDialog from '../../../components/media/ImageUploadCropDialog'
 import EmbeddedFormBlock from '../../feedback-form-render/EmbeddedFormBlock'
+import { imageDisplayUrl, PLACEHOLDER_IMAGE_URL } from '../../../utils/placeholderImage'
 import {
   PAGE_TEMPLATES,
   PAGE_TEMPLATE_CATEGORIES,
@@ -298,7 +299,7 @@ function getBlockSummary(block: Block): string {
     }
     case 'image': {
       const payload = block.payload as ImagePayload
-      return payload.caption?.trim() || payload.alt?.trim() || payload.imageUrl?.trim() || 'Image block'
+      return payload.caption?.trim() || payload.alt?.trim() || 'Image block'
     }
     case 'cta': {
       const payload = block.payload as CTAPayload
@@ -340,9 +341,9 @@ function renderBlockPreview(block: Block): ReactNode {
     const headline = p?.headline?.trim()
     const subheadline = p?.subheadline?.trim()
     const mediaType = p?.mediaType ?? 'none'
-    const media = mediaType === 'image' && p?.imageUrl?.trim()
+    const media = mediaType === 'image'
       ? (
-        <img src={p.imageUrl!.trim()} alt={p.imageAlt?.trim() || 'Hero'} className="w-full rounded-xl object-cover" />
+        <img src={imageDisplayUrl(p?.imageUrl)} alt={p?.imageAlt?.trim() || 'Hero'} className="w-full rounded-xl object-cover" />
       )
       : mediaType === 'icon'
         ? (
@@ -406,12 +407,11 @@ function renderBlockPreview(block: Block): ReactNode {
   }
   if (block.type === 'image') {
     const p = block.payload as ImagePayload
-    const imageUrl = p?.imageUrl?.trim()
-    if (!imageUrl) return <p className="text-sm text-stone-400 dark:text-stone-500">Add an image URL</p>
+    const src = imageDisplayUrl(p?.imageUrl)
     return (
       <figure className="space-y-2">
-        <img src={imageUrl} alt={p.alt?.trim() || 'Image'} className="w-full rounded-2xl border border-stone-200 object-cover dark:border-stone-700" />
-        {p.caption?.trim() ? <figcaption className="text-sm text-stone-500 dark:text-stone-400">{p.caption}</figcaption> : null}
+        <img src={src} alt={p?.alt?.trim() || 'Image'} className="w-full rounded-2xl border border-stone-200 object-cover dark:border-stone-700" />
+        {p?.caption?.trim() ? <figcaption className="text-sm text-stone-500 dark:text-stone-400">{p.caption}</figcaption> : null}
       </figure>
     )
   }
@@ -779,18 +779,19 @@ export default function CreatePagePage() {
                 label="Hero image URL"
                 value={payload.imageUrl ?? ''}
                 onChange={(value) => updateBlock(index, { ...payload, imageUrl: value })}
-                placeholder="https://example.com/hero.png"
+                placeholder="https://example.com/hero.png or use placeholder below"
                 className="rounded-2xl border-stone-200 focus:border-violet-500 focus:ring-violet-500/20 dark:border-stone-700 dark:focus:border-violet-400 dark:focus:ring-violet-400/20"
               />
-              <Input
-                id={`block-${block.clientId}-hero-image-alt`}
-                label="Hero image alt text"
-                value={payload.imageAlt ?? ''}
-                onChange={(value) => updateBlock(index, { ...payload, imageAlt: value })}
-                placeholder="Describe the hero image"
-                className="rounded-2xl border-stone-200 focus:border-violet-500 focus:ring-violet-500/20 dark:border-stone-700 dark:focus:border-violet-400 dark:focus:ring-violet-400/20"
-              />
-              <div className="md:col-span-2">
+              <div className="flex flex-wrap gap-2 md:col-span-2">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  className="rounded-full border-stone-200 px-4 dark:border-stone-700"
+                  onClick={() => updateBlock(index, { ...payload, imageUrl: PLACEHOLDER_IMAGE_URL })}
+                >
+                  Use placeholder image
+                </Button>
                 <Button
                   type="button"
                   variant="secondary"
@@ -801,6 +802,21 @@ export default function CreatePagePage() {
                   <Image className="h-4 w-4" />
                   Upload & Crop Hero Image
                 </Button>
+              </div>
+              <Input
+                id={`block-${block.clientId}-hero-image-alt`}
+                label="Hero image alt text"
+                value={payload.imageAlt ?? ''}
+                onChange={(value) => updateBlock(index, { ...payload, imageAlt: value })}
+                placeholder="Describe the hero image"
+                className="rounded-2xl border-stone-200 focus:border-violet-500 focus:ring-violet-500/20 dark:border-stone-700 dark:focus:border-violet-400 dark:focus:ring-violet-400/20"
+              />
+              <div className="overflow-hidden rounded-2xl border border-stone-200 bg-stone-50 dark:border-stone-700 dark:bg-stone-800/40 md:col-span-2">
+                <img
+                  src={imageDisplayUrl(payload.imageUrl)}
+                  alt={payload.imageAlt || 'Hero preview'}
+                  className="max-h-48 w-full object-cover"
+                />
               </div>
             </div>
           ) : null}
@@ -957,6 +973,7 @@ export default function CreatePagePage() {
 
     if (block.type === 'image') {
       const payload = block.payload as ImagePayload
+      const previewSrc = imageDisplayUrl(payload.imageUrl)
       return (
         <div className="space-y-4">
           <Input
@@ -964,9 +981,30 @@ export default function CreatePagePage() {
             label="Image URL"
             value={payload.imageUrl}
             onChange={(value) => updateBlock(index, { ...payload, imageUrl: value })}
-            placeholder="https://example.com/image.jpg"
+            placeholder="https://example.com/image.jpg or use placeholder below"
             className="rounded-2xl border-stone-200 focus:border-violet-500 focus:ring-violet-500/20 dark:border-stone-700 dark:focus:border-violet-400 dark:focus:ring-violet-400/20"
           />
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="rounded-full border-stone-200 px-4 dark:border-stone-700"
+              onClick={() => updateBlock(index, { ...payload, imageUrl: PLACEHOLDER_IMAGE_URL })}
+            >
+              Use placeholder image
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="rounded-full border-stone-200 px-4 dark:border-stone-700"
+              onClick={() => setUploadTarget({ blockClientId: block.clientId, type: 'image' })}
+            >
+              <Image className="h-4 w-4" />
+              Upload & Crop Image
+            </Button>
+          </div>
           <Input
             id={`block-${block.clientId}-image-alt`}
             label="Alt text"
@@ -984,25 +1022,13 @@ export default function CreatePagePage() {
             rows={2}
             className="rounded-2xl border-stone-200 focus:border-violet-500 focus:ring-violet-500/20 dark:border-stone-700 dark:focus:border-violet-400 dark:focus:ring-violet-400/20"
           />
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            className="rounded-full border-stone-200 px-4 dark:border-stone-700"
-            onClick={() => setUploadTarget({ blockClientId: block.clientId, type: 'image' })}
-          >
-            <Image className="h-4 w-4" />
-            Upload & Crop Image
-          </Button>
-          {payload.imageUrl?.trim() ? (
-            <div className="overflow-hidden rounded-2xl border border-stone-200 bg-stone-50 dark:border-stone-700 dark:bg-stone-800/40">
-              <img
-                src={payload.imageUrl}
-                alt={payload.alt || 'Preview image'}
-                className="max-h-80 w-full object-cover"
-              />
-            </div>
-          ) : null}
+          <div className="overflow-hidden rounded-2xl border border-stone-200 bg-stone-50 dark:border-stone-700 dark:bg-stone-800/40">
+            <img
+              src={previewSrc}
+              alt={payload.alt || 'Preview'}
+              className="max-h-80 w-full object-cover"
+            />
+          </div>
         </div>
       )
     }

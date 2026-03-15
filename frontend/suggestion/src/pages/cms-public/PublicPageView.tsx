@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom'
 import axios from 'axios'
 import { FileText, Share2, BarChart3, Sparkles } from 'lucide-react'
 import { pagesApi } from '../../utils/apipath'
+import { imageDisplayUrl } from '../../utils/placeholderImage'
 import { EmptyState, PublicLayout } from '../../components/layout'
 import { HeroSection, FeatureCard, CTASection } from '../../components/landing'
 import EmbeddedFormBlock from '../feedback-form-render/EmbeddedFormBlock'
@@ -165,11 +166,11 @@ function renderBlock(block: Block, index: number): React.ReactNode {
     const subheadline = p?.subheadline?.trim()
     if (!headline && !subheadline) return null
     const mediaType = p?.mediaType ?? 'none'
-    const media = mediaType === 'image' && p?.imageUrl?.trim()
+    const media = mediaType === 'image'
       ? (
         <img
-          src={p.imageUrl.trim()}
-          alt={p.imageAlt?.trim() || 'Hero image'}
+          src={imageDisplayUrl(p?.imageUrl)}
+          alt={p?.imageAlt?.trim() || 'Hero image'}
           className="w-full rounded-xl object-cover"
           loading="lazy"
         />
@@ -249,14 +250,13 @@ function renderBlock(block: Block, index: number): React.ReactNode {
   }
   if (block.type === 'image') {
     const p = block.payload as ImagePayload
-    const imageUrl = p?.imageUrl?.trim()
-    if (!imageUrl) return null
+    const src = imageDisplayUrl(p?.imageUrl)
     const alt = p?.alt?.trim() || 'Page image'
     const caption = p?.caption?.trim()
     return (
       <figure key={index} className="space-y-3">
         <img
-          src={imageUrl}
+          src={src}
           alt={alt}
           className="w-full rounded-2xl border border-stone-200 object-cover shadow-sm dark:border-stone-700"
           loading="lazy"
