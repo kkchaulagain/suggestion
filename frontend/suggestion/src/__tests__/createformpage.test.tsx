@@ -226,10 +226,10 @@ describe('CreateFormPage', () => {
       expect(screen.getByText(/Choose a template/i)).toBeInTheDocument()
     })
 
-    fireEvent.click(screen.getByRole('button', { name: /ratings, choices, and open feedback/i }))
+    fireEvent.click(screen.getByRole('button', { name: /Short survey: rating, recommendation/i }))
 
     await waitFor(() => {
-      expect(screen.getByDisplayValue('Survey')).toBeInTheDocument()
+      expect(screen.getByDisplayValue('Quick Feedback')).toBeInTheDocument()
     })
 
     fireEvent.click(screen.getByRole('button', { name: /save form/i }))
@@ -471,7 +471,7 @@ describe('CreateFormPage', () => {
     renderCreateFormPage()
     goToFormBuilder()
     fireEvent.click(screen.getByRole('button', { name: /back/i }))
-    expect(screen.getByText(/Customer Feedback/i)).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /Choose a template/i })).toBeInTheDocument()
     expect(mockNavigate).not.toHaveBeenCalled()
   })
 
@@ -539,13 +539,13 @@ describe('CreateFormPage', () => {
   describe('Create Form Wizard', () => {
     test('shows template selection step on create', () => {
       renderCreateFormPage()
-      expect(screen.getByText(/Customer Feedback/i)).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: /Choose a template/i })).toBeInTheDocument()
       expect(screen.getByRole('button', { name: /configure my own/i })).toBeInTheDocument()
     })
 
     test('selecting a template pre-populates form fields', () => {
       renderCreateFormPage()
-      fireEvent.click(screen.getByText(/Customer Feedback/i))
+      fireEvent.click(screen.getByRole('button', { name: /Collect ratings and comments from customers/i }))
       expect(screen.getByLabelText(/form title/i)).toHaveValue('Customer Feedback')
       expect(screen.getByRole('button', { name: /save form/i })).toBeInTheDocument()
     })
@@ -561,7 +561,7 @@ describe('CreateFormPage', () => {
       renderCreateFormPage()
       goToFormBuilder()
       fireEvent.click(screen.getByRole('button', { name: /back/i }))
-      expect(screen.getByText(/Customer Feedback/i)).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: /Choose a template/i })).toBeInTheDocument()
       expect(mockNavigate).not.toHaveBeenCalled()
     })
 

@@ -61,7 +61,7 @@ describe('CreatePagePage', () => {
 
   test('selecting a template pre-fills blocks and advances to build step', async () => {
     await renderCreatePageAndFlush()
-    fireEvent.click(screen.getByRole('button', { name: /form-builder marketing/i }))
+    fireEvent.click(screen.getByRole('button', { name: /Landing page/i }))
     expect(screen.getByRole('heading', { name: /create page/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /edit hero block/i })).toBeInTheDocument()
     expect(screen.getAllByRole('button', { name: /edit heading block/i }).length).toBeGreaterThanOrEqual(1)
