@@ -157,6 +157,71 @@ describe('Auth Profile Endpoints', () => {
     });
   });
 
+  describe('POST /api/auth/verify-password', () => {
+    it('returns 400 if password field is missing', async () => {
+      const res = await withAuth(request(app).post('/api/auth/verify-password'), userToken)
+        .send({})
+        .expect(400);
+
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toBe('password is required');
+    });
+
+    it('returns 400 if password is empty string', async () => {
+      const res = await withAuth(request(app).post('/api/auth/verify-password'), userToken)
+        .send({ password: '   ' })
+        .expect(400);
+
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toBe('password is required');
+    });
+
+    it('returns 404 if user not found', async () => {
+      await User.findByIdAndDelete(userId);
+
+      const res = await withAuth(request(app).post('/api/auth/verify-password'), userToken)
+        .send({ password: 'password123' })
+        .expect(404);
+
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toBe('user not found');
+    });
+
+    it('returns 404 if password is incorrect', async () => {
+      const res = await withAuth(request(app).post('/api/auth/verify-password'), userToken)
+        .send({ password: 'wrongpassword' })
+        .expect(404);
+
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toBe('Incorrect Password');
+    });
+
+    it('returns 200 if password is correct', async () => {
+      const res = await withAuth(request(app).post('/api/auth/verify-password'), userToken)
+        .send({ password: 'password123' })
+        .expect(200);
+
+      expect(res.body.success).toBe(true);
+      expect(res.body.message).toBe('Password is correct');
+    });
+
+    it('returns 500 if database error occurs', async () => {
+      const originalFindById = User.findById;
+      User.findById = jest.fn().mockImplementation(() => ({
+        select: () => { throw new Error('Database error'); },
+      }));
+
+      const res = await withAuth(request(app).post('/api/auth/verify-password'), userToken)
+        .send({ password: 'password123' })
+        .expect(500);
+
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toBe('Something went wrong');
+
+      User.findById = originalFindById;
+    });
+  });
+
   describe('PUT /api/auth/business', () => {
     it('returns 200 and updates business profile for business user', async () => {
       const res = await withAuth(request(app).put('/api/auth/business'), businessToken)
@@ -202,6 +267,50 @@ describe('Auth Profile Endpoints', () => {
 
       expect(res.body.success).toBe(false);
       expect(res.body.message).toBe('Business profile not found');
+    });
+
+    it('returns 400 if businessname is blank whitespace', async () => {
+      const res = await withAuth(request(app).put('/api/auth/business'), businessToken)
+        .send({ businessname: '   ' })
+        .expect(400);
+
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toBe('Business name is required');
+    });
+
+    it('returns 400 if description is blank whitespace', async () => {
+      const res = await withAuth(request(app).put('/api/auth/business'), businessToken)
+        .send({ description: '   ' })
+        .expect(400);
+
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toBe('Description is required');
+    });
+
+    it('returns 200 and updates only location and pancardNumber', async () => {
+      const res = await withAuth(request(app).put('/api/auth/business'), businessToken)
+        .send({ location: 'Updated City', pancardNumber: 11223344 })
+        .expect(200);
+
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.location).toBe('Updated City');
+      expect(res.body.data.pancardNumber).toBe('11223344');
+    });
+
+    it('returns 500 if database error occurs', async () => {
+      const originalFindOneAndUpdate = Business.findOneAndUpdate;
+      Business.findOneAndUpdate = jest.fn().mockImplementation(() => {
+        throw new Error('Database error');
+      });
+
+      const res = await withAuth(request(app).put('/api/auth/business'), businessToken)
+        .send({ businessname: 'Any Name' })
+        .expect(500);
+
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toBe('Something went wrong');
+
+      Business.findOneAndUpdate = originalFindOneAndUpdate;
     });
   });
 
