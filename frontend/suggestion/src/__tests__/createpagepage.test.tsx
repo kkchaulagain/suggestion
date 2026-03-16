@@ -468,7 +468,7 @@ describe('CreatePagePage', () => {
     fireEvent.click(screen.getByRole('button', { name: /edit cta banner block/i }))
 
     expect(screen.getByLabelText(/^Text$/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/button label/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/^Button label$/i)).toBeInTheDocument()
     await userEvent.type(screen.getByLabelText(/^Text$/i), 'Sign up now')
   })
 
