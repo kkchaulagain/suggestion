@@ -7,6 +7,7 @@ const pageRoutes = require('./routes/pages');
 const uploadRoutes = require('./routes/upload');
 const usersRoutes = require('./routes/users');
 const v1Routes = require('./routes/v1');
+const onboardingRoutes = require('./routes/onboarding');
 const { setupSwagger } = require('./swagger');
 
 import cors from 'cors';
@@ -35,7 +36,6 @@ app.use('/api/pages', pageRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/v1', v1Routes);
-
-
+app.use('/api/onboarding', onboardingRoutes);
 
 module.exports = app;

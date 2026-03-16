@@ -6,6 +6,8 @@ import {
   meapi,
   changePasswordApi,
   businessmeapi,
+  onboardingApi,
+  onboardingCountsApi,
   feedbackFormsApi,
   feedbackFormSubmissionsApi,
   pagesApi,
@@ -43,6 +45,14 @@ describe('apipath', () => {
 
   it('exports businessmeapi with correct base and path', () => {
     expect(businessmeapi).toBe(`${base}/api/auth/business`)
+  })
+
+  it('exports onboardingApi with correct path', () => {
+    expect(onboardingApi).toBe(`${base}/api/onboarding/business-setup`)
+  })
+
+  it('exports onboardingCountsApi with correct path', () => {
+    expect(onboardingCountsApi).toBe(`${base}/api/onboarding/counts`)
   })
 
   it('exports feedbackFormsApi with correct path', () => {

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { Eye, Pencil, Plus, Trash2 } from 'lucide-react'
 import { useAuth } from '../../../context/AuthContext'
@@ -92,10 +92,18 @@ export default function PagesPage() {
           ))}
         </div>
       ) : pages.length === 0 ? (
-        <EmptyState
-          type="empty"
-          message="You don't have any pages yet. Create a page to add content and embed forms."
-        />
+        <div className="mt-4 flex flex-col items-center gap-3 py-8">
+          <EmptyState
+            type="empty"
+            message="You don't have any pages yet. Create a page to add content and embed forms."
+          />
+          <Link
+            to="/dashboard/onboarding"
+            className="text-sm text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 underline"
+          >
+            Or run the setup wizard to create starter forms and pages
+          </Link>
+        </div>
       ) : (
         <div className="space-y-5 pt-2">
           {pages.map((page) => (

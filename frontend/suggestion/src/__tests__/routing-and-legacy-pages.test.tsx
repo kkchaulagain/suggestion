@@ -96,12 +96,38 @@ jest.mock('../pages/business-dashboard/pages/CreatePagePage', () => ({
   default: () => <div>Create Page / Edit Page</div>,
 }))
 
+jest.mock('../pages/business-dashboard/pages/BusinessOnboardingPage', () => ({
+  __esModule: true,
+  default: () => <div>Onboarding Page</div>,
+}))
+
 jest.mock('../pages/cms-public/PublicPageView', () => ({
   __esModule: true,
   default: () => <div>Public CMS Page</div>,
 }))
 
 const App = require('../App').default
+
+/** Mock GET /me and GET /business so a business user has onboarding completed (lands on forms). */
+function mockBusinessUserWithOnboardingCompleted() {
+  mockedAxios.get
+    .mockResolvedValueOnce({
+      data: { success: true, data: { _id: '1', name: 'Test', email: 't@t.com', role: 'business' } },
+    })
+    .mockResolvedValueOnce({
+      data: {
+        success: true,
+        data: {
+          _id: 'b1',
+          owner: '1',
+          businessname: 'Test',
+          type: 'commercial',
+          description: 'D',
+          onboardingCompleted: true,
+        },
+      },
+    })
+}
 
 describe('ProtectedRoute component', () => {
   beforeEach(() => {
@@ -201,12 +227,7 @@ describe('App routing', () => {
 
   test('redirects /business-dashboard to main dashboard and shows forms for business', async () => {
     localStorage.setItem('auth_token', 'fake-token')
-    mockedAxios.get.mockResolvedValue({
-      data: {
-        success: true,
-        data: { _id: '1', name: 'Test', email: 't@t.com', role: 'business' },
-      },
-    })
+    mockBusinessUserWithOnboardingCompleted()
     window.history.pushState({}, '', '/business-dashboard')
     render(<App />)
 
@@ -216,14 +237,30 @@ describe('App routing', () => {
     })
   })
 
+  test('redirects /dashboard to onboarding when business user has not completed onboarding', async () => {
+    localStorage.setItem('auth_token', 'fake-token')
+    mockedAxios.get
+      .mockResolvedValueOnce({
+        data: { success: true, data: { _id: '1', name: 'Biz', email: 'b@b.com', role: 'business' } },
+      })
+      .mockResolvedValueOnce({
+        data: {
+          success: true,
+          data: { _id: 'b1', owner: '1', businessname: 'Biz', type: 'commercial', description: 'D', onboardingCompleted: false },
+        },
+      })
+    window.history.pushState({}, '', '/dashboard')
+    render(<App />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Business Layout')).toBeInTheDocument()
+      expect(screen.getByText('Onboarding Page')).toBeInTheDocument()
+    })
+  })
+
   test('renders submissions route at /dashboard/submissions when business user', async () => {
     localStorage.setItem('auth_token', 'fake-token')
-    mockedAxios.get.mockResolvedValue({
-      data: {
-        success: true,
-        data: { _id: '1', name: 'Test', email: 't@t.com', role: 'business' },
-      },
-    })
+    mockBusinessUserWithOnboardingCompleted()
     window.history.pushState({}, '', '/dashboard/submissions')
     render(<App />)
 
@@ -262,9 +299,16 @@ describe('App routing', () => {
 
   test('business user at /dashboard/businesses is redirected and does not see Businesses page', async () => {
     localStorage.setItem('auth_token', 'fake-token')
-    mockedAxios.get.mockResolvedValue({
-      data: { success: true, data: { _id: '1', name: 'Biz', email: 'b@b.com', role: 'business' } },
-    })
+    mockedAxios.get
+      .mockResolvedValueOnce({
+        data: { success: true, data: { _id: '1', name: 'Biz', email: 'b@b.com', role: 'business' } },
+      })
+      .mockResolvedValueOnce({
+        data: {
+          success: true,
+          data: { _id: 'b1', owner: '1', businessname: 'Biz', type: 'commercial', description: 'D', onboardingCompleted: true },
+        },
+      })
     window.history.pushState({}, '', '/dashboard/businesses')
     render(<App />)
 
@@ -304,9 +348,7 @@ describe('App routing', () => {
 
   test('renders Pages listing at /dashboard/pages when logged in', async () => {
     localStorage.setItem('auth_token', 'fake-token')
-    mockedAxios.get.mockResolvedValue({
-      data: { success: true, data: { _id: '1', name: 'User', email: 'u@u.com', role: 'business' } },
-    })
+    mockBusinessUserWithOnboardingCompleted()
     window.history.pushState({}, '', '/dashboard/pages')
     render(<App />)
 
@@ -318,9 +360,7 @@ describe('App routing', () => {
 
   test('renders Create Page at /dashboard/pages/create when logged in', async () => {
     localStorage.setItem('auth_token', 'fake-token')
-    mockedAxios.get.mockResolvedValue({
-      data: { success: true, data: { _id: '1', name: 'User', email: 'u@u.com', role: 'business' } },
-    })
+    mockBusinessUserWithOnboardingCompleted()
     window.history.pushState({}, '', '/dashboard/pages/create')
     render(<App />)
 

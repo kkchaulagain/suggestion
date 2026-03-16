@@ -184,6 +184,22 @@ describe('ProfilePage Component', () => {
     })
   })
 
+  it('shows generic error when save fails with non-Axios error', async () => {
+    mockedAxios.put.mockRejectedValueOnce(new Error('Network error'))
+
+    render(<ProfilePage />)
+
+    await waitFor(() => expect(screen.getByText('Acme Owner')).toBeInTheDocument())
+
+    fireEvent.click(screen.getByRole('button', { name: /edit profile/i }))
+    fireEvent.change(screen.getByPlaceholderText('Enter your name'), { target: { value: 'New Name' } })
+    fireEvent.click(screen.getByRole('button', { name: /save changes/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText('Failed to update profile.')).toBeInTheDocument()
+    })
+  })
+
   it('disables buttons while saving', async () => {
     mockedAxios.put.mockImplementation(() => new Promise(() => {})) // never resolves
 
@@ -202,6 +218,18 @@ describe('ProfilePage Component', () => {
       expect(screen.getByRole('button', { name: /saving/i })).toBeDisabled()
       expect(screen.getByRole('button', { name: /cancel/i })).toBeDisabled()
     })
+  })
+
+  it('shows Start onboarding button and navigates to onboarding on click', async () => {
+    render(<ProfilePage />)
+
+    await waitFor(() => expect(screen.getByText('Acme Owner')).toBeInTheDocument())
+
+    const startOnboardingBtn = screen.getByRole('button', { name: /start onboarding/i })
+    expect(startOnboardingBtn).toBeInTheDocument()
+
+    fireEvent.click(startOnboardingBtn)
+    expect(mockNavigate).toHaveBeenCalledWith('/dashboard/onboarding')
   })
 
   it('opens change password modal', async () => {
