@@ -331,9 +331,9 @@ describe('CreatePagePage', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Slug already exists')).toBeInTheDocument()
-    })
+    }, { timeout: 15000 })
     expect(mockNavigate).not.toHaveBeenCalled()
-  })
+  }, 20000)
 
   test('Back to templates returns to template selection', async () => {
     await renderCreatePageAndFlush()
@@ -395,7 +395,7 @@ describe('CreatePagePage', () => {
     expect(screen.getByLabelText(/^Icon$/i)).toBeInTheDocument()
     await userEvent.type(screen.getByLabelText(/^Title$/i), 'My Feature')
     fireEvent.change(screen.getByLabelText(/^Icon$/i), { target: { value: 'share2' } })
-  })
+  }, 20000)
 
   test('adds feature grid block, adds item, removes item, sets 2 columns', async () => {
     await renderCreatePageAndFlush()

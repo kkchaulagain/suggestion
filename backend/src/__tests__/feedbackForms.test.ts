@@ -12,7 +12,7 @@ async function createBusinessAuth() {
   const password = 'Password123!';
   const phone = `+97798${String(10000000 + Math.floor(Math.random() * 90000000))}`;
 
-  await request(app).post('/api/auth/register').send({
+  const registerRes = await request(app).post('/api/auth/register').send({
     name: 'Business Owner',
     email,
     password,
@@ -23,11 +23,32 @@ async function createBusinessAuth() {
     description: 'Business profile',
     businessname: 'Acme Business',
   });
+  if (registerRes.status !== 201) {
+    throw new Error(`Failed to register business test user: ${JSON.stringify(registerRes.body)}`);
+  }
 
   const loginRes = await request(app).post('/api/auth/login').send({ email, password }).expect(200);
   const token = loginRes.body?.token || loginRes.body?.data?.token;
+  if (!token) {
+    throw new Error('Missing auth token for business test user');
+  }
+
   const user = await User.findOne({ email: email.toLowerCase() }).select('_id').lean();
-  const business = user ? await Business.findOne({ owner: user._id }).lean() : null;
+  if (!user?._id) {
+    throw new Error('Failed to locate business test user after login');
+  }
+
+  let business = await Business.findOne({ owner: user._id }).select('_id').lean();
+  if (!business?._id) {
+    business = await Business.create({
+      owner: user._id,
+      type: 'commercial',
+      businessname: 'Acme Business',
+      description: 'Business profile',
+      location: 'City Center',
+      pancardNumber: '1234567',
+    });
+  }
 
   return {
     authHeader: { Authorization: `Bearer ${token}` },

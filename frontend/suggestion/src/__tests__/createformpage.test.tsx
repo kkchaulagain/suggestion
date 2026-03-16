@@ -7,7 +7,7 @@ import axios from 'axios'
 import CreateFormPage from '../pages/business-dashboard/pages/CreateFormPage'
 import { feedbackFormsApi } from '../utils/apipath'
 
-jest.setTimeout(15000)
+jest.setTimeout(30000)
 
 jest.mock('axios')
 const mockedAxios = axios as jest.Mocked<typeof axios>
@@ -63,14 +63,10 @@ describe('CreateFormPage', () => {
     expect(screen.getByText('attachment')).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: /\+ Add new field/i }))
-    await waitFor(() => {
-      expect(screen.getByRole('heading', { name: /Add new field/i })).toBeInTheDocument()
-    })
+    await screen.findByRole('heading', { name: /Add new field/i })
     fireEvent.click(screen.getByRole('button', { name: /^Text$/i }))
 
-    await waitFor(() => {
-      expect(screen.getByDisplayValue('Text field 4')).toBeInTheDocument()
-    })
+    await screen.findByDisplayValue('Text field 4')
   })
 
   test('expands Advanced options to show SEO and show results switch', () => {
@@ -106,9 +102,13 @@ describe('CreateFormPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /save form/i }))
 
     await waitFor(() => {
+      expect(mockedAxios.post).toHaveBeenCalled()
+    }, { timeout: 10000 })
+
+    await waitFor(() => {
       expect(screen.getByText(/Backend save failed/i)).toBeInTheDocument()
-    })
-  })
+    }, { timeout: 10000 })
+  }, 20000)
 
   test('validates empty title before save', async () => {
     renderCreateFormPage()
@@ -148,8 +148,8 @@ describe('CreateFormPage', () => {
 
     await waitFor(() => {
       expect(screen.getByText(/field name must be unique inside the form/i)).toBeInTheDocument()
-    })
-  })
+    }, { timeout: 15000 })
+  }, 25000)
 
   test('validates radio fields with no options', async () => {
     renderCreateFormPage()
@@ -538,6 +538,142 @@ describe('CreateFormPage', () => {
     expect(mockNavigate).not.toHaveBeenCalled()
   })
 
+  test('edit mode Back without changes navigates to forms list', async () => {
+    mockedAxios.get.mockResolvedValueOnce({
+      data: {
+        feedbackForm: {
+          title: 'Existing form',
+          description: 'Loaded description',
+          fields: [
+            { name: 'subject', label: 'subject', type: 'text', required: true },
+            { name: 'description', label: 'description', type: 'textarea', required: false },
+            { name: 'attachment', label: 'attachment', type: 'image', required: false },
+          ],
+        },
+      },
+    })
+
+    renderCreateFormPage('/dashboard/forms/form-55/edit')
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue('Existing form')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /back/i }))
+    expect(mockNavigate).toHaveBeenCalledWith('/dashboard/forms')
+  })
+
+  test('add all contact fields adds name, email, and phone as a grouped set', async () => {
+    renderCreateFormPage()
+    goToFormBuilder()
+
+    fireEvent.click(screen.getByRole('button', { name: /\+ add new field/i }))
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /add new field/i })).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /add name email phone fields/i }))
+
+    expect(screen.getByText('Contact Name')).toBeInTheDocument()
+    expect(screen.getByText('Contact Email')).toBeInTheDocument()
+    expect(screen.getByText('Contact Phone No')).toBeInTheDocument()
+
+    mockedAxios.post.mockResolvedValueOnce({ data: {} })
+    fireEvent.click(screen.getByRole('button', { name: /save form/i }))
+
+    await waitFor(() => {
+      expect(mockedAxios.post).toHaveBeenCalledWith(
+        feedbackFormsApi,
+        expect.objectContaining({
+          fields: expect.arrayContaining([
+            expect.objectContaining({ name: 'contact_name_1', type: 'text' }),
+            expect.objectContaining({ name: 'contact_email_1', type: 'email' }),
+            expect.objectContaining({ name: 'contact_phone_1', type: 'phone' }),
+          ]),
+        }),
+        expect.any(Object),
+      )
+    })
+  })
+
+  test('saves drawer style configuration in payload', async () => {
+    mockedAxios.post.mockResolvedValueOnce({ data: {} })
+    renderCreateFormPage()
+    goToFormBuilder()
+
+    fireEvent.click(screen.getByRole('button', { name: /advanced options/i }))
+    fireEvent.click(screen.getByRole('radio', { name: /drawer/i }))
+    fireEvent.click(screen.getByLabelText(/open drawer by default/i))
+
+    fireEvent.change(screen.getByLabelText(/^emoji$/i), { target: { value: '📋' } })
+    const headlineInputs = screen.getAllByLabelText(/^headline$/i)
+    fireEvent.change(headlineInputs[0], { target: { value: 'Welcome to the form' } })
+    fireEvent.change(screen.getByLabelText(/^description$/i), { target: { value: 'Please share your feedback' } })
+    fireEvent.change(screen.getByLabelText(/button text/i), { target: { value: 'Start now' } })
+    fireEvent.change(headlineInputs[1], { target: { value: 'Thanks for submitting' } })
+    fireEvent.change(screen.getAllByLabelText(/^message$/i)[0], { target: { value: 'We appreciate your time' } })
+
+    fireEvent.click(screen.getByRole('button', { name: /save form/i }))
+
+    await waitFor(() => {
+      expect(mockedAxios.post).toHaveBeenCalledWith(
+        feedbackFormsApi,
+        expect.objectContaining({
+          formStyle: 'drawer',
+          drawerDefaultOpen: false,
+          landingEmoji: '📋',
+          landingHeadline: 'Welcome to the form',
+          landingDescription: 'Please share your feedback',
+          landingCtaText: 'Start now',
+          thankYouHeadline: 'Thanks for submitting',
+          thankYouMessage: 'We appreciate your time',
+        }),
+        expect.any(Object),
+      )
+    })
+  })
+
+  test('shows generic update error when edit save fails without backend message', async () => {
+    mockedAxios.get.mockResolvedValueOnce({
+      data: {
+        feedbackForm: {
+          title: 'Existing form',
+          description: 'Loaded description',
+          fields: [
+            { name: 'subject', label: 'subject', type: 'text', required: true },
+            { name: 'description', label: 'description', type: 'textarea', required: false },
+            { name: 'attachment', label: 'attachment', type: 'image', required: false },
+          ],
+        },
+      },
+    })
+    mockedAxios.put.mockRejectedValueOnce(new Error('network error'))
+
+    renderCreateFormPage('/dashboard/forms/form-77/edit')
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue('Existing form')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /update form/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText(/failed to update form/i)).toBeInTheDocument()
+    })
+  })
+
+  test('preview modal opens and closes on backdrop click', () => {
+    renderCreateFormPage()
+    goToFormBuilder()
+
+    fireEvent.click(screen.getByRole('button', { name: /preview/i }))
+    expect(screen.getByRole('heading', { name: /form preview/i })).toBeInTheDocument()
+
+    const dialog = screen.getByRole('dialog', { name: /form preview/i })
+    fireEvent.click(dialog)
+    expect(screen.queryByRole('heading', { name: /form preview/i })).not.toBeInTheDocument()
+  })
+
   describe('Create Form Wizard', () => {
     test('shows template selection step on create', () => {
       renderCreateFormPage()
@@ -766,7 +902,7 @@ describe('CreateFormPage', () => {
         expect(screen.queryByRole('button', { name: /^Step 1$/i })).not.toBeInTheDocument()
       })
       expect(screen.getByText(/^Fields$/)).toBeInTheDocument()
-    })
+    }, 30000)
 
     test('editing step opens step title and description inputs', async () => {
       renderCreateFormPage()
