@@ -886,15 +886,16 @@ export default function CreateFormPage() {
         return Number.isFinite(n) ? Math.max(max, n) : max
       }, 0)
       const fieldNumber = maxNumber + 1
+      const baseLabel =
+        type === 'text'
+          ? 'Contact Name'
+          : type === 'email'
+            ? 'Contact Email'
+            : 'Contact Phone No'
       const nextField: FeedbackField = {
         clientId: makeClientId(),
         name: toFieldName(`${prefix}${fieldNumber}`),
-        label:
-          type === 'text'
-            ? 'Contact Name'
-            : type === 'email'
-              ? 'Contact Email'
-              : 'Contact Phone No',
+        label: fieldNumber > 1 ? `${baseLabel} ${fieldNumber}` : baseLabel,
         type,
         required: false,
         placeholder:
