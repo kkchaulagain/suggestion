@@ -370,6 +370,8 @@ describe('CreateFormPage', () => {
     })
 
     fireEvent.click(within(checkboxFieldRow).getByRole('button', { name: /remove field: checkbox group 4/i }))
+    const removeDialog = screen.getByRole('dialog', { name: /remove field/i })
+    fireEvent.click(within(removeDialog).getByRole('button', { name: /^remove$/i }))
     expect(screen.queryByText('Checkbox group 4')).not.toBeInTheDocument()
   })
 
@@ -600,10 +602,10 @@ describe('CreateFormPage', () => {
       await waitFor(() => {
         expect(screen.getByRole('heading', { name: /Add new field/i })).toBeInTheDocument()
       })
-      fireEvent.click(screen.getByRole('button', { name: /Text \(Name\)/i }))
+      fireEvent.click(screen.getByRole('button', { name: /^Name$/i }))
 
       await waitFor(() => {
-        expect(screen.getByText('Text field 4')).toBeInTheDocument()
+        expect(screen.getByText('Contact Name')).toBeInTheDocument()
       })
     })
 
@@ -615,9 +617,9 @@ describe('CreateFormPage', () => {
       await waitFor(() => {
         expect(screen.getByRole('heading', { name: /Add new field/i })).toBeInTheDocument()
       })
-      fireEvent.click(screen.getByRole('button', { name: /Text \(Name\)/i }))
+      fireEvent.click(screen.getByRole('button', { name: /^Name$/i }))
 
-      const nameRow = getFieldRow('Text field 4')
+      const nameRow = getFieldRow('Contact Name')
       expect(within(nameRow).getByLabelText(/allow anonymous/i)).toBeInTheDocument()
       fireEvent.click(screen.getByRole('button', { name: /\+ Add new field/i }))
       await waitFor(() => {
@@ -625,7 +627,7 @@ describe('CreateFormPage', () => {
       })
       fireEvent.click(screen.getByRole('button', { name: /^Email$/i }))
 
-      const emailRow = getFieldRow('Email 5')
+      const emailRow = getFieldRow('Contact Email')
       expect(within(emailRow).getByLabelText(/allow anonymous/i)).toBeInTheDocument()
 
 
@@ -643,9 +645,9 @@ describe('CreateFormPage', () => {
       await waitFor(() => {
         expect(screen.getByRole('heading', { name: /Add new field/i })).toBeInTheDocument()
       })
-      fireEvent.click(screen.getByRole('button', { name: /Text \(Name\)/i }))
+      fireEvent.click(screen.getByRole('button', { name: /^Name$/i }))
 
-      const nameRow = getFieldRow('Text field 4')
+      const nameRow = getFieldRow('Contact Name')
       const requiredCheckbox = within(nameRow).getByLabelText(/required field/i)
       const anonymousCheckbox = within(nameRow).getByLabelText(/allow anonymous/i)
 
@@ -675,9 +677,9 @@ describe('CreateFormPage', () => {
       await waitFor(() => {
         expect(screen.getByRole('heading', { name: /Add new field/i })).toBeInTheDocument()
       })
-      fireEvent.click(screen.getByRole('button', { name: /Text \(Name\)/i }))
+      fireEvent.click(screen.getByRole('button', { name: /^Name$/i }))
 
-      const nameRow = getFieldRow('Text field 4')
+      const nameRow = getFieldRow('Contact Name')
       fireEvent.click(within(nameRow).getByLabelText(/allow anonymous/i))
 
       fireEvent.click(screen.getByRole('button', { name: /save form/i }))
@@ -688,7 +690,7 @@ describe('CreateFormPage', () => {
           expect.objectContaining({
             fields: expect.arrayContaining([
               expect.objectContaining({
-                name: 'text_field_4',
+                name: 'contact_name_1',
                 type: 'text',
                 allowAnonymous: true,
                 required: false,
@@ -711,7 +713,7 @@ describe('CreateFormPage', () => {
       })
       fireEvent.click(screen.getByRole('button', { name: /^Email$/i }))
 
-      const emailRow = getFieldRow('Email 4')
+      const emailRow = getFieldRow('Contact Email')
       fireEvent.click(within(emailRow).getByLabelText(/allow anonymous/i))
 
       fireEvent.click(screen.getByRole('button', { name: /save form/i }))
@@ -722,7 +724,7 @@ describe('CreateFormPage', () => {
           expect.objectContaining({
             fields: expect.arrayContaining([
               expect.objectContaining({
-                name: 'email_4',
+                name: 'contact_email_1',
                 type: 'email',
                 allowAnonymous: true,
                 required: false,
@@ -919,7 +921,7 @@ describe('CreateFormPage', () => {
       fireEvent.click(screen.getByRole('button', { name: /^Email$/i }))
 
       await waitFor(() => {
-        expect(screen.getByText('Email 4')).toBeInTheDocument()
+        expect(screen.getByText('Contact Email')).toBeInTheDocument()
       })
     })
 
@@ -942,7 +944,7 @@ describe('CreateFormPage', () => {
           expect.objectContaining({
             fields: expect.arrayContaining([
               expect.objectContaining({
-                name: 'email_4',
+                name: 'contact_email_1',
                 type: 'email',
                 required: false,
               }),

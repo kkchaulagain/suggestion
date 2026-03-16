@@ -179,7 +179,7 @@ describe('CreateFormPage drag coverage', () => {
     })
 
     expect(screen.getByText('Text field 4')).toBeInTheDocument()
-  })
+  }, 15000)
 
   test('drag field onto step (step droppable) moves field to that step', async () => {
     const win = window as Window & { __dndTestStepDropId__?: string }

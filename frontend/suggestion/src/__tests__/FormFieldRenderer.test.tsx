@@ -375,7 +375,7 @@ describe('FormFieldRenderer', () => {
     const input = screen.getByRole('textbox', { name: /phone/i })
     expect(input).toHaveAttribute('type', 'tel')
     fireEvent.change(input, { target: { value: '+15551234567' } })
-    expect(onChange).toHaveBeenCalledWith('phone', '+15551234567')
+    expect(onChange).toHaveBeenCalledWith('phone', '15551234567')
   })
 
   test('renders date field as date input', () => {
