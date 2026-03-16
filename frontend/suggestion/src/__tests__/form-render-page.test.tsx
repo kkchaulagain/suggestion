@@ -46,6 +46,18 @@ const mockFormWithCheckboxBigTextImage = {
   },
 }
 
+const mockAnonymousEmailForm = {
+  feedbackForm: {
+    _id: 'form-anon-email',
+    title: 'Anonymous Email Form',
+    description: 'Anonymous email is allowed.',
+    fields: [
+      { name: 'email', label: 'Email Address', type: 'email', required: true, allowAnonymous: true, placeholder: 'you@example.com' },
+      { name: 'comment', label: 'Comment', type: 'short_text', required: false, placeholder: 'Your comment' },
+    ],
+  },
+}
+
 function renderFormRenderPage(formId: string) {
   mockedUseParams.mockReturnValue({ formId })
   return render(
@@ -234,6 +246,25 @@ describe('FormRenderPage', () => {
     expect(commentInput).toHaveAttribute('aria-invalid', 'true')
   })
 
+  test('allows anonymous email field to submit without client-side required error', async () => {
+    mockedAxios.get.mockResolvedValueOnce({ data: mockAnonymousEmailForm })
+    mockedAxios.post.mockResolvedValueOnce({ data: { message: 'Submission received' } })
+
+    renderFormRenderPage('form-anon-email')
+
+    await waitFor(() => {
+      expect(screen.getByText(/Anonymous Email Form/i)).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByLabelText(/submit anonymously/i))
+    fireEvent.click(screen.getByRole('button', { name: /Submit/i }))
+
+    await waitFor(() => {
+      expect(mockedAxios.post).toHaveBeenCalled()
+    })
+    expect(screen.queryByText(/Email Address is required/i)).not.toBeInTheDocument()
+  })
+
   test('shows error when formId is missing', async () => {
     mockedUseParams.mockReturnValue({})
     render(
@@ -342,10 +373,11 @@ describe('FormRenderPage', () => {
       expect(screen.getByText(/With Photo/i)).toBeInTheDocument()
     })
 
-    const fileInput = document.querySelector('input[type="file"][accept="image/*"]')
-    if (fileInput) {
-      fireEvent.change(fileInput, { target: { files: [new File(['x'], 'pic.jpg', { type: 'image/jpeg' })] } })
-    }
+    const fileInput = screen.getByLabelText(/Photo/i) as HTMLInputElement
+    fireEvent.change(fileInput, { target: { files: [new File(['x'], 'pic.jpg', { type: 'image/jpeg' })] } })
+    await waitFor(() => {
+      expect(fileInput.files?.[0]?.name).toBe('pic.jpg')
+    })
     fireEvent.click(screen.getByRole('button', { name: /Submit/i }))
 
     await waitFor(() => {

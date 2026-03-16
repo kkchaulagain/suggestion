@@ -379,6 +379,24 @@ describe('Feedback Forms API', () => {
     expect(res.body.feedbackForm.fields[0].allowAnonymous).toBe(true);
   });
 
+  it('creates a feedback form with email field type and allowAnonymous', async () => {
+    const { authHeader } = await createBusinessAuth();
+
+    const res = await request(app)
+      .post('/api/feedback-forms')
+      .set(authHeader)
+      .send({
+        title: 'Anonymous email survey',
+        fields: [
+          { name: 'email', label: 'Email Address', type: 'email', required: true, allowAnonymous: true },
+        ],
+      })
+      .expect(201);
+
+    expect(res.body.feedbackForm.fields[0].type).toBe('email');
+    expect(res.body.feedbackForm.fields[0].allowAnonymous).toBe(true);
+  });
+
   it('defaults allowAnonymous to false for text field when not provided', async () => {
     const { authHeader } = await createBusinessAuth();
 

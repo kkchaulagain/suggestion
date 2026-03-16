@@ -181,6 +181,8 @@ const fieldTypeGroups: FieldTypeGroup[] = [
   },
 ]
 
+const ANONYMOUS_CAPABLE_TYPES: FeedbackFieldType[] = ['text', 'email']
+
 const fieldTypeOptions: Array<{ value: FeedbackFieldType; label: string }> = [
   { value: 'text', label: 'Text' },
   { value: 'textarea', label: 'Paragraph' },
@@ -265,8 +267,8 @@ function createField(type: FeedbackFieldType, count: number, stepId?: string): F
     required: false,
     placeholder: '',
     options,
-    allowAnonymous: type === 'text' ? false : undefined,
     stepId,
+    allowAnonymous: ANONYMOUS_CAPABLE_TYPES.includes(type) ? false : undefined,
   }
 }
 
@@ -488,8 +490,7 @@ function SortableFieldRow({
               />
               Required field
             </label>
-
-            {field.type === 'text' && field.allowAnonymous !== undefined ? (
+            {ANONYMOUS_CAPABLE_TYPES.includes(field.type) && field.allowAnonymous !== undefined ? (
               <label className={`inline-flex cursor-pointer items-center gap-2 text-sm font-medium ${
                 field.required ? 'text-slate-400 dark:text-slate-500' : 'text-slate-700 dark:text-slate-300'
               }`}>
@@ -813,7 +814,7 @@ export default function CreateFormPage() {
         ...field,
         type,
         options,
-        allowAnonymous: type === 'text' ? (field.allowAnonymous ?? false) : undefined,
+        allowAnonymous: ANONYMOUS_CAPABLE_TYPES.includes(type) ? (field.allowAnonymous ?? false) : undefined,
       }
     })
     setError('')
@@ -827,7 +828,7 @@ export default function CreateFormPage() {
     updateField(fieldId, (field) => ({
       ...field,
       required,
-      allowAnonymous: required && field.allowAnonymous ? false : field.allowAnonymous,
+      allowAnonymous: required && ANONYMOUS_CAPABLE_TYPES.includes(field.type) ? false : field.allowAnonymous,
     }))
   }
 
@@ -1128,7 +1129,7 @@ export default function CreateFormPage() {
         options: TYPES_WITH_OPTIONS.includes(field.type)
           ? (field.options ?? []).map((option) => option.trim()).filter(Boolean)
           : undefined,
-        allowAnonymous: field.type === 'text' ? (field.allowAnonymous ?? false) : undefined,
+        allowAnonymous: ANONYMOUS_CAPABLE_TYPES.includes(field.type) ? (field.allowAnonymous ?? false) : undefined,
         stepId: field.stepId || undefined,
         stepOrder: field.stepId ? idx : undefined,
       })),

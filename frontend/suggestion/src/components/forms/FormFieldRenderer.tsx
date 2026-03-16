@@ -104,6 +104,21 @@ export default function FormFieldRenderer({
 
   const t = field.type
 
+  if (t === 'text' && field.allowAnonymous !== undefined) {
+    return (
+      <NameField
+        id={id}
+        label={labelNode}
+        value={(value as string) ?? ''}
+        onChange={(v) => handleChange(v)}
+        placeholder={field.placeholder}
+        disabled={disabled}
+        required={field.required}
+        isAnonymous={field.allowAnonymous}
+        error={error}
+      />
+    )
+  }
   if (t === 'text' || t === 'short_text' || t === 'long_text') {
     return (
       <ShortTextField
@@ -144,6 +159,7 @@ export default function FormFieldRenderer({
         placeholder={field.placeholder}
         disabled={disabled}
         required={field.required}
+        isAnonymous={field.allowAnonymous}
         error={error}
       />
     )

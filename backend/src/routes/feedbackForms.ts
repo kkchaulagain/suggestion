@@ -219,6 +219,8 @@ function buildFormSnapshot(form: { fields: FormFieldDoc[] }): FormSnapshotField[
 
 type SubmissionBody = Record<string, string | string[]>;
 
+const ANONYMOUS_FIELD_TYPES = new Set(['text', 'name', 'email']);
+
 function validateSubmissionPayload(
   form: { fields: FormFieldDoc[] },
   body: unknown
@@ -233,7 +235,7 @@ function validateSubmissionPayload(
     const name = field.name;
     const value = raw[name];
 
-    const isAnonymousAllowed = (field as { allowAnonymous?: boolean }).allowAnonymous === true;
+    const isAnonymousAllowed = ANONYMOUS_FIELD_TYPES.has(field.type) && (field as { allowAnonymous?: boolean }).allowAnonymous === true;
 
     if (field.required && !isAnonymousAllowed) {
       if (value === undefined || value === null) {
