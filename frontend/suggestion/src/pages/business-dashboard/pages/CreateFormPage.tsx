@@ -64,6 +64,12 @@ import { Button, Card, ErrorMessage, Input, Modal, Select, Switch, Textarea } fr
 import { EmptyState } from '../../../components/layout'
 import { type FormKind, type FormTemplate, FORM_TEMPLATES, FORM_TEMPLATE_CATEGORIES } from './formTemplates'
 
+const CONTACT_IDENTITY_FIELD_TYPES = new Set(['text', 'email', 'phone'])
+
+function shouldHideTypeLabel(field: { type: string }) {
+  return isContactIdentityField(field) && CONTACT_IDENTITY_FIELD_TYPES.has(field.type)
+}
+
 export type { FormKind, FormTemplate }
 
 type FeedbackFieldType =
@@ -439,7 +445,7 @@ function SortableFieldRow({
         <div className="min-w-0 flex-1">
           <span className="text-sm font-medium text-slate-900 dark:text-slate-100">{field.label}</span>
           {field.required ? <span className="ml-1 text-rose-600 dark:text-rose-400" aria-hidden>*</span> : null}
-          {!isContactIdentityField(field) ? (
+          {!shouldHideTypeLabel(field) ? (
             <span className="ml-2 text-xs text-slate-500 dark:text-slate-400">{getTypeLabel(field.type)}</span>
           ) : null}
         </div>
