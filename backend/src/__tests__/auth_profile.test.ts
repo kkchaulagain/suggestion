@@ -157,6 +157,54 @@ describe('Auth Profile Endpoints', () => {
     });
   });
 
+  describe('PUT /api/auth/business', () => {
+    it('returns 200 and updates business profile for business user', async () => {
+      const res = await withAuth(request(app).put('/api/auth/business'), businessToken)
+        .send({
+          type: 'commercial',
+          businessname: 'Updated Business',
+          location: 'New Location',
+          pancardNumber: '99887766',
+          description: 'Updated Description',
+        })
+        .expect(200);
+
+      expect(res.body.success).toBe(true);
+      expect(res.body.message).toBe('Business profile updated successfully');
+      expect(res.body.data.businessname).toBe('Updated Business');
+      expect(res.body.data.location).toBe('New Location');
+    });
+
+    it('returns 400 if no valid fields are provided', async () => {
+      const res = await withAuth(request(app).put('/api/auth/business'), businessToken)
+        .send({})
+        .expect(400);
+
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toBe('No valid fields to update');
+    });
+
+    it('returns 400 for invalid business type', async () => {
+      const res = await withAuth(request(app).put('/api/auth/business'), businessToken)
+        .send({ type: 'invalid-type' })
+        .expect(400);
+
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toBe('Invalid business type');
+    });
+
+    it('returns 404 if business profile does not exist', async () => {
+      await Business.deleteMany({ owner: businessUserId });
+
+      const res = await withAuth(request(app).put('/api/auth/business'), businessToken)
+        .send({ businessname: 'Any Name' })
+        .expect(404);
+
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toBe('Business profile not found');
+    });
+  });
+
   describe('PUT /api/auth/me', () => {
     it('returns 200 and updates user name', async () => {
       const res = await withAuth(request(app).put('/api/auth/me'), userToken)
