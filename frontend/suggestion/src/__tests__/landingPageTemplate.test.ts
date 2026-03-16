@@ -19,7 +19,7 @@ describe('landingPageTemplate', () => {
     })
 
     it('each section has type and configKey', () => {
-      LANDING_PAGE_SECTIONS.forEach((section, i) => {
+      LANDING_PAGE_SECTIONS.forEach((section) => {
         expect(section).toHaveProperty('type')
         expect(section).toHaveProperty('configKey')
         expect(validConfigKeys).toContain(section.configKey)
