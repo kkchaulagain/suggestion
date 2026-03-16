@@ -397,4 +397,92 @@ describe('PublicPageView', () => {
     })
     expect(screen.getByText('A nice photo.')).toBeInTheDocument()
   })
+
+  test('renders image block without caption', async () => {
+    mockedAxios.get.mockResolvedValueOnce({
+      data: {
+        page: {
+          _id: 'page-1',
+          slug: 'landing',
+          title: 'Landing',
+          status: 'published',
+          blocks: [
+            {
+              type: 'image',
+              payload: {
+                imageUrl: 'https://example.com/pic.jpg',
+                alt: 'Decorative',
+              },
+            },
+          ],
+        },
+      },
+    })
+
+    renderPublicPageView()
+
+    await waitFor(() => {
+      expect(screen.getByAltText('Decorative')).toBeInTheDocument()
+    })
+    const figure = screen.getByRole('figure')
+    expect(figure.querySelector('figcaption')).toBeNull()
+  })
+
+  test('does not render feature_card block when title and description are empty', async () => {
+    mockedAxios.get.mockResolvedValueOnce({
+      data: {
+        page: {
+          _id: 'page-1',
+          slug: 'landing',
+          title: 'Landing',
+          status: 'published',
+          blocks: [
+            { type: 'heading', payload: { level: 1, text: 'Section' } },
+            {
+              type: 'feature_card',
+              payload: { title: '', description: '', icon: 'file-text' },
+            },
+          ],
+        },
+      },
+    })
+
+    renderPublicPageView()
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Section', level: 1 })).toBeInTheDocument()
+    })
+    expect(screen.queryByText('Title')).not.toBeInTheDocument()
+    expect(screen.queryByText('Description')).not.toBeInTheDocument()
+  })
+
+  test('renders feature_card block with custom icon', async () => {
+    mockedAxios.get.mockResolvedValueOnce({
+      data: {
+        page: {
+          _id: 'page-1',
+          slug: 'landing',
+          title: 'Landing',
+          status: 'published',
+          blocks: [
+            {
+              type: 'feature_card',
+              payload: {
+                title: 'Share feature',
+                description: 'Share with others',
+                icon: 'share2',
+              },
+            },
+          ],
+        },
+      },
+    })
+
+    renderPublicPageView()
+
+    await waitFor(() => {
+      expect(screen.getByText('Share feature')).toBeInTheDocument()
+      expect(screen.getByText('Share with others')).toBeInTheDocument()
+    })
+  })
 })

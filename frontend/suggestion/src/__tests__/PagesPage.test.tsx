@@ -244,4 +244,33 @@ describe('PagesPage', () => {
       expect(screen.getByText('Failed to delete page.')).toBeInTheDocument()
     })
   })
+
+  test('Delete modal Cancel closes modal without deleting', async () => {
+    mockedAxios.get.mockResolvedValueOnce({
+      data: {
+        pages: [
+          { _id: 'p1', slug: 'landing', title: 'Landing', status: 'draft', blocks: [] },
+        ],
+      },
+    })
+
+    renderPagesPage()
+
+    await waitFor(() => {
+      expect(screen.getByText('Landing')).toBeInTheDocument()
+    })
+
+    await userEvent.click(screen.getByRole('button', { name: /Delete Landing/i }))
+    expect(screen.getByRole('heading', { name: /Delete page\?/i })).toBeInTheDocument()
+    expect(screen.getByText(/"Landing" will be permanently deleted/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Cancel/i })).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: /Cancel/i }))
+
+    await waitFor(() => {
+      expect(screen.queryByRole('heading', { name: /Delete page\?/i })).not.toBeInTheDocument()
+    })
+    expect(screen.getByText('Landing')).toBeInTheDocument()
+    expect(mockedAxios.delete).not.toHaveBeenCalled()
+  })
 })
