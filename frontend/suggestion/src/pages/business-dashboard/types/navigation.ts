@@ -1,5 +1,5 @@
 import type { LucideIcon } from 'lucide-react'
-import { FileText, Inbox, Building2, UserCircle, Users } from 'lucide-react'
+import { FileText, Inbox, Building2, UserCircle, Users, Layout } from 'lucide-react'
 
 export interface SidebarItem {
   label: string
@@ -15,6 +15,7 @@ export const DASHBOARD_ROLES = ['admin', 'business', 'governmentservices', 'user
 /** Sidebar items for business dashboard. Each item is shown only to roles in its requiredRoles (or all dashboard roles if omitted). */
 export const sidebarItems: SidebarItem[] = [
   { label: 'Forms', path: '/dashboard/forms', icon: FileText, requiredRoles: [...DASHBOARD_ROLES] },
+  { label: 'Pages', path: '/dashboard/pages', icon: Layout, requiredRoles: [...DASHBOARD_ROLES] },
   { label: 'Submissions', path: '/dashboard/submissions', icon: Inbox, requiredRoles: [...DASHBOARD_ROLES] },
   { label: 'Businesses', path: '/dashboard/businesses', icon: Building2, requiredRoles: ['admin'] },
   { label: 'Users', path: '/dashboard/users', icon: Users, requiredRoles: ['admin'] },

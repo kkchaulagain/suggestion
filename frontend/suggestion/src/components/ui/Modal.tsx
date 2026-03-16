@@ -1,11 +1,12 @@
 import type { ReactNode } from 'react'
 
-export type ModalSize = 'sm' | 'md' | 'lg'
+export type ModalSize = 'sm' | 'md' | 'lg' | 'xl'
 
 const sizeClasses: Record<ModalSize, string> = {
   sm: 'max-w-sm',
   md: 'max-w-md',
   lg: 'max-w-lg',
+  xl: 'max-w-2xl',
 }
 
 export interface ModalProps {
@@ -14,6 +15,8 @@ export interface ModalProps {
   title: string
   children: ReactNode
   size?: ModalSize
+  /** Optional z-index for the overlay (e.g. 60 when opening a dialog from inside another modal so it appears on top). */
+  overlayZIndex?: number
 }
 
 export default function Modal({
@@ -22,12 +25,14 @@ export default function Modal({
   title,
   children,
   size = 'md',
+  overlayZIndex,
 }: ModalProps) {
   if (!isOpen) return null
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 dark:bg-black/50"
+      className="fixed inset-0 flex items-center justify-center bg-slate-900/40 p-4 dark:bg-black/50"
+      style={{ zIndex: overlayZIndex ?? 50 }}
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-title"

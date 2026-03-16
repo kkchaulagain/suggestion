@@ -98,6 +98,32 @@ describe('BusinessDashboardLayout and page', () => {
     expect(screen.getByText(/Submissions content/i)).toBeInTheDocument()
   })
 
+  test('renders Edit Page as title when at /dashboard/pages/:id/edit', async () => {
+    localStorage.setItem('auth_token', 'fake-token')
+    mockedAxios.get.mockResolvedValueOnce({
+      data: { success: true, data: { _id: '1', name: 'Test', email: 't@t.com', role: 'business' } },
+    })
+
+    render(
+      <TestRouter initialEntries={['/dashboard/pages/page-123/edit']}>
+        <ThemeProvider>
+          <AuthProvider>
+            <Routes>
+              <Route path="/dashboard" element={<BusinessDashboardLayout />}>
+                <Route path="pages/:pageId/edit" element={<div>Edit page content</div>} />
+              </Route>
+            </Routes>
+          </AuthProvider>
+        </ThemeProvider>
+      </TestRouter>,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /Edit Page/i })).toBeInTheDocument()
+    })
+    expect(screen.getByText(/Edit page content/i)).toBeInTheDocument()
+  })
+
   interface FormsListResponse { data: { feedbackForms: Array<{ _id?: string; title?: string; fields?: Array<{ name: string; label: string; type: string }> }> } }
   test('renders FormsPage static sections', async () => {
     localStorage.setItem('auth_token', 'fake-token')

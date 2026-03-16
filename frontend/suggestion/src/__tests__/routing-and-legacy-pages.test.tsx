@@ -33,6 +33,11 @@ jest.mock('../auth/Signup', () => ({
   default: () => <div>Signup Page</div>,
 }))
 
+jest.mock('../pages/landing/LandingPage', () => ({
+  __esModule: true,
+  default: () => <div>Landing Page</div>,
+}))
+
 jest.mock('../auth/login', () => ({
   __esModule: true,
   default: () => <div>Login Page</div>,
@@ -79,6 +84,21 @@ jest.mock('../pages/business-dashboard/pages/BusinessesPage', () => ({
 jest.mock('../pages/business-dashboard/pages/UsersPage', () => ({
   __esModule: true,
   default: () => <div>Users Page</div>,
+}))
+
+jest.mock('../pages/business-dashboard/pages/PagesPage', () => ({
+  __esModule: true,
+  default: () => <div>Pages Listing Page</div>,
+}))
+
+jest.mock('../pages/business-dashboard/pages/CreatePagePage', () => ({
+  __esModule: true,
+  default: () => <div>Create Page / Edit Page</div>,
+}))
+
+jest.mock('../pages/cms-public/PublicPageView', () => ({
+  __esModule: true,
+  default: () => <div>Public CMS Page</div>,
 }))
 
 const App = require('../App').default
@@ -144,11 +164,11 @@ describe('App routing', () => {
     mockAxiosInterceptors()
   })
 
-  test('renders signup on root route', () => {
+  test('renders landing page on root route', () => {
     window.history.pushState({}, '', '/')
     render(<App />)
 
-    expect(screen.getByText('Signup Page')).toBeInTheDocument()
+    expect(screen.getByText('Landing Page')).toBeInTheDocument()
   })
 
   test('renders login route directly', () => {
@@ -280,6 +300,41 @@ describe('App routing', () => {
       expect(screen.getByText('Business Layout')).toBeInTheDocument()
       expect(screen.getByText('Forms Listing Page')).toBeInTheDocument()
     })
+  })
+
+  test('renders Pages listing at /dashboard/pages when logged in', async () => {
+    localStorage.setItem('auth_token', 'fake-token')
+    mockedAxios.get.mockResolvedValue({
+      data: { success: true, data: { _id: '1', name: 'User', email: 'u@u.com', role: 'business' } },
+    })
+    window.history.pushState({}, '', '/dashboard/pages')
+    render(<App />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Business Layout')).toBeInTheDocument()
+      expect(screen.getByText('Pages Listing Page')).toBeInTheDocument()
+    })
+  })
+
+  test('renders Create Page at /dashboard/pages/create when logged in', async () => {
+    localStorage.setItem('auth_token', 'fake-token')
+    mockedAxios.get.mockResolvedValue({
+      data: { success: true, data: { _id: '1', name: 'User', email: 'u@u.com', role: 'business' } },
+    })
+    window.history.pushState({}, '', '/dashboard/pages/create')
+    render(<App />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Business Layout')).toBeInTheDocument()
+      expect(screen.getByText('Create Page / Edit Page')).toBeInTheDocument()
+    })
+  })
+
+  test('renders public CMS page at /c/:id/:slug', () => {
+    window.history.pushState({}, '', '/c/507f1f77bcf86cd799439011/contact-us')
+    render(<App />)
+
+    expect(screen.getByText('Public CMS Page')).toBeInTheDocument()
   })
 })
 

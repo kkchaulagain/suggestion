@@ -32,7 +32,7 @@ describe('Users CRUD API', () => {
       isActive: true,
     });
     adminId = admin._id.toString();
-    adminToken = jwt.sign({ userId: admin._id }, JWT_SECRET);
+    adminToken = jwt.sign({ userId: String(admin._id) }, JWT_SECRET);
 
     const regular = await User.create({
       name: 'Regular User',

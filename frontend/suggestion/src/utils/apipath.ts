@@ -9,6 +9,7 @@ export const changePasswordApi = `${base}/api/auth/me/change-password`;
 export const businessmeapi = `${base}/api/auth/business`;
 export const feedbackFormsApi = `${base}/api/feedback-forms`;
 export const feedbackFormSubmissionsApi = `${base}/api/feedback-forms/submissions`;
+export const pagesApi = `${base}/api/pages`;
 export const uploadApi = `${base}/api/upload`;
 export const businessesListApi = `${base}/api/v1/business`;
 export const usersApi = `${base}/api/users`;
