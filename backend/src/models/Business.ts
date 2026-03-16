@@ -30,6 +30,14 @@ const businessSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
+    onboardingCompleted: {
+        type: Boolean,
+        default: false,
+    },
+    onboardingCompletedAt: {
+        type: Date,
+        required: false,
+    },
 },{timestamps: true});
 export const Business = mongoose.model('Business', businessSchema);
 

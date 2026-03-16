@@ -1,6 +1,6 @@
 import axios from 'axios'
 import { useEffect, useState } from 'react'
-import { Check, KeyRound, LogOut, Pencil, X } from 'lucide-react'
+import { Check, KeyRound, LogOut, Pencil, Rocket, X } from 'lucide-react'
 import { useAuth } from '../../../context/AuthContext'
 import { Avatar, Button, Input, Modal } from '../../../components/ui'
 import { changePasswordApi, meapi } from '../../../utils/apipath'
@@ -210,6 +210,16 @@ export default function ProfilePage() {
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="min-h-0 rounded bg-emerald-100 px-2.5 py-1.5 text-xs font-medium text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
+          onClick={() => navigate('/dashboard/onboarding')}
+        >
+          <Rocket className="h-3.5 w-3.5" />
+          Start onboarding
+        </Button>
         <Button
           type="button"
           variant="ghost"

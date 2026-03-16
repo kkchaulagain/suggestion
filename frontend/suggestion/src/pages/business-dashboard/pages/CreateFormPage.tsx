@@ -31,32 +31,38 @@ import {
   CalendarClock,
   ChevronDown,
   ChevronUp,
+  ClipboardList,
   Clock,
   Eye,
   GripVertical,
   Hash,
+  Heart,
   Image,
   Link as LinkIcon,
   ListChecks,
   Mail,
   MessageSquare,
+  Newspaper,
+  PartyPopper,
   Pencil,
   Phone,
   Plus,
   Send,
   Settings2,
+  ShoppingCart,
   Smile,
   Star,
   Text,
   Trash2,
   User,
   Users,
+  UtensilsCrossed,
 } from 'lucide-react'
 import { useAuth } from '../../../context/AuthContext'
 import { feedbackFormsApi } from '../../../utils/apipath'
 import { Button, Card, ErrorMessage, Input, Modal, Select, Switch, Textarea } from '../../../components/ui'
 import { EmptyState } from '../../../components/layout'
-import { type FormKind, type FormTemplate, type TemplateCategory, FORM_TEMPLATES } from './formTemplates'
+import { type FormKind, type FormTemplate, FORM_TEMPLATES, FORM_TEMPLATE_CATEGORIES } from './formTemplates'
 
 export type { FormKind, FormTemplate }
 
@@ -318,6 +324,12 @@ const TEMPLATE_ICONS: Record<FormTemplate['iconName'], React.ComponentType<{ cla
   Users,
   BarChart2,
   ListChecks,
+  ClipboardList,
+  UtensilsCrossed,
+  Heart,
+  PartyPopper,
+  ShoppingCart,
+  Newspaper,
 }
 
 function getFieldClientId(field: FeedbackField, index: number): string {
@@ -1198,13 +1210,9 @@ export default function CreateFormPage() {
           <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
             Start with a pre-built form or configure your own from scratch.
           </p>
-          {(['simple', 'advanced'] as TemplateCategory[]).map((category) => {
+          {FORM_TEMPLATE_CATEGORIES.map(({ value: category, label: categoryLabel, description: categoryDescription }) => {
             const templates = FORM_TEMPLATES.filter((t) => t.category === category)
             if (templates.length === 0) return null
-            const categoryLabel = category === 'simple' ? 'Simple' : 'Advanced'
-            const categoryDescription = category === 'simple'
-              ? 'Quick polls, short surveys, and contact forms.'
-              : 'Multi-step forms, detailed feedback, and registrations.'
             return (
               <div key={category} className="mt-6">
                 <h3 className="text-sm font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">

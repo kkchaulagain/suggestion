@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { BarChart3, Copy, Eye, Pencil, Plus, QrCode, Trash2, X } from 'lucide-react'
 import { useAuth } from '../../../context/AuthContext'
@@ -213,10 +213,18 @@ export default function FormsPage() {
           ))}
         </div>
       ) : savedForms.length === 0 ? (
-        <EmptyState
-          type="empty"
-          message="You don't have any forms yet. Tap Add Form above to create one and start collecting responses."
-        />
+        <div className="mt-4 flex flex-col items-center gap-3 py-8">
+          <EmptyState
+            type="empty"
+            message="You don't have any forms yet. Tap Add Form above to create one and start collecting responses."
+          />
+          <Link
+            to="/dashboard/onboarding"
+            className="text-sm text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 underline"
+          >
+            Or run the setup wizard to create starter forms and pages
+          </Link>
+        </div>
       ) : filteredForms.length === 0 ? (
         <EmptyState type="empty" message="No forms match the selected filter." />
       ) : null}

@@ -3,13 +3,17 @@
  * Same idea as form templates: choose a template or start from scratch.
  */
 
-export type PageTemplateCategory = 'marketing' | 'simple' | 'feedback'
+export type PageTemplateCategory = 'marketing' | 'business' | 'portfolio' | 'event' | 'simple'
 
 export type PageTemplateIconName =
   | 'Layout'
   | 'Megaphone'
   | 'FileText'
   | 'Sparkles'
+  | 'Briefcase'
+  | 'Image'
+  | 'Calendar'
+  | 'Package'
 
 /** Block without clientId — clientId is added when applying the template. */
 export interface PageTemplateBlock {
@@ -41,14 +45,17 @@ export interface PageTemplate {
 }
 
 const MARKETING: PageTemplateCategory = 'marketing'
+const BUSINESS: PageTemplateCategory = 'business'
+const PORTFOLIO: PageTemplateCategory = 'portfolio'
+const EVENT: PageTemplateCategory = 'event'
 const SIMPLE: PageTemplateCategory = 'simple'
-const FEEDBACK: PageTemplateCategory = 'feedback'
 
 export const PAGE_TEMPLATES: PageTemplate[] = [
+  // --- Marketing ---
   {
     id: 'landing-page',
     label: 'Landing page',
-    description: 'Full app homepage: hero, stats, how it works, use cases, testimonials, pricing, FAQ, and CTA.',
+    description: 'Full marketing page: hero, stats, features, testimonials, pricing, FAQ, and CTA.',
     iconName: 'Layout',
     category: MARKETING,
     defaultTitle: 'Landing',
@@ -56,27 +63,27 @@ export const PAGE_TEMPLATES: PageTemplate[] = [
       {
         type: 'hero',
         payload: {
-          badge: 'No code required',
-          headline: 'Create forms. Share a link or QR code. Get responses in one place.',
+          badge: 'Welcome',
+          headline: 'Build something people love.',
           subheadline:
-            'Whether you run a business, host events, or just need to collect feedback — build forms in minutes, share via link or printable QR code, and view all responses in your dashboard.',
+            'Tell your story, showcase your product or service, and connect with your audience. Customize every section to match your brand.',
           variant: 'split',
           style: 'default',
           mediaType: 'icon',
           imageUrl: '',
           imageAlt: '',
           icon: 'sparkles',
-          primaryCta: { label: 'Get started free', href: '/signup' },
-          secondaryCta: { label: 'Log in', href: '/login' },
+          primaryCta: { label: 'Get started', href: '/signup' },
+          secondaryCta: { label: 'Learn more', href: '/#features' },
         },
       },
       {
         type: 'stats',
         payload: {
           stats: [
-            { value: '10k+', label: 'Forms created' },
-            { value: '1M+', label: 'Responses collected' },
-            { value: '99.9%', label: 'Uptime' },
+            { value: '10k+', label: 'Happy customers' },
+            { value: '99%', label: 'Satisfaction' },
+            { value: '24/7', label: 'Support' },
           ],
           showDividers: true,
         },
@@ -92,51 +99,51 @@ export const PAGE_TEMPLATES: PageTemplate[] = [
           heading: 'How it works',
           subheading: '',
           items: [
-            { icon: 'file-text', title: 'Create your form', description: 'Add questions, choose field types, and set your branding. No coding needed.' },
-            { icon: 'share2', title: 'Share link or QR code', description: 'Every form gets a unique link. Generate a QR code to print or display.' },
-            { icon: 'bar-chart3', title: 'Collect responses', description: 'View submissions in your dashboard. Filter, export to CSV, and use the data.' },
+            { icon: 'file-text', title: 'Step one', description: 'Describe your first step. Add your own copy and icon.' },
+            { icon: 'share2', title: 'Step two', description: 'Describe your second step. Customize to fit your process.' },
+            { icon: 'bar-chart3', title: 'Step three', description: 'Describe your third step. Keep it clear and concise.' },
           ],
         },
       },
       {
         type: 'heading',
-        payload: { level: 2, text: 'Perfect for', align: 'center' },
+        payload: { level: 2, text: 'Why choose us', align: 'center' },
       },
       {
         type: 'feature_grid',
         payload: {
           columns: 3,
-          heading: 'Perfect for',
+          heading: 'Why choose us',
           subheading: '',
           items: [
-            { icon: 'store', title: 'Businesses', description: 'Customer feedback, NPS, support surveys, and satisfaction forms.' },
-            { icon: 'users', title: 'Events & outreach', description: 'Registrations, sign-ups, and on-the-spot feedback via QR at booths.' },
-            { icon: 'qr-code', title: 'QR-first workflows', description: 'Print QR codes for posters or tables so people can open and submit in one tap.' },
+            { icon: 'store', title: 'Reliable', description: 'Edit this to highlight your strengths and differentiators.' },
+            { icon: 'users', title: 'Support', description: 'Mention your support options and commitment to customers.' },
+            { icon: 'qr-code', title: 'Flexible', description: 'Add a third benefit or value proposition here.' },
           ],
         },
       },
       {
         type: 'testimonials',
         payload: {
-          heading: 'Loved by individuals and teams',
-          subheading: 'See how people use forms and QR codes in the real world.',
+          heading: 'What people say',
+          subheading: 'Add testimonials from customers or clients.',
           layout: 'grid',
           testimonials: [
-            { quote: 'We needed a simple way to get feedback at our pop-up. We put the QR code on the counter and got hundreds of responses in a week.', name: 'Priya M.', role: 'Small business owner' },
-            { quote: 'The QR code feature is a game-changer. We use it at events and in our store — no more typing long URLs.', name: 'Alex Chen', role: 'Operations Lead' },
-            { quote: 'Clean dashboard, easy to share forms with our team. We use it for surveys and feedback. Exactly what we needed.', name: 'Sam Williams', role: 'Customer Success, TechCo' },
+            { quote: 'Replace with a real testimonial. Short and genuine works best.', name: 'Customer name', role: 'Title or company' },
+            { quote: 'Another testimonial. Focus on outcomes and satisfaction.', name: 'Customer name', role: 'Title or company' },
+            { quote: 'A third quote. Keep tone consistent with your brand.', name: 'Customer name', role: 'Title or company' },
           ],
         },
       },
       {
         type: 'pricing',
         payload: {
-          heading: 'Simple pricing',
-          subheading: 'Start free. Upgrade when you need more forms or submissions.',
+          heading: 'Pricing',
+          subheading: 'Choose the plan that fits your needs.',
           plans: [
-            { name: 'Free', price: '$0', period: 'forever', features: ['Up to 3 forms', '100 submissions/month', 'Shareable link & QR code', 'Basic analytics'], cta: { label: 'Get started', href: '/signup' }, highlighted: false },
-            { name: 'Pro', price: '$29', period: 'per month', features: ['Unlimited forms', 'Unlimited submissions', 'Custom branding', 'Advanced analytics', 'Priority support'], cta: { label: 'Start free trial', href: '/signup' }, highlighted: true },
-            { name: 'Enterprise', price: 'Custom', period: '', features: ['Everything in Pro', 'SSO & API access', 'Dedicated success manager', 'SLA guarantee'], cta: { label: 'Contact sales', href: '/login' }, highlighted: false },
+            { name: 'Starter', price: '$0', period: 'forever', features: ['Basic features', 'Community support', 'Up to 3 projects'], cta: { label: 'Get started', href: '/signup' }, highlighted: false },
+            { name: 'Pro', price: '$29', period: 'per month', features: ['All Starter features', 'Priority support', 'Unlimited projects', 'Advanced analytics'], cta: { label: 'Start trial', href: '/signup' }, highlighted: true },
+            { name: 'Enterprise', price: 'Custom', period: '', features: ['All Pro features', 'Dedicated support', 'Custom integrations', 'SLA'], cta: { label: 'Contact us', href: '/contact' }, highlighted: false },
           ],
         },
       },
@@ -144,121 +151,252 @@ export const PAGE_TEMPLATES: PageTemplate[] = [
         type: 'faq',
         payload: {
           heading: 'Frequently asked questions',
-          subheading: 'Quick answers about forms, sharing, and QR codes.',
+          subheading: 'Common questions and answers.',
           items: [
-            { question: 'How do I create my first form?', answer: 'Sign up, then go to Forms in your dashboard. Click "Create form" and add your questions. You can use text, multiple choice, ratings, and more. When you\'re done, share the link or download the QR code.' },
-            { question: 'Can I share my form with a QR code?', answer: 'Yes. Every form has a unique link and a downloadable QR code. Print it or display it on a screen so people can open the form with their phone camera — no typing required.' },
-            { question: 'Who can use this — only businesses?', answer: 'Anyone. Individuals, teams, and businesses use it for feedback, surveys, event sign-ups, and more. No coding or design skills needed.' },
-            { question: 'Where are submissions stored?', answer: 'Submissions are stored securely in your dashboard. You can view, filter, and export them as CSV. We keep your data private and do not share it with third parties.' },
-            { question: 'Can I use my own branding?', answer: 'Yes. On Pro and Enterprise plans you can set your logo, colors, and domain so forms match your brand.' },
+            { question: 'How do I get started?', answer: 'Replace with your answer. Keep it helpful and concise.' },
+            { question: 'What payment methods do you accept?', answer: 'List your accepted payment methods and billing cycle.' },
+            { question: 'Can I change my plan later?', answer: 'Explain upgrade, downgrade, or cancellation policy.' },
+            { question: 'Do you offer support?', answer: 'Describe your support channels and response times.' },
+            { question: 'Is there a free trial?', answer: 'Clarify trial length and what is included.' },
           ],
         },
       },
       {
         type: 'cta',
         payload: {
-          text: 'Create your first form in minutes. Share the link or QR code and start collecting responses.',
-          ctaLabel: 'Sign up free',
+          text: 'Ready to get started? Customize this message and link to your signup or contact page.',
+          ctaLabel: 'Get started',
           ctaHref: '/signup',
-          secondaryCta: { label: 'Contact sales', href: '/login' },
+          secondaryCta: { label: 'Contact us', href: '/contact' },
           variant: 'banner',
         },
       },
     ],
   },
   {
-    id: 'marketing-landing',
-    label: 'Form-builder marketing',
-    description: 'Full landing page for a form/survey platform: hero, how it works, use cases, and CTA.',
-    iconName: 'Megaphone',
+    id: 'product-showcase',
+    label: 'Product showcase',
+    description: 'Hero with image, features, stats, testimonials, pricing, and CTA.',
+    iconName: 'Package',
     category: MARKETING,
-    defaultTitle: 'Form & feedback platform',
+    defaultTitle: 'Our Product',
     blocks: [
       {
         type: 'hero',
         payload: {
-          headline: 'Create forms. Share a link or QR code. Get responses in one place.',
-          subheadline:
-            'Whether you run a business, host events, or just need to collect feedback — build forms in minutes, share via link or printable QR code, and view all responses in your dashboard.',
+          headline: 'Introducing our product',
+          subheadline: 'A short tagline or value proposition. Add an image in the editor to make it stand out.',
           variant: 'split',
           style: 'default',
-          mediaType: 'icon',
+          mediaType: 'image',
           imageUrl: '',
-          imageAlt: '',
+          imageAlt: 'Product',
           icon: 'sparkles',
-          primaryCta: { label: 'Get started free', href: '/signup' },
-          secondaryCta: { label: 'Log in', href: '/login' },
+          primaryCta: { label: 'Try it free', href: '/signup' },
+          secondaryCta: { label: 'Watch demo', href: '/demo' },
         },
       },
       {
         type: 'heading',
-        payload: { level: 2, text: 'How it works' },
+        payload: { level: 2, text: 'Features', align: 'center' },
       },
       {
         type: 'feature_grid',
         payload: {
           columns: 3,
+          heading: 'Features',
+          subheading: '',
           items: [
-            { icon: 'file-text', title: 'Create your form', description: 'Add questions, choose field types, and set your branding. No coding needed.' },
-            { icon: 'share2', title: 'Share link or QR code', description: 'Every form gets a unique link. Generate a QR code to print or display.' },
-            { icon: 'bar-chart3', title: 'Collect responses', description: 'View submissions in your dashboard. Filter, export to CSV, and use the data.' },
+            { icon: 'file-text', title: 'Feature one', description: 'Describe your key feature and benefit.' },
+            { icon: 'share2', title: 'Feature two', description: 'Another feature. Keep descriptions scannable.' },
+            { icon: 'bar-chart3', title: 'Feature three', description: 'Third feature. Use consistent tone.' },
           ],
         },
       },
       {
-        type: 'heading',
-        payload: { level: 2, text: 'Perfect for' },
+        type: 'stats',
+        payload: {
+          stats: [
+            { value: '50k+', label: 'Users' },
+            { value: '4.9', label: 'Rating' },
+            { value: '99.9%', label: 'Uptime' },
+          ],
+          showDividers: true,
+        },
       },
       {
-        type: 'feature_grid',
+        type: 'testimonials',
         payload: {
-          columns: 3,
-          items: [
-            { icon: 'store', title: 'Businesses', description: 'Customer feedback, NPS, support surveys, and satisfaction forms.' },
-            { icon: 'users', title: 'Events & outreach', description: 'Registrations, sign-ups, and on-the-spot feedback via QR at booths.' },
-            { icon: 'qr-code', title: 'QR-first workflows', description: 'Print QR codes for posters or tables so people can open and submit in one tap.' },
+          heading: 'Loved by teams',
+          subheading: 'What our customers say.',
+          layout: 'grid',
+          testimonials: [
+            { quote: 'Add a product testimonial here.', name: 'Customer', role: 'Company' },
+            { quote: 'Another quote about results or experience.', name: 'Customer', role: 'Company' },
+          ],
+        },
+      },
+      {
+        type: 'pricing',
+        payload: {
+          heading: 'Simple pricing',
+          subheading: 'Pick the plan that works for you.',
+          plans: [
+            { name: 'Free', price: '$0', period: 'forever', features: ['Core features'], cta: { label: 'Get started', href: '/signup' }, highlighted: false },
+            { name: 'Pro', price: '$29', period: '/month', features: ['All features', 'Priority support'], cta: { label: 'Start trial', href: '/signup' }, highlighted: true },
           ],
         },
       },
       {
         type: 'cta',
         payload: {
-          text: 'Create your first form in minutes. Share the link or QR code and start collecting responses.',
-          ctaLabel: 'Sign up free',
+          text: 'Start your free trial today. No credit card required.',
+          ctaLabel: 'Get started',
           ctaHref: '/signup',
+          variant: 'banner',
+        },
+      },
+    ],
+  },
+  // --- Business ---
+  {
+    id: 'about-us',
+    label: 'About us',
+    description: 'Hero, intro, team or values grid, testimonials, and CTA.',
+    iconName: 'Briefcase',
+    category: BUSINESS,
+    defaultTitle: 'About us',
+    blocks: [
+      {
+        type: 'hero',
+        payload: {
+          headline: 'About us',
+          subheadline: 'Share your mission, vision, and what makes you different. Customize this section to tell your story.',
+          variant: 'centered',
+          style: 'default',
+          mediaType: 'none',
+          imageUrl: '',
+          imageAlt: '',
+          icon: 'sparkles',
+          primaryCta: { label: 'Get in touch', href: '/contact' },
+          secondaryCta: { label: '', href: '' },
+        },
+      },
+      {
+        type: 'paragraph',
+        payload: {
+          text: 'Add a longer introduction here. Who you are, what you do, and why it matters. You can edit or remove this block.',
+          align: 'center',
+        },
+      },
+      {
+        type: 'heading',
+        payload: { level: 2, text: 'Our values', align: 'center' },
+      },
+      {
+        type: 'feature_grid',
+        payload: {
+          columns: 3,
+          heading: 'Our values',
+          subheading: '',
+          items: [
+            { icon: 'store', title: 'Value one', description: 'Describe your first value or principle.' },
+            { icon: 'users', title: 'Value two', description: 'Describe your second value.' },
+            { icon: 'qr-code', title: 'Value three', description: 'Describe your third value.' },
+          ],
+        },
+      },
+      {
+        type: 'testimonials',
+        payload: {
+          heading: 'What people say about us',
+          subheading: '',
+          layout: 'grid',
+          testimonials: [
+            { quote: 'Add a testimonial from a client or partner.', name: 'Name', role: 'Title' },
+          ],
+        },
+      },
+      {
+        type: 'cta',
+        payload: {
+          text: 'Want to work with us? Get in touch.',
+          ctaLabel: 'Contact us',
+          ctaHref: '/contact',
+          variant: 'simple',
         },
       },
     ],
   },
   {
-    id: 'simple-landing',
-    label: 'Simple landing',
-    description: 'Minimal one-screen page: hero and a single call-to-action.',
-    iconName: 'Layout',
-    category: SIMPLE,
-    defaultTitle: 'Welcome',
+    id: 'services',
+    label: 'Services',
+    description: 'Hero, services grid, pricing, testimonials, and CTA.',
+    iconName: 'Briefcase',
+    category: BUSINESS,
+    defaultTitle: 'Our Services',
     blocks: [
       {
         type: 'hero',
         payload: {
-          headline: 'Welcome',
-          subheadline: 'Add your message and a call-to-action below. Clean and simple.',
+          headline: 'Our services',
+          subheadline: 'Outline what you offer. Edit the sections below to list your services, pricing, and social proof.',
           variant: 'centered',
-          style: 'minimal',
+          style: 'default',
           mediaType: 'none',
           imageUrl: '',
           imageAlt: '',
           icon: 'sparkles',
-          primaryCta: { label: 'Get started', href: '/signup' },
-          secondaryCta: { label: 'Learn more', href: '/#features' },
+          primaryCta: { label: 'Request a quote', href: '/contact' },
+          secondaryCta: { label: '', href: '' },
+        },
+      },
+      {
+        type: 'heading',
+        payload: { level: 2, text: 'What we offer', align: 'center' },
+      },
+      {
+        type: 'feature_grid',
+        payload: {
+          columns: 3,
+          heading: 'What we offer',
+          subheading: '',
+          items: [
+            { icon: 'file-text', title: 'Service one', description: 'Describe your first service or offering.' },
+            { icon: 'share2', title: 'Service two', description: 'Describe your second service.' },
+            { icon: 'bar-chart3', title: 'Service three', description: 'Describe your third service.' },
+          ],
+        },
+      },
+      {
+        type: 'pricing',
+        payload: {
+          heading: 'Pricing',
+          subheading: 'Optional pricing or packages.',
+          plans: [
+            { name: 'Basic', price: 'From $X', period: '', features: ['Feature A', 'Feature B'], cta: { label: 'Get started', href: '/contact' }, highlighted: false },
+            { name: 'Premium', price: 'From $Y', period: '', features: ['Everything in Basic', 'Feature C', 'Feature D'], cta: { label: 'Contact us', href: '/contact' }, highlighted: true },
+          ],
+        },
+      },
+      {
+        type: 'testimonials',
+        payload: {
+          heading: 'Client feedback',
+          subheading: '',
+          layout: 'grid',
+          testimonials: [
+            { quote: 'Add a client testimonial here.', name: 'Client name', role: 'Company' },
+          ],
         },
       },
       {
         type: 'cta',
         payload: {
-          text: 'Ready to get started?',
-          ctaLabel: 'Sign up',
-          ctaHref: '/signup',
+          text: 'Ready to get started? We’d love to hear from you.',
+          ctaLabel: 'Contact us',
+          ctaHref: '/contact',
+          variant: 'banner',
         },
       },
     ],
@@ -268,8 +406,8 @@ export const PAGE_TEMPLATES: PageTemplate[] = [
     label: 'Feedback / form focus',
     description: 'Page built around a single form: hero, short intro, embedded form, and CTA.',
     iconName: 'FileText',
-    category: FEEDBACK,
-    defaultTitle: 'We\'d love your feedback',
+    category: BUSINESS,
+    defaultTitle: "We'd love your feedback",
     blocks: [
       {
         type: 'hero',
@@ -307,6 +445,246 @@ export const PAGE_TEMPLATES: PageTemplate[] = [
     ],
   },
   {
+    id: 'contact-us',
+    label: 'Contact us',
+    description: 'Contact page: hero, intro, embedded form, and CTA.',
+    iconName: 'FileText',
+    category: BUSINESS,
+    defaultTitle: 'Contact us',
+    blocks: [
+      {
+        type: 'hero',
+        payload: {
+          headline: 'Contact us',
+          subheadline: "Have a question or feedback? Send us a message and we'll get back to you as soon as we can.",
+          variant: 'centered',
+          style: 'default',
+          mediaType: 'none',
+          imageUrl: '',
+          imageAlt: '',
+          icon: 'sparkles',
+          primaryCta: { label: 'Go to form', href: '#form' },
+          secondaryCta: { label: '', href: '' },
+        },
+      },
+      {
+        type: 'paragraph',
+        payload: {
+          text: "Fill out the form below and we'll be in touch. For urgent requests, please note it in your message.",
+          align: 'center',
+        },
+      },
+      {
+        type: 'form',
+        payload: { formId: '' },
+      },
+      {
+        type: 'cta',
+        payload: {
+          text: 'Prefer email? Add your contact details or help center link here.',
+          ctaLabel: 'Back to home',
+          ctaHref: '/',
+          variant: 'simple',
+        },
+      },
+    ],
+  },
+  // --- Portfolio ---
+  {
+    id: 'portfolio',
+    label: 'Portfolio',
+    description: 'Showcase work: hero, image, project grid, and CTA.',
+    iconName: 'Image',
+    category: PORTFOLIO,
+    defaultTitle: 'Our Work',
+    blocks: [
+      {
+        type: 'hero',
+        payload: {
+          headline: 'Our work',
+          subheadline: 'A selection of projects and case studies. Replace the blocks below with your own work.',
+          variant: 'centered',
+          style: 'default',
+          mediaType: 'none',
+          imageUrl: '',
+          imageAlt: '',
+          icon: 'sparkles',
+          primaryCta: { label: 'View projects', href: '#projects' },
+          secondaryCta: { label: '', href: '' },
+        },
+      },
+      {
+        type: 'heading',
+        payload: { level: 2, text: 'Featured projects', align: 'center' },
+      },
+      {
+        type: 'feature_grid',
+        payload: {
+          columns: 3,
+          heading: 'Featured projects',
+          subheading: '',
+          items: [
+            { icon: 'file-text', title: 'Project one', description: 'Short description of the project, client, and outcome.' },
+            { icon: 'share2', title: 'Project two', description: 'Another project. Add links or details in the editor.' },
+            { icon: 'bar-chart3', title: 'Project three', description: 'Third project. Keep descriptions concise.' },
+          ],
+        },
+      },
+      {
+        type: 'cta',
+        payload: {
+          text: 'Have a project in mind? Let’s talk.',
+          ctaLabel: 'Get in touch',
+          ctaHref: '/contact',
+          variant: 'simple',
+        },
+      },
+    ],
+  },
+  // --- Event ---
+  {
+    id: 'event-page',
+    label: 'Event page',
+    description: 'Event info: hero, stats (date/location), schedule grid, FAQ, and CTA.',
+    iconName: 'Calendar',
+    category: EVENT,
+    defaultTitle: 'Event Name',
+    blocks: [
+      {
+        type: 'hero',
+        payload: {
+          headline: 'Event name',
+          subheadline: 'Short description of the event. Add date, venue, and a call to register or learn more.',
+          variant: 'centered',
+          style: 'default',
+          mediaType: 'none',
+          imageUrl: '',
+          imageAlt: '',
+          icon: 'sparkles',
+          primaryCta: { label: 'Register', href: '/register' },
+          secondaryCta: { label: 'Add to calendar', href: '#' },
+        },
+      },
+      {
+        type: 'stats',
+        payload: {
+          stats: [
+            { value: 'TBD', label: 'Date' },
+            { value: 'Venue', label: 'Location' },
+            { value: '9:00 AM', label: 'Time' },
+          ],
+          showDividers: true,
+        },
+      },
+      {
+        type: 'heading',
+        payload: { level: 2, text: 'Schedule', align: 'center' },
+      },
+      {
+        type: 'feature_grid',
+        payload: {
+          columns: 2,
+          heading: 'Schedule',
+          subheading: '',
+          items: [
+            { icon: 'file-text', title: 'Session one', description: 'Time and title. Add speaker or topic details.' },
+            { icon: 'users', title: 'Session two', description: 'Another session. Edit in the page builder.' },
+            { icon: 'file-text', title: 'Session three', description: 'Third session or break.' },
+          ],
+        },
+      },
+      {
+        type: 'faq',
+        payload: {
+          heading: 'Event FAQ',
+          subheading: '',
+          items: [
+            { question: 'Where is the event?', answer: 'Add venue address and directions.' },
+            { question: 'What should I bring?', answer: 'List any requirements or recommendations.' },
+            { question: 'How do I register?', answer: 'Link to registration or explain the process.' },
+          ],
+        },
+      },
+      {
+        type: 'cta',
+        payload: {
+          text: 'Ready to join? Register now or contact us with questions.',
+          ctaLabel: 'Register',
+          ctaHref: '/register',
+          variant: 'banner',
+        },
+      },
+    ],
+  },
+  // --- Simple ---
+  {
+    id: 'simple-landing',
+    label: 'Simple landing',
+    description: 'Minimal one-screen page: hero and a single call-to-action.',
+    iconName: 'Layout',
+    category: SIMPLE,
+    defaultTitle: 'Welcome',
+    blocks: [
+      {
+        type: 'hero',
+        payload: {
+          headline: 'Welcome',
+          subheadline: 'Add your message and a call-to-action below. Clean and simple.',
+          variant: 'centered',
+          style: 'minimal',
+          mediaType: 'none',
+          imageUrl: '',
+          imageAlt: '',
+          icon: 'sparkles',
+          primaryCta: { label: 'Get started', href: '/signup' },
+          secondaryCta: { label: 'Learn more', href: '/#features' },
+        },
+      },
+      {
+        type: 'cta',
+        payload: {
+          text: 'Ready to get started?',
+          ctaLabel: 'Sign up',
+          ctaHref: '/signup',
+        },
+      },
+    ],
+  },
+  {
+    id: 'coming-soon',
+    label: 'Coming soon',
+    description: 'Minimal page: hero with message and CTA for email signup or notification.',
+    iconName: 'Sparkles',
+    category: SIMPLE,
+    defaultTitle: 'Coming soon',
+    blocks: [
+      {
+        type: 'hero',
+        payload: {
+          headline: 'Coming soon',
+          subheadline: "We're working on something new. Leave your email to be the first to know.",
+          variant: 'centered',
+          style: 'minimal',
+          mediaType: 'none',
+          imageUrl: '',
+          imageAlt: '',
+          icon: 'sparkles',
+          primaryCta: { label: 'Notify me', href: '/signup' },
+          secondaryCta: { label: '', href: '' },
+        },
+      },
+      {
+        type: 'cta',
+        payload: {
+          text: 'Follow us for updates or contact us with questions.',
+          ctaLabel: 'Get in touch',
+          ctaHref: '/contact',
+          variant: 'simple',
+        },
+      },
+    ],
+  },
+  {
     id: 'blank',
     label: 'Blank page',
     description: 'Start with no blocks. Add sections manually.',
@@ -319,6 +697,8 @@ export const PAGE_TEMPLATES: PageTemplate[] = [
 
 export const PAGE_TEMPLATE_CATEGORIES: { value: PageTemplateCategory; label: string; description: string }[] = [
   { value: 'marketing', label: 'Marketing', description: 'Full landing pages for products or platforms.' },
-  { value: 'simple', label: 'Simple', description: 'Minimal pages with hero and CTA.' },
-  { value: 'feedback', label: 'Feedback', description: 'Pages centered on a form or survey.' },
+  { value: 'business', label: 'Business', description: 'About us, contact, services, and form-focused pages.' },
+  { value: 'portfolio', label: 'Portfolio', description: 'Showcase work, projects, and case studies.' },
+  { value: 'event', label: 'Event', description: 'Event pages with schedule, FAQ, and registration.' },
+  { value: 'simple', label: 'Simple', description: 'Minimal pages, coming soon, or blank.' },
 ]

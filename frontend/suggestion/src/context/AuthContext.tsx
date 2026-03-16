@@ -10,7 +10,7 @@ import {
 } from 'react'
 import axios from 'axios'
 import type { AxiosHeaderValue, AxiosRequestHeaders } from 'axios'
-import { loginapi, logoutApi, meapi, refreshTokenApi } from '../utils/apipath'
+import { loginapi, logoutApi, meapi, refreshTokenApi, businessmeapi } from '../utils/apipath'
 
 const AUTH_STORAGE_KEY = 'auth_token'
 
@@ -25,6 +25,16 @@ export interface User {
   avatarId?: string | null
 }
 
+export interface Business {
+  _id: string
+  owner: string
+  businessname: string
+  type: string
+  description: string
+  onboardingCompleted?: boolean
+  onboardingCompletedAt?: string
+}
+
 interface LoginCredentials {
   email: string
   password: string
@@ -32,6 +42,7 @@ interface LoginCredentials {
 
 interface AuthState {
   user: User | null
+  business: Business | null
   token: string | null
   isAuthenticated: boolean
   isLoading: boolean
@@ -46,6 +57,8 @@ interface AuthContextValue extends AuthState {
   getAuthHeaders: () => { Authorization?: string }
   /** Returns true if the current user has one of the given roles */
   hasRole: (...roles: UserRole[]) => boolean
+  /** Refetch business (e.g. after onboarding completes). Only relevant when user has business role. */
+  refetchBusiness: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -133,8 +146,11 @@ function upsertAuthorizationHeader(headers: unknown, token: string, overwrite = 
   return created as AxiosRequestHeaders
 }
 
+const BUSINESS_ROLES: UserRole[] = ['business', 'governmentservices']
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
+  const [business, setBusiness] = useState<Business | null>(null)
   const [token, setTokenState] = useState<string | null>(readStoredToken)
   const [isLoading, setIsLoading] = useState(() => !!readStoredToken())
   const [error, setErrorState] = useState<string | null>(null)
@@ -162,9 +178,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // local cleanup still proceeds when the server call fails
     }
     setUser(null)
+    setBusiness(null)
     setToken(null)
     setErrorState(null)
   }, [setToken])
+
+  const fetchBusiness = useCallback(async (authToken: string): Promise<Business | null> => {
+    try {
+      const response = await axios.get(businessmeapi, {
+        withCredentials: true,
+        headers: { Authorization: `Bearer ${authToken}` },
+      })
+      if (response.data?.success && response.data?.data) {
+        return response.data.data as Business
+      }
+      return null
+    } catch {
+      return null
+    }
+  }, [])
+
+  const refetchBusiness = useCallback(async () => {
+    const authToken = tokenRef.current
+    if (!authToken || !BUSINESS_ROLES.includes(user?.role ?? 'user')) return
+    const b = await fetchBusiness(authToken)
+    setBusiness(b)
+  }, [user?.role, fetchBusiness])
 
   const fetchUser = useCallback(
     async (authToken: string): Promise<User | null> => {
@@ -279,17 +318,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         withCredentials: true,
         headers: { Authorization: `Bearer ${stored}` },
       })
-      .then((res) => {
+      .then(async (res) => {
         if (cancelled) return
         if (res.data?.success && res.data?.data) {
           const data = res.data.data
+          const role = data.role
           setUser({
             _id: data._id,
             name: data.name,
             email: data.email,
-            role: data.role,
+            role,
             isActive: data.isActive !== false,
           })
+          if (role && BUSINESS_ROLES.includes(role)) {
+            const b = await fetchBusiness(stored)
+            if (!cancelled) setBusiness(b)
+          } else {
+            setBusiness(null)
+          }
         } else {
           setToken(null)
         }
@@ -308,7 +354,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true
     }
-  }, [setToken])
+  }, [setToken, fetchBusiness])
 
   const login = useCallback(
     async (
@@ -348,6 +394,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const fetched = await fetchUser(authToken)
           setUser(fetched ?? null)
         }
+        if (normalizedRole && BUSINESS_ROLES.includes(normalizedRole)) {
+          const b = await fetchBusiness(authToken)
+          setBusiness(b)
+        } else {
+          setBusiness(null)
+        }
 
         return { success: true, role: normalizedRole ?? 'user' }
       } catch (err: unknown) {
@@ -361,7 +413,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { success: false, error: message }
       }
     },
-    [fetchUser, setToken],
+    [fetchUser, setToken, fetchBusiness],
   )
 
   const setError = useCallback((err: string | null) => {
@@ -383,6 +435,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
+      business,
       token,
       isAuthenticated: !!token && !!user,
       isLoading,
@@ -392,8 +445,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setError,
       getAuthHeaders,
       hasRole,
+      refetchBusiness,
     }),
-    [user, token, isLoading, error, login, logout, setError, getAuthHeaders, hasRole],
+    [user, business, token, isLoading, error, login, logout, setError, getAuthHeaders, hasRole, refetchBusiness],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

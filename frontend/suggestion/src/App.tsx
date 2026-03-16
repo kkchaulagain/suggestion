@@ -17,6 +17,7 @@ import CreateFormPage from './pages/business-dashboard/pages/CreateFormPage'
 import PagesPage from './pages/business-dashboard/pages/PagesPage'
 import CreatePagePage from './pages/business-dashboard/pages/CreatePagePage'
 import SubmissionsPage from './pages/business-dashboard/pages/SubmissionsPage'
+import BusinessOnboardingPage from './pages/business-dashboard/pages/BusinessOnboardingPage'
 import PublicPageView from './pages/cms-public/PublicPageView'
 import BusinessesPage from './pages/business-dashboard/pages/BusinessesPage'
 import FormRenderLayout from './pages/feedback-form-render/FormRenderLayout'
@@ -70,6 +71,7 @@ function App() {
             }
           >
             <Route index element={<DashboardIndex />} />
+            <Route path="onboarding" element={<BusinessOnboardingPage />} />
             <Route path="forms" element={<FormsPage />} />
             <Route path="forms/create" element={<CreateFormPage />} />
             <Route path="forms/:formId/edit" element={<CreateFormPage />} />

@@ -4,11 +4,15 @@ import axios from 'axios'
 import type { LucideIcon } from 'lucide-react'
 import {
   ArrowLeft,
+  Briefcase,
+  Calendar,
   ChevronDown,
   ChevronUp,
   FileText,
+  Image as ImageIcon,
   Layout,
   Megaphone,
+  Package,
   Pencil,
   Plus,
   Sparkles,
@@ -50,6 +54,10 @@ const PAGE_TEMPLATE_ICONS: Record<PageTemplateIconName, LucideIcon> = {
   Megaphone,
   FileText,
   Sparkles,
+  Briefcase,
+  Image: ImageIcon,
+  Calendar,
+  Package,
 }
 
 export default function CreatePagePage() {

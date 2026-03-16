@@ -2,10 +2,25 @@ import { FORM_TEMPLATES, type FormKind, type TemplateIconName } from '../pages/b
 
 const VALID_KINDS: FormKind[] = ['form', 'poll', 'survey']
 const VALID_ICONS: TemplateIconName[] = [
-  'MessageSquare', 'Calendar', 'Bug', 'Briefcase', 'Star', 'Mail',
-  'CalendarClock', 'Users', 'BarChart2', 'ListChecks',
+  'MessageSquare',
+  'Calendar',
+  'Bug',
+  'Briefcase',
+  'Star',
+  'Mail',
+  'CalendarClock',
+  'Users',
+  'BarChart2',
+  'ListChecks',
+  'ClipboardList',
+  'UtensilsCrossed',
+  'Heart',
+  'PartyPopper',
+  'ShoppingCart',
+  'Newspaper',
 ]
 const VALID_FIELD_TYPES = ['text', 'textarea', 'email', 'phone', 'number', 'date', 'time', 'url', 'checkbox', 'radio', 'dropdown', 'scale', 'rating', 'image'] as const
+const VALID_CATEGORIES = ['feedback', 'registration', 'poll', 'survey', 'support']
 
 describe('formTemplates', () => {
   test('FORM_TEMPLATES is a non-empty array', () => {
@@ -14,7 +29,6 @@ describe('formTemplates', () => {
   })
 
   test('every template has required FormTemplate shape', () => {
-    const VALID_CATEGORIES = ['simple', 'advanced']
     FORM_TEMPLATES.forEach((t) => {
       expect(t).toMatchObject({
         id: expect.any(String),
@@ -72,5 +86,11 @@ describe('formTemplates', () => {
     expect(ids.has('customer-feedback')).toBe(true)
     expect(ids.has('bug-report')).toBe(true)
     expect(ids.has('event-registration')).toBe(true)
+  })
+
+  test('templates with kind poll have category poll', () => {
+    FORM_TEMPLATES.filter((t) => t.kind === 'poll').forEach((t) => {
+      expect(t.category).toBe('poll')
+    })
   })
 })
