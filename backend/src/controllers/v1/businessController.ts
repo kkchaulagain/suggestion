@@ -2,12 +2,6 @@ import type { Request, Response } from 'express';
 const Business = require('../../models/Business');
 import type { BusinessDocument, BusinessListItem, GetBusinessesResponse, GetBusinessResponse, } from '../../types/business';
 import type { ApiResponse } from '../../types/api';
-const bcrypt = require('bcrypt');
-const User = require('../../models/User');
-
-interface AuthenticatedRequest extends Request {
-  id?: string;
-}
 
 function toListItem(doc: BusinessDocument): BusinessListItem {
   const item: BusinessListItem = {
@@ -108,24 +102,4 @@ async function updateBusiness(req: Request, res: Response): Promise<void> {
     business: toListItem(business),
   });
 }
-export async function verifyPasswordController(req: AuthenticatedRequest, res: Response): Promise<Response> {
-  try {
-    const userId = req.id;
-    const { password } = req.body;
-    if (!userId || !password) {
-      return res.status(400).json({ success: false, message: 'Missing user or password' });
-    }
-    const user = await User.findById(userId).select('+password');
-    if (!user) {
-      return res.status(404).json({ success: false, message: 'User not found' });
-    }
-    const match = await bcrypt.compare(password, user.password);
-    if (!match) {
-      return res.status(401).json({ success: false, message: 'Incorrect password' });
-    }
-    return res.status(200).json({ success: true, message: 'Password verified' });
-  } catch (_err) {
-    return res.status(500).json({ success: false, message: 'Server error' });
-  }
-}
-module.exports = { getBusiness,findBusinessById,deleteBusiness,updateBusiness,verifyPasswordController };
+module.exports = { getBusiness,findBusinessById,deleteBusiness,updateBusiness };
