@@ -37,6 +37,8 @@ export default function PhoneField({
           name: id,
           required,
           disabled,
+          'aria-invalid': !!error,
+          'aria-describedby': error ? `${id}-error` : undefined,
         }}
         placeholder={placeholder || '+1 (555) 000-0000'}
         containerClass="w-full"
