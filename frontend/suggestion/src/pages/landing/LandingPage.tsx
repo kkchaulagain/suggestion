@@ -9,16 +9,17 @@ import {
   CTASection,
   SectionWrapper,
 } from '../../components/landing'
-import {
-  marketingHero,
-  marketingStats,
-  marketingHowItWorks,
-  marketingUseCases,
-  marketingTestimonials,
-  marketingPricing,
-  marketingFaq,
-  marketingCtaFinal,
-} from './landingMarketingTemplate'
+import type { MarketingTemplateConfig } from './landingMarketingTemplate'
+import { marketingTemplateConfig } from './landingMarketingTemplate'
+import { LANDING_PAGE_SECTIONS } from './landingPageTemplate'
+
+type HeroContent = MarketingTemplateConfig['hero']
+type StatsContent = MarketingTemplateConfig['stats']
+type FeatureGridContent = MarketingTemplateConfig['howItWorks']
+type TestimonialsContent = MarketingTemplateConfig['testimonials']
+type PricingContent = MarketingTemplateConfig['pricing']
+type FaqContent = MarketingTemplateConfig['faq']
+type CtaFinalContent = MarketingTemplateConfig['ctaFinal']
 
 const heroMediaPlaceholder = (
   <div className="aspect-video flex items-center justify-center rounded-lg bg-stone-200/50 p-8 text-stone-500 dark:bg-stone-600/30 dark:text-stone-400">
@@ -29,75 +30,74 @@ const heroMediaPlaceholder = (
 export default function LandingPage() {
   return (
     <PublicLayout mainClassName="pb-0">
-      <SectionWrapper className="pt-12 sm:pt-20">
-        <HeroSection
-          headline={marketingHero.headline}
-          subheadline={marketingHero.subheadline}
-          badge={marketingHero.badge}
-          variant="split"
-          style="default"
-          primaryCta={marketingHero.primaryCta}
-          secondaryCta={marketingHero.secondaryCta}
-          media={heroMediaPlaceholder}
-        />
-      </SectionWrapper>
+      {LANDING_PAGE_SECTIONS.map((section, index) => {
+        const content = marketingTemplateConfig[section.configKey]
+        if (!content) return null
 
-      <SectionWrapper background="muted">
-        <StatsBar stats={marketingStats} />
-      </SectionWrapper>
-
-      <SectionWrapper id="how-it-works">
-        <FeatureGrid
-          items={marketingHowItWorks}
-          columns={3}
-          heading="How it works"
-          subheading="Create your form, share the link or QR code, and collect responses in your dashboard."
-        />
-      </SectionWrapper>
-
-      <SectionWrapper background="muted" id="use-cases">
-        <FeatureGrid
-          items={marketingUseCases}
-          columns={3}
-          heading="Perfect for"
-          subheading="From small feedback forms to events and in-person QR campaigns."
-        />
-      </SectionWrapper>
-
-      <SectionWrapper id="testimonials">
-        <TestimonialSection
-          testimonials={marketingTestimonials}
-          heading="Loved by individuals and teams"
-          subheading="See how people use forms and QR codes in the real world."
-          layout="grid"
-        />
-      </SectionWrapper>
-
-      <SectionWrapper background="muted" id="pricing">
-        <PricingSection
-          plans={marketingPricing}
-          heading="Simple pricing"
-          subheading="Start free. Upgrade when you need more forms or submissions."
-        />
-      </SectionWrapper>
-
-      <SectionWrapper id="faq">
-        <FAQSection
-          items={marketingFaq}
-          heading="Frequently asked questions"
-          subheading="Quick answers about forms, sharing, and QR codes."
-        />
-      </SectionWrapper>
-
-      <SectionWrapper className="pb-24 sm:pb-32" background="muted">
-        <CTASection
-          text={marketingCtaFinal.text}
-          ctaLabel={marketingCtaFinal.ctaLabel}
-          ctaHref={marketingCtaFinal.ctaHref}
-          secondaryCta={marketingCtaFinal.secondaryCta}
-          variant="banner"
-        />
-      </SectionWrapper>
+        return (
+          <SectionWrapper
+            key={section.id ?? section.type + index}
+            id={section.id}
+            className={section.className}
+            background={section.background}
+          >
+            {section.type === 'hero' && (
+              <HeroSection
+                headline={(content as HeroContent).headline}
+                subheadline={(content as HeroContent).subheadline}
+                badge={(content as HeroContent).badge}
+                variant="split"
+                style="default"
+                primaryCta={(content as HeroContent).primaryCta}
+                secondaryCta={(content as HeroContent).secondaryCta}
+                media={heroMediaPlaceholder}
+              />
+            )}
+            {section.type === 'stats' && (
+              <StatsBar stats={content as StatsContent} />
+            )}
+            {section.type === 'feature_grid' && (
+              <FeatureGrid
+                items={content as FeatureGridContent}
+                columns={section.columns ?? 3}
+                heading={section.heading ?? ''}
+                subheading={section.subheading ?? ''}
+              />
+            )}
+            {section.type === 'testimonials' && (
+              <TestimonialSection
+                testimonials={content as TestimonialsContent}
+                heading={section.heading ?? ''}
+                subheading={section.subheading ?? ''}
+                layout={section.layout ?? 'grid'}
+              />
+            )}
+            {section.type === 'pricing' && (
+              <PricingSection
+                plans={content as PricingContent}
+                heading={section.heading ?? ''}
+                subheading={section.subheading ?? ''}
+              />
+            )}
+            {section.type === 'faq' && (
+              <FAQSection
+                items={content as FaqContent}
+                heading={section.heading ?? ''}
+                subheading={section.subheading ?? ''}
+              />
+            )}
+            {section.type === 'cta' && (
+              <CTASection
+                text={(content as CtaFinalContent).text}
+                ctaLabel={(content as CtaFinalContent).ctaLabel}
+                ctaHref={(content as CtaFinalContent).ctaHref}
+                secondaryCta={(content as CtaFinalContent).secondaryCta}
+                variant={section.variant}
+              />
+            )}
+          </SectionWrapper>
+        )
+      })}
     </PublicLayout>
   )
 }

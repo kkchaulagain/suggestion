@@ -24,7 +24,7 @@ export default function SectionWrapper({
   className = '',
   background = 'default',
 }: SectionWrapperProps) {
-  const base = 'mx-auto w-full max-w-5xl px-4 py-16 sm:px-6 sm:py-20'
+  const base = 'mx-auto w-full max-w-6xl px-4 py-16 sm:px-6 sm:py-20'
   const bg = backgroundClasses[background]
   const classes = [base, bg, className].filter(Boolean).join(' ')
 

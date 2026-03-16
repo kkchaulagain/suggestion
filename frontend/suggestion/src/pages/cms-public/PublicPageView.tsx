@@ -1,100 +1,30 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import axios from 'axios'
-import { FileText, Share2, BarChart3, Sparkles } from 'lucide-react'
 import { pagesApi } from '../../utils/apipath'
 import { imageDisplayUrl } from '../../utils/placeholderImage'
 import { EmptyState, PublicLayout } from '../../components/layout'
-import { HeroSection, FeatureCard, CTASection } from '../../components/landing'
+import { HeroSection, FeatureCard, FeatureGrid, CTASection, StatsBar, TestimonialSection, PricingSection, FAQSection } from '../../components/landing'
 import EmbeddedFormBlock from '../feedback-form-render/EmbeddedFormBlock'
+import type { ApiBlock } from '../business-dashboard/pages/pageBlockTypes'
+import { FEATURE_ICON_MAP, HERO_ICON_MAP } from '../business-dashboard/pages/pageBlockRenderers'
+import type {
+  CTAPayload,
+  FAQPayload,
+  FeatureCardPayload,
+  FeatureGridPayload,
+  FormBlockPayload,
+  HeadingPayload,
+  HeroPayload,
+  ImagePayload,
+  ParagraphPayload,
+  PricingPayload,
+  StatsPayload,
+  TestimonialsPayload,
+} from '../business-dashboard/pages/pageBlockTypes'
 
-interface HeadingPayload {
-  level: 1 | 2 | 3
-  text: string
-}
-
-interface ParagraphPayload {
-  text: string
-}
-
-interface FormBlockPayload {
-  formId: string
-}
-
-interface HeroCta {
-  label: string
-  href: string
-}
-
-interface HeroPayload {
-  headline: string
-  subheadline: string
-  variant?: 'centered' | 'split' | 'splitReversed' | 'centeredWithMediaBelow'
-  style?: 'default' | 'minimal'
-  mediaType?: 'none' | 'image' | 'icon'
-  imageUrl?: string
-  imageAlt?: string
-  icon?: string
-  primaryCta?: HeroCta
-  secondaryCta?: HeroCta
-}
-
-interface FeatureCardPayload {
-  title: string
-  description: string
-  icon: string
-}
-
-interface CTAPayload {
-  text: string
-  ctaLabel: string
-  ctaHref: string
-}
-
-interface ImagePayload {
-  imageUrl: string
-  alt?: string
-  caption?: string
-}
-
-interface FeatureGridItem {
-  icon: string
-  title: string
-  description: string
-}
-
-interface FeatureGridPayload {
-  columns?: 2 | 3
-  items?: FeatureGridItem[]
-}
-
-type BlockPayload =
-  | HeadingPayload
-  | ParagraphPayload
-  | FormBlockPayload
-  | HeroPayload
-  | FeatureCardPayload
-  | FeatureGridPayload
-  | ImagePayload
-  | CTAPayload
-
-interface Block {
-  type: 'heading' | 'paragraph' | 'form' | 'hero' | 'feature_card' | 'feature_grid' | 'image' | 'cta'
-  payload: BlockPayload
-}
-
-const FEATURE_ICON_MAP: Record<string, ReactNode> = {
-  'file-text': <FileText className="h-6 w-6" />,
-  share2: <Share2 className="h-6 w-6" />,
-  'bar-chart3': <BarChart3 className="h-6 w-6" />,
-}
-
-const HERO_ICON_MAP: Record<string, ReactNode> = {
-  sparkles: <Sparkles className="h-16 w-16" />,
-  'file-text': <FileText className="h-16 w-16" />,
-  share2: <Share2 className="h-16 w-16" />,
-  'bar-chart3': <BarChart3 className="h-16 w-16" />,
-}
+/** Block as returned from API (no clientId). */
+type Block = ApiBlock
 
 type RenderNode =
   | { kind: 'single'; index: number; block: Block }
@@ -127,26 +57,28 @@ function renderBlock(block: Block, index: number): React.ReactNode {
     const text = payload?.text?.trim()
     if (!text) return null
     const Tag = payload?.level === 1 ? 'h1' : payload?.level === 3 ? 'h3' : 'h2'
+    const sizeClass =
+      Tag === 'h1'
+        ? 'text-2xl font-bold sm:text-3xl'
+        : Tag === 'h2'
+          ? 'text-xl font-semibold sm:text-2xl'
+          : 'text-lg font-semibold sm:text-xl'
+    const align = payload?.align ?? 'center'
+    const alignClass = align === 'right' ? 'text-right' : align === 'left' ? 'text-left' : 'text-center'
     return (
-      <Tag
-        key={index}
-        className={
-          Tag === 'h1'
-            ? 'text-2xl font-bold sm:text-3xl'
-            : Tag === 'h2'
-              ? 'text-xl font-semibold sm:text-2xl'
-              : 'text-lg font-semibold sm:text-xl'
-        }
-      >
+      <Tag key={index} className={`${sizeClass} ${alignClass}`}>
         {text}
       </Tag>
     )
   }
   if (block.type === 'paragraph') {
-    const text = (block.payload as ParagraphPayload)?.text?.trim()
+    const payload = block.payload as ParagraphPayload
+    const text = payload?.text?.trim()
     if (!text) return null
+    const align = payload?.align ?? 'left'
+    const alignClass = align === 'right' ? 'text-right' : align === 'center' ? 'text-center' : 'text-left'
     return (
-      <p key={index} className="leading-relaxed text-stone-700 dark:text-stone-300">
+      <p key={index} className={`leading-relaxed text-stone-700 dark:text-stone-300 ${alignClass}`}>
         {text}
       </p>
     )
@@ -189,6 +121,7 @@ function renderBlock(block: Block, index: number): React.ReactNode {
         <HeroSection
           headline={headline || ''}
           subheadline={subheadline || ''}
+          badge={p?.badge?.trim() || undefined}
           media={media}
           variant={effectiveVariant}
           style={effectiveStyle}
@@ -211,24 +144,21 @@ function renderBlock(block: Block, index: number): React.ReactNode {
   if (block.type === 'feature_grid') {
     const p = block.payload as FeatureGridPayload
     const items = p?.items ?? []
-    const columns = p?.columns ?? 3
+    const columns = (p?.columns ?? 3) as 2 | 3
     if (items.length === 0) return null
-    const gridClass = columns === 2
-      ? 'grid gap-10 sm:grid-cols-2'
-      : 'grid gap-10 sm:grid-cols-2 lg:grid-cols-3'
+    const gridItems = items.map((item) => ({
+      icon: FEATURE_ICON_MAP[(item?.icon ?? '').toLowerCase()] ?? FEATURE_ICON_MAP['file-text'],
+      title: item?.title ?? '',
+      description: item?.description ?? '',
+    }))
     return (
-      <div key={index} className={gridClass}>
-        {items.map((item, i) => {
-          const icon = FEATURE_ICON_MAP[(item?.icon ?? '').toLowerCase()] ?? FEATURE_ICON_MAP['file-text']
-          return (
-            <FeatureCard
-              key={i}
-              icon={icon}
-              title={item?.title ?? ''}
-              description={item?.description ?? ''}
-            />
-          )
-        })}
+      <div key={index}>
+        <FeatureGrid
+          items={gridItems}
+          columns={columns}
+          heading={p?.heading?.trim() || undefined}
+          subheading={p?.subheading?.trim() || undefined}
+        />
       </div>
     )
   }
@@ -237,6 +167,7 @@ function renderBlock(block: Block, index: number): React.ReactNode {
     const text = p?.text?.trim()
     const ctaLabel = p?.ctaLabel?.trim()
     const ctaHref = p?.ctaHref?.trim()
+    const secondaryCta = p?.secondaryCta?.label && p?.secondaryCta?.href ? p.secondaryCta : undefined
     if (!text && !ctaLabel) return null
     return (
       <div key={index}>
@@ -244,6 +175,61 @@ function renderBlock(block: Block, index: number): React.ReactNode {
           text={text || ''}
           ctaLabel={ctaLabel || 'Learn more'}
           ctaHref={ctaHref || '#'}
+          secondaryCta={secondaryCta}
+          variant={p?.variant ?? 'simple'}
+        />
+      </div>
+    )
+  }
+  if (block.type === 'stats') {
+    const p = block.payload as StatsPayload
+    const stats = p?.stats ?? []
+    if (stats.length === 0) return null
+    return (
+      <div key={index}>
+        <StatsBar stats={stats} showDividers={p?.showDividers ?? true} />
+      </div>
+    )
+  }
+  if (block.type === 'testimonials') {
+    const p = block.payload as TestimonialsPayload
+    const testimonials = p?.testimonials ?? []
+    if (testimonials.length === 0) return null
+    return (
+      <div key={index}>
+        <TestimonialSection
+          testimonials={testimonials}
+          heading={p?.heading}
+          subheading={p?.subheading}
+          layout={p?.layout ?? 'grid'}
+        />
+      </div>
+    )
+  }
+  if (block.type === 'pricing') {
+    const p = block.payload as PricingPayload
+    const plans = p?.plans ?? []
+    if (plans.length === 0) return null
+    return (
+      <div key={index}>
+        <PricingSection
+          plans={plans}
+          heading={p?.heading}
+          subheading={p?.subheading}
+        />
+      </div>
+    )
+  }
+  if (block.type === 'faq') {
+    const p = block.payload as FAQPayload
+    const items = p?.items ?? []
+    if (items.length === 0) return null
+    return (
+      <div key={index}>
+        <FAQSection
+          items={items}
+          heading={p?.heading}
+          subheading={p?.subheading}
         />
       </div>
     )
@@ -324,13 +310,13 @@ export default function PublicPageView() {
   const blocks = page?.blocks ?? []
 
   return (
-    <PublicLayout mainClassName="mx-auto max-w-2xl px-4 py-10 sm:px-6 sm:py-14">
+    <PublicLayout mainClassName="mx-auto w-full max-w-5xl px-4 py-10 sm:px-6 sm:py-14">
       {loading ? (
         <p className="text-stone-500 dark:text-stone-400">Loading…</p>
       ) : error || !page ? (
         <EmptyState type="error" message={error || 'Page not found.'} />
       ) : (
-        <article className="space-y-8">
+        <article className="space-y-16 sm:space-y-20">
           {buildRenderNodes(blocks).map((node) => {
             if (node.kind === 'feature_card_grid') {
               const gridClass = node.blocks.length >= 3

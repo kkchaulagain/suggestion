@@ -152,6 +152,147 @@ describe('PublicPageView', () => {
     expect(links.some((el) => el.getAttribute('href') === '/signup')).toBe(true)
   })
 
+  test('renders testimonials block with heading and layout', async () => {
+    mockedAxios.get.mockResolvedValueOnce({
+      data: {
+        page: {
+          _id: 'page-1',
+          slug: 'landing',
+          title: 'Landing',
+          status: 'published',
+          blocks: [
+            {
+              type: 'testimonials',
+              payload: {
+                heading: 'What people say',
+                subheading: 'Real feedback from users.',
+                layout: 'grid',
+                testimonials: [
+                  { quote: 'This product is great.', name: 'Jane Doe', role: 'User' },
+                ],
+              },
+            },
+          ],
+        },
+      },
+    })
+
+    renderPublicPageView()
+
+    await waitFor(() => {
+      expect(screen.getByText('What people say')).toBeInTheDocument()
+    })
+    await waitFor(() => {
+      expect(screen.getByText('Real feedback from users.')).toBeInTheDocument()
+    })
+    await waitFor(() => {
+      expect(screen.getByText(/This product is great/)).toBeInTheDocument()
+    })
+    expect(screen.getByText('Jane Doe')).toBeInTheDocument()
+  })
+
+  test('renders pricing block with heading and subheading', async () => {
+    mockedAxios.get.mockResolvedValueOnce({
+      data: {
+        page: {
+          _id: 'page-1',
+          slug: 'landing',
+          title: 'Landing',
+          status: 'published',
+          blocks: [
+            {
+              type: 'pricing',
+              payload: {
+                heading: 'Simple pricing',
+                subheading: 'Choose your plan.',
+                plans: [
+                  { name: 'Pro', price: '$29', period: '/mo', features: ['Feature A'], cta: { label: 'Start', href: '/signup' }, highlighted: true },
+                ],
+              },
+            },
+          ],
+        },
+      },
+    })
+
+    renderPublicPageView()
+
+    await waitFor(() => {
+      expect(screen.getByText('Simple pricing')).toBeInTheDocument()
+    })
+    expect(screen.getByText('Choose your plan.')).toBeInTheDocument()
+    expect(screen.getByText('Pro')).toBeInTheDocument()
+    expect(screen.getByText(/\$29/)).toBeInTheDocument()
+  })
+
+  test('renders FAQ block with heading and subheading', async () => {
+    mockedAxios.get.mockResolvedValueOnce({
+      data: {
+        page: {
+          _id: 'page-1',
+          slug: 'landing',
+          title: 'Landing',
+          status: 'published',
+          blocks: [
+            {
+              type: 'faq',
+              payload: {
+                heading: 'FAQ',
+                subheading: 'Common questions.',
+                items: [
+                  { question: 'What is this?', answer: 'An answer here.' },
+                ],
+              },
+            },
+          ],
+        },
+      },
+    })
+
+    renderPublicPageView()
+
+    await waitFor(() => {
+      expect(screen.getByText('FAQ')).toBeInTheDocument()
+    })
+    expect(screen.getByText('Common questions.')).toBeInTheDocument()
+    expect(screen.getByText('What is this?')).toBeInTheDocument()
+    expect(screen.getByText('An answer here.')).toBeInTheDocument()
+  })
+
+  test('renders stats block with showDividers', async () => {
+    mockedAxios.get.mockResolvedValueOnce({
+      data: {
+        page: {
+          _id: 'page-1',
+          slug: 'landing',
+          title: 'Landing',
+          status: 'published',
+          blocks: [
+            {
+              type: 'stats',
+              payload: {
+                stats: [
+                  { value: '10k+', label: 'Users' },
+                  { value: '99%', label: 'Uptime' },
+                ],
+                showDividers: true,
+              },
+            },
+          ],
+        },
+      },
+    })
+
+    renderPublicPageView()
+
+    await waitFor(() => {
+      expect(screen.getByText('10k+')).toBeInTheDocument()
+    })
+    expect(screen.getByText('Users')).toBeInTheDocument()
+    expect(screen.getByText('99%')).toBeInTheDocument()
+    expect(screen.getByText('Uptime')).toBeInTheDocument()
+  })
+
   test('renders feature_card_grid when consecutive feature_card blocks', async () => {
     mockedAxios.get.mockResolvedValueOnce({
       data: {
