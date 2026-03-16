@@ -596,6 +596,81 @@ describe('CreateFormPage', () => {
     })
   })
 
+  test('adding same contact field type twice increments generated name', async () => {
+    mockedAxios.post.mockResolvedValueOnce({ data: {} })
+    renderCreateFormPage()
+    goToFormBuilder()
+
+    fireEvent.click(screen.getByRole('button', { name: /\+ add new field/i }))
+    await screen.findByRole('heading', { name: /add new field/i })
+    fireEvent.click(screen.getByRole('button', { name: /^Email$/i }))
+
+    fireEvent.click(screen.getByRole('button', { name: /\+ add new field/i }))
+    await screen.findByRole('heading', { name: /add new field/i })
+    fireEvent.click(screen.getByRole('button', { name: /^Email$/i }))
+
+    fireEvent.click(screen.getByRole('button', { name: /save form/i }))
+
+    await waitFor(() => {
+      expect(mockedAxios.post).toHaveBeenCalledWith(
+        feedbackFormsApi,
+        expect.objectContaining({
+          fields: expect.arrayContaining([
+            expect.objectContaining({ name: 'contact_email_1', type: 'email' }),
+            expect.objectContaining({ name: 'contact_email_2', type: 'email' }),
+          ]),
+        }),
+        expect.any(Object),
+      )
+    })
+  })
+
+  test('adding contact field set twice increments contact group number', async () => {
+    mockedAxios.post.mockResolvedValueOnce({ data: {} })
+    renderCreateFormPage()
+    goToFormBuilder()
+
+    fireEvent.click(screen.getByRole('button', { name: /\+ add new field/i }))
+    await screen.findByRole('heading', { name: /add new field/i })
+    fireEvent.click(screen.getByRole('button', { name: /add name email phone fields/i }))
+
+    fireEvent.click(screen.getByRole('button', { name: /\+ add new field/i }))
+    await screen.findByRole('heading', { name: /add new field/i })
+    fireEvent.click(screen.getByRole('button', { name: /add name email phone fields/i }))
+
+    fireEvent.click(screen.getByRole('button', { name: /save form/i }))
+
+    await waitFor(() => {
+      expect(mockedAxios.post).toHaveBeenCalledWith(
+        feedbackFormsApi,
+        expect.objectContaining({
+          fields: expect.arrayContaining([
+            expect.objectContaining({ name: 'contact_name_2', type: 'text' }),
+            expect.objectContaining({ name: 'contact_email_2', type: 'email' }),
+            expect.objectContaining({ name: 'contact_phone_2', type: 'phone' }),
+          ]),
+        }),
+        expect.any(Object),
+      )
+    })
+  })
+
+  test('remove field dialog cancel keeps field and closes modal', async () => {
+    renderCreateFormPage()
+    goToFormBuilder()
+
+    const subjectRow = getFieldRow('subject')
+    fireEvent.click(within(subjectRow).getByRole('button', { name: /remove field: subject/i }))
+
+    const removeDialog = screen.getByRole('dialog', { name: /remove field/i })
+    fireEvent.click(within(removeDialog).getByRole('button', { name: /^cancel$/i }))
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: /remove field/i })).not.toBeInTheDocument()
+    })
+    expect(screen.getByText('subject')).toBeInTheDocument()
+  })
+
   test('saves drawer style configuration in payload', async () => {
     mockedAxios.post.mockResolvedValueOnce({ data: {} })
     renderCreateFormPage()
