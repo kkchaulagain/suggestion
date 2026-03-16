@@ -6,6 +6,11 @@ const Business = require('../models/Business');
 const jwt = require('jsonwebtoken');
 import type { Types } from 'mongoose';
 
+/** Send request with both Cookie and Authorization so auth works in all environments. */
+function withAuth(req: ReturnType<typeof request>, token: string) {
+  return req.set('Cookie', [`token=${token}`]).set('Authorization', `Bearer ${token}`);
+}
+
 describe('Auth Profile Endpoints', () => {
   let userToken: string;
   let businessToken: string;
@@ -35,7 +40,7 @@ describe('Auth Profile Endpoints', () => {
       role: 'user',
     });
     userId = user._id;
-    userToken = jwt.sign({ userId: user._id }, process.env.JWT_SECRET || 'default_secret_key');
+    userToken = jwt.sign({ userId: String(user._id) }, process.env.JWT_SECRET || 'default_secret_key');
 
     // Create a business user
     const businessUser = await User.create({
@@ -46,7 +51,7 @@ describe('Auth Profile Endpoints', () => {
       role: 'business',
     });
     businessUserId = businessUser._id;
-    businessToken = jwt.sign({ userId: businessUser._id }, process.env.JWT_SECRET || 'default_secret_key');
+    businessToken = jwt.sign({ userId: String(businessUser._id) }, process.env.JWT_SECRET || 'default_secret_key');
 
     await Business.create({
       owner: businessUser._id,
@@ -154,9 +159,7 @@ describe('Auth Profile Endpoints', () => {
 
   describe('PUT /api/auth/me', () => {
     it('returns 200 and updates user name', async () => {
-      const res = await request(app)
-        .put('/api/auth/me')
-        .set('Cookie', [`token=${userToken}`])
+      const res = await withAuth(request(app).put('/api/auth/me'), userToken)
         .send({ name: 'Updated Name' })
         .expect(200);
 
@@ -168,9 +171,7 @@ describe('Auth Profile Endpoints', () => {
     });
 
     it('returns 200 and updates avatarId when provided', async () => {
-      const res = await request(app)
-        .put('/api/auth/me')
-        .set('Cookie', [`token=${userToken}`])
+      const res = await withAuth(request(app).put('/api/auth/me'), userToken)
         .send({ name: 'Regular User', avatarId: 'avatar-3' })
         .expect(200);
 
@@ -183,9 +184,7 @@ describe('Auth Profile Endpoints', () => {
 
     it('returns 200 and clears avatarId when set to null', async () => {
       await User.findByIdAndUpdate(userId, { avatarId: 'avatar-1' });
-      const res = await request(app)
-        .put('/api/auth/me')
-        .set('Cookie', [`token=${userToken}`])
+      const res = await withAuth(request(app).put('/api/auth/me'), userToken)
         .send({ name: 'Regular User', avatarId: null })
         .expect(200);
 
@@ -195,9 +194,7 @@ describe('Auth Profile Endpoints', () => {
     });
 
     it('returns 400 if name is missing', async () => {
-      const res = await request(app)
-        .put('/api/auth/me')
-        .set('Cookie', [`token=${userToken}`])
+      const res = await withAuth(request(app).put('/api/auth/me'), userToken)
         .send({ name: '' })
         .expect(400);
 
@@ -208,9 +205,7 @@ describe('Auth Profile Endpoints', () => {
     it('returns 404 if user not found', async () => {
       await User.findByIdAndDelete(userId);
 
-      const res = await request(app)
-        .put('/api/auth/me')
-        .set('Cookie', [`token=${userToken}`])
+      const res = await withAuth(request(app).put('/api/auth/me'), userToken)
         .send({ name: 'Updated Name' })
         .expect(404);
 
@@ -224,9 +219,7 @@ describe('Auth Profile Endpoints', () => {
         throw new Error('Database error');
       });
 
-      const res = await request(app)
-        .put('/api/auth/me')
-        .set('Cookie', [`token=${userToken}`])
+      const res = await withAuth(request(app).put('/api/auth/me'), userToken)
         .send({ name: 'Updated Name' })
         .expect(500);
 
@@ -251,9 +244,7 @@ describe('Auth Profile Endpoints', () => {
     });
 
     it('should return 400 if any field missing', async () => {
-      const res = await request(app)
-        .put('/api/auth/me/change-password')
-        .set('Cookie', [`token=${userToken}`])
+      const res = await withAuth(request(app).put('/api/auth/me/change-password'), userToken)
         .send({ currentPassword: '', newPassword: '', confirmPassword: '' })
         .expect(400);
 
@@ -262,9 +253,7 @@ describe('Auth Profile Endpoints', () => {
     });
 
     it('should return 400 if passwords do not match', async () => {
-      const res = await request(app)
-        .put('/api/auth/me/change-password')
-        .set('Cookie', [`token=${userToken}`])
+      const res = await withAuth(request(app).put('/api/auth/me/change-password'), userToken)
         .send({ currentPassword: 'password123', newPassword: 'newPassword', confirmPassword: 'differentPassword' })
         .expect(400);
 
@@ -273,9 +262,7 @@ describe('Auth Profile Endpoints', () => {
     });
 
     it('should return 400 if newPassword is short', async () => {
-      const res = await request(app)
-        .put('/api/auth/me/change-password')
-        .set('Cookie', [`token=${userToken}`])
+      const res = await withAuth(request(app).put('/api/auth/me/change-password'), userToken)
         .send({ currentPassword: 'password123', newPassword: 'new', confirmPassword: 'new' })
         .expect(400);
 
@@ -284,9 +271,7 @@ describe('Auth Profile Endpoints', () => {
     });
 
     it('should return 400 if current password is incorrect', async () => {
-      const res = await request(app)
-        .put('/api/auth/me/change-password')
-        .set('Cookie', [`token=${userToken}`])
+      const res = await withAuth(request(app).put('/api/auth/me/change-password'), userToken)
         .send({ currentPassword: 'wrongPassword', newPassword: 'newPassword', confirmPassword: 'newPassword' })
         .expect(400);
 
@@ -297,9 +282,7 @@ describe('Auth Profile Endpoints', () => {
     it('should return 404 if user not found', async () => {
       await User.findByIdAndDelete(userId);
 
-      const res = await request(app)
-        .put('/api/auth/me/change-password')
-        .set('Cookie', [`token=${userToken}`])
+      const res = await withAuth(request(app).put('/api/auth/me/change-password'), userToken)
         .send({ currentPassword: 'password123', newPassword: 'newPassword', confirmPassword: 'newPassword' })
         .expect(404);
 
@@ -326,9 +309,7 @@ describe('Auth Profile Endpoints', () => {
         },
       }));
 
-      const res = await request(app)
-        .put('/api/auth/me/change-password')
-        .set('Cookie', [`token=${userToken}`])
+      const res = await withAuth(request(app).put('/api/auth/me/change-password'), userToken)
         .send({ currentPassword: 'password123', newPassword: 'newPassword', confirmPassword: 'newPassword' })
         .expect(500);
 
@@ -339,9 +320,7 @@ describe('Auth Profile Endpoints', () => {
     });
 
     it('should return 200 if password changed successfully', async () => {
-      const res = await request(app)
-        .put('/api/auth/me/change-password')
-        .set('Cookie', [`token=${userToken}`])
+      const res = await withAuth(request(app).put('/api/auth/me/change-password'), userToken)
         .send({ currentPassword: 'password123', newPassword: 'newPassword123', confirmPassword: 'newPassword123' })
         .expect(200);
 
@@ -365,9 +344,7 @@ describe('Auth Profile Endpoints', () => {
         process.env.JWT_SECRET || 'default_secret_key',
       );
 
-      const res = await request(app)
-        .put('/api/auth/me/change-password')
-        .set('Cookie', [`token=${legacyToken}`])
+      const res = await withAuth(request(app).put('/api/auth/me/change-password'), legacyToken)
         .send({ currentPassword: 'oldpass123', newPassword: 'newpass123', confirmPassword: 'newpass123' })
         .expect(200);
 

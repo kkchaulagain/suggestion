@@ -30,8 +30,11 @@ async function createBusinessAuth() {
 
   const loginRes = await request(app).post('/api/auth/login').send({ email, password }).expect(200);
   const token = loginRes.body?.token || loginRes.body?.data?.token;
-  const user = await User.findOne({ email: email.toLowerCase() }).select('_id').lean();
-  const business = user ? await Business.findOne({ owner: user._id }).lean() : null;
+  const registeredUserId = registerRes.body?.data?._id || registerRes.body?.user?._id;
+  if (!registeredUserId) {
+    throw new Error('Register response missing user id');
+  }
+  const business = await Business.findOne({ owner: registeredUserId }).lean();
   if (!business?._id) {
     throw new Error('Business not found after register');
   }
