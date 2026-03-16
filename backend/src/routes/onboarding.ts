@@ -1,7 +1,6 @@
 import type { Request, Response, NextFunction } from 'express';
 import type { Types } from 'mongoose';
 const express = require('express');
-const mongoose = require('mongoose');
 const { FeedbackForm } = require('../models/FeedbackForm');
 const { FeedbackSubmission } = require('../models/FeedbackSubmission');
 const { Page } = require('../models/Page');
@@ -20,28 +19,40 @@ interface AuthenticatedRequest extends Request {
   businessProfile?: BusinessProfileDoc | null;
 }
 
+/** Wrap async route handlers so rejections are passed to next(err). Express 4 does not await async middleware. */
+function asyncHandler(
+  fn: (req: AuthenticatedRequest, res: Response, next: NextFunction) => Promise<unknown>
+): (req: AuthenticatedRequest, res: Response, next: NextFunction) => void {
+  return (req, res, next) => {
+    Promise.resolve(fn(req, res, next)).catch(next);
+  };
+}
+
 /** GET /api/onboarding/counts - return current forms, pages, submissions counts for the business (for confirmation UI). */
+async function getCountsHandler(req: AuthenticatedRequest, res: Response): Promise<void> {
+  try {
+    if (!req.businessProfile) {
+      res.status(400).json({ error: 'Business profile required' });
+      return;
+    }
+    const businessId = req.businessProfile._id;
+    const [formsCount, pagesCount, submissionsCount] = await Promise.all([
+      FeedbackForm.countDocuments({ businessId }),
+      Page.countDocuments({ businessId }),
+      FeedbackSubmission.countDocuments({ businessId }),
+    ]);
+    res.status(200).json({ formsCount, pagesCount, submissionsCount });
+  } catch (_err) {
+    res.status(500).json({ error: 'Failed to fetch counts' });
+  }
+}
+
 router.get(
   '/counts',
   isAuthenticated,
   authorize('business', 'admin', 'governmentservices', 'user'),
-  resolveBusinessProfile,
-  async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      if (!req.businessProfile) {
-        return res.status(400).json({ error: 'Business profile required' });
-      }
-      const businessId = req.businessProfile._id;
-      const [formsCount, pagesCount, submissionsCount] = await Promise.all([
-        FeedbackForm.countDocuments({ businessId }),
-        Page.countDocuments({ businessId }),
-        FeedbackSubmission.countDocuments({ businessId }),
-      ]);
-      return res.status(200).json({ formsCount, pagesCount, submissionsCount });
-    } catch (_err) {
-      return res.status(500).json({ error: 'Failed to fetch counts' });
-    }
-  }
+  asyncHandler(resolveBusinessProfile),
+  asyncHandler((req, res, _next) => getCountsHandler(req, res))
 );
 
 /** Resolve business profile; onboarding requires a business (no admin bypass). */
@@ -97,17 +108,13 @@ async function ensureUniqueSlug(slug: string): Promise<string> {
  * - PagePayload: { title, slug?, blocks?, status? }. In blocks, form block payload may use formIndex (0-based) to reference created forms.
  * Order: delete pages -> submissions -> forms; create forms; create pages (resolving formIndex -> formId); set onboardingCompleted.
  */
-router.post(
-  '/business-setup',
-  isAuthenticated,
-  authorize('business', 'admin', 'governmentservices', 'user'),
-  resolveBusinessProfile,
-  async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      if (!req.businessProfile) {
-        return res.status(400).json({ error: 'Business profile required' });
-      }
-      const businessId = req.businessProfile._id as Types.ObjectId;
+async function postBusinessSetupHandler(req: AuthenticatedRequest, res: Response): Promise<void> {
+  try {
+    if (!req.businessProfile) {
+      res.status(400).json({ error: 'Business profile required' });
+      return;
+    }
+    const businessId = req.businessProfile._id as Types.ObjectId;
       const body = req.body || {};
       const resetExistingData = body.resetExistingData === true;
       const formsInput = Array.isArray(body.forms) ? body.forms : [];
@@ -123,7 +130,8 @@ router.post(
       for (let i = 0; i < formsInput.length; i++) {
         const f = formsInput[i];
         if (!f || typeof f !== 'object' || !f.title || !Array.isArray(f.fields) || f.fields.length === 0) {
-          return res.status(400).json({ error: `Form at index ${i} must have title and at least one field` });
+          res.status(400).json({ error: `Form at index ${i} must have title and at least one field` });
+          return;
         }
         const payload = {
           title: String(f.title).trim().slice(0, 120),
@@ -157,7 +165,8 @@ router.post(
       for (let i = 0; i < pagesInput.length; i++) {
         const p = pagesInput[i];
         if (!p || typeof p !== 'object' || !p.title) {
-          return res.status(400).json({ error: `Page at index ${i} must have title` });
+          res.status(400).json({ error: `Page at index ${i} must have title` });
+          return;
         }
         const rawSlug = typeof p.slug === 'string' ? p.slug : p.title;
         const slug = await ensureUniqueSlug(rawSlug);
@@ -191,7 +200,7 @@ router.post(
         { $set: { onboardingCompleted: true, onboardingCompletedAt: new Date() } }
       );
 
-      return res.status(200).json({
+      res.status(200).json({
         message: 'Business setup completed',
         forms: createdForms.map((f) => ({ _id: f._id.toString(), title: f.title })),
         pages: createdPages.map((p) => ({ _id: p._id.toString(), title: p.title, slug: p.slug })),
@@ -200,11 +209,22 @@ router.post(
     } catch (err: unknown) {
       const name = (err as { name?: string }).name;
       if (name === 'ValidationError') {
-        return res.status(400).json({ error: 'Validation failed' });
+        res.status(400).json({ error: 'Validation failed' });
+        return;
       }
-      return res.status(500).json({ error: 'Failed to complete business setup' });
+      res.status(500).json({ error: 'Failed to complete business setup' });
     }
-  }
+}
+
+router.post(
+  '/business-setup',
+  isAuthenticated,
+  authorize('business', 'admin', 'governmentservices', 'user'),
+  asyncHandler(resolveBusinessProfile),
+  asyncHandler((req, res, _next) => postBusinessSetupHandler(req, res))
 );
 
 module.exports = router;
+module.exports.getCountsHandler = getCountsHandler;
+module.exports.postBusinessSetupHandler = postBusinessSetupHandler;
+module.exports.resolveBusinessProfile = resolveBusinessProfile;
