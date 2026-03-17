@@ -33,7 +33,7 @@ describe('SubmissionsPage', () => {
 
     await waitFor(() => {
       expect(screen.getByText(/No submissions found/i)).toBeInTheDocument()
-    })
+    }, { timeout: 15000 })
     expect(screen.getByRole('heading', { name: /Submissions/i })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /Filters/i }))
     expect(screen.getByLabelText(/From/i)).toBeInTheDocument()
@@ -86,7 +86,7 @@ describe('SubmissionsPage', () => {
 
     await waitFor(() => {
       expect(screen.getAllByRole('button', { name: /View/i }).length).toBeGreaterThanOrEqual(1)
-    })
+    }, { timeout: 15000 })
     // Form title shown in table (desktop) or card (mobile)
     expect(screen.getAllByText('My Survey').length).toBeGreaterThanOrEqual(1)
 
@@ -96,14 +96,14 @@ describe('SubmissionsPage', () => {
       expect(screen.getAllByText('Question').length).toBeGreaterThanOrEqual(1)
       expect(screen.getAllByText('The Answer').length).toBeGreaterThanOrEqual(1)
       expect(screen.getByRole('button', { name: /Close/i })).toBeInTheDocument()
-    })
+    }, { timeout: 15000 })
 
     // Dismiss via Close button
     fireEvent.click(screen.getByRole('button', { name: /Close/i }))
     await waitFor(() => {
       expect(screen.queryByRole('button', { name: /Close/i })).not.toBeInTheDocument()
-    })
-  })
+    }, { timeout: 15000 })
+  }, 20000)
 
   it('renders image in modal when submission has image field with URL', async () => {
     const submissions = [

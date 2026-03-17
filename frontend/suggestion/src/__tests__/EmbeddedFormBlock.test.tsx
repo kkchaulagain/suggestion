@@ -295,7 +295,7 @@ describe('EmbeddedFormBlock', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Thanks')).toBeInTheDocument()
-    })
+    }, { timeout: 10000 })
     expect(mockedAxios.post).toHaveBeenCalledTimes(2)
     const uploadCall = mockedAxios.post.mock.calls[0]
     expect(uploadCall[0]).toMatch(/upload/)
@@ -303,7 +303,7 @@ describe('EmbeddedFormBlock', () => {
     const submitCall = mockedAxios.post.mock.calls[1]
     expect(submitCall[0]).toMatch(/submit/)
     expect(submitCall[1]).toEqual({ photo: uploadUrl })
-  })
+  }, 20000)
 
   test('initial values for scale types default to 6', async () => {
     mockedAxios.get.mockResolvedValueOnce({

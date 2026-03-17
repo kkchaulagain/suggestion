@@ -142,9 +142,9 @@ const fieldTypeGroups: FieldTypeGroup[] = [
   {
     label: 'Contact',
     types: [
-      { value: 'text', label: 'Text (Name)', icon: User },
+      { value: 'text', label: 'Name', icon: User },
       { value: 'email', label: 'Email', icon: Mail },
-      { value: 'phone', label: 'Phone', icon: Phone },
+      { value: 'phone', label: 'Phone No', icon: Phone },
     ],
   },
   {
@@ -280,6 +280,10 @@ function createField(type: FeedbackFieldType, count: number, stepId?: string): F
 
 function getTypeLabel(type: FeedbackFieldType): string {
   return fieldTypeOptions.find((o) => o.value === type)?.label ?? type
+}
+
+function isContactIdentityField(field: FeedbackField): boolean {
+  return /^contact_(name|email|phone)_\d+$/i.test(field.name)
 }
 
 function normalizeLoadedFields(fields: FeedbackField[] | undefined): FeedbackField[] {
@@ -435,7 +439,9 @@ function SortableFieldRow({
         <div className="min-w-0 flex-1">
           <span className="text-sm font-medium text-slate-900 dark:text-slate-100">{field.label}</span>
           {field.required ? <span className="ml-1 text-rose-600 dark:text-rose-400" aria-hidden>*</span> : null}
-          <span className="ml-2 text-xs text-slate-500 dark:text-slate-400">{getTypeLabel(field.type)}</span>
+          {!isContactIdentityField(field) ? (
+            <span className="ml-2 text-xs text-slate-500 dark:text-slate-400">{getTypeLabel(field.type)}</span>
+          ) : null}
         </div>
         <div className="flex shrink-0 items-center gap-2">
           <Button
@@ -615,6 +621,8 @@ export default function CreateFormPage() {
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false)
   const [showAddFieldModal, setShowAddFieldModal] = useState(false)
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false)
+  const [pendingRemoveFieldId, setPendingRemoveFieldId] = useState<string | null>(null)
+  const [pendingRemoveFieldLabel, setPendingRemoveFieldLabel] = useState('')
   const [showPreview, setShowPreview] = useState(false)
   const [editingStepId, setEditingStepId] = useState<string | null>(null)
   const [loading, setLoading] = useState(isEditMode)
@@ -858,10 +866,92 @@ export default function CreateFormPage() {
 
   const handleAddField = (type: FeedbackFieldType) => {
     setFields((current) => {
-      const firstStepId = formSteps.length > 0 ? formSteps.sort((a, b) => a.order - b.order)[0].id : undefined
+      const firstStepId = formSteps.length > 0 ? [...formSteps].sort((a, b) => a.order - b.order)[0].id : undefined
       const nextField = createField(type, current.length + 1, firstStepId)
       const next = [...current, nextField]
       setEditingFieldId(nextField.clientId ?? null)
+      return next
+    })
+    setError('')
+  }
+
+  const handleAddContactField = (type: 'text' | 'email' | 'phone') => {
+    setFields((current) => {
+      const firstStepId = formSteps.length > 0 ? [...formSteps].sort((a, b) => a.order - b.order)[0].id : undefined
+      const prefix = type === 'text' ? 'contact_name_' : type === 'email' ? 'contact_email_' : 'contact_phone_'
+      const maxNumber = current.reduce((max, field) => {
+        const match = field.name.match(new RegExp(`^${prefix}(\\d+)$`))
+        if (!match) return max
+        const n = Number(match[1])
+        return Number.isFinite(n) ? Math.max(max, n) : max
+      }, 0)
+      const fieldNumber = maxNumber + 1
+      const nextField: FeedbackField = {
+        clientId: makeClientId(),
+        name: toFieldName(`${prefix}${fieldNumber}`),
+        label:
+          type === 'text'
+            ? 'Contact Name'
+            : type === 'email'
+              ? 'Contact Email'
+              : 'Contact Phone No',
+        type,
+        required: false,
+        placeholder:
+          type === 'text' ? 'Enter contact name' : type === 'email' ? 'name@example.com' : '',
+        stepId: firstStepId,
+        allowAnonymous: type === 'text' || type === 'email' ? false : undefined,
+      }
+      const next = [...current, nextField]
+      setEditingFieldId(nextField.clientId ?? null)
+      return next
+    })
+    setError('')
+  }
+
+  const handleAddContactFieldSet = () => {
+    setFields((current) => {
+      const firstStepId = formSteps.length > 0 ? [...formSteps].sort((a, b) => a.order - b.order)[0].id : undefined
+      const existingContactGroups = current.reduce((max, field) => {
+        const match = field.name.match(/^contact_(name|email|phone)_(\d+)$/)
+        if (!match) return max
+        const groupNumber = Number(match[2])
+        return Number.isFinite(groupNumber) ? Math.max(max, groupNumber) : max
+      }, 0)
+      const groupNumber = existingContactGroups + 1
+      const next: FeedbackField[] = [
+        ...current,
+        {
+          clientId: makeClientId(),
+          name: toFieldName(`contact_name_${groupNumber}`),
+          label: 'Contact Name',
+          type: 'text',
+          required: false,
+          placeholder: 'Enter contact name',
+          stepId: firstStepId,
+          allowAnonymous: false,
+        },
+        {
+          clientId: makeClientId(),
+          name: toFieldName(`contact_email_${groupNumber}`),
+          label: 'Contact Email',
+          type: 'email',
+          required: false,
+          placeholder: 'name@example.com',
+          stepId: firstStepId,
+          allowAnonymous: false,
+        },
+        {
+          clientId: makeClientId(),
+          name: toFieldName(`contact_phone_${groupNumber}`),
+          label: 'Contact Phone No',
+          type: 'phone',
+          required: false,
+          placeholder: '',
+          stepId: firstStepId,
+        },
+      ]
+      setEditingFieldId(next[next.length - 1]?.clientId ?? null)
       return next
     })
     setError('')
@@ -873,6 +963,24 @@ export default function CreateFormPage() {
     )
     setEditingFieldId((current) => (current === fieldId ? null : current))
     setError('')
+  }
+
+  const handleRequestRemoveField = (fieldId: string) => {
+    const field = fields.find((item, index) => getFieldClientId(item, index) === fieldId)
+    setPendingRemoveFieldId(fieldId)
+    setPendingRemoveFieldLabel(field?.label || 'this field')
+  }
+
+  const handleCancelRemoveField = () => {
+    setPendingRemoveFieldId(null)
+    setPendingRemoveFieldLabel('')
+  }
+
+  const handleConfirmRemoveField = () => {
+    if (!pendingRemoveFieldId) return
+    handleRemoveField(pendingRemoveFieldId)
+    setPendingRemoveFieldId(null)
+    setPendingRemoveFieldLabel('')
   }
 
   const handleAddOption = (fieldId: string) => {
@@ -1285,7 +1393,7 @@ export default function CreateFormPage() {
               setEditingFieldId((current) => (current === clientId ? null : clientId))
               setShowAdvancedOptions(false)
             }}
-            onRemoveField={handleRemoveField}
+            onRemoveField={handleRequestRemoveField}
             onFieldLabelChange={handleFieldLabelChange}
             onFieldTypeChange={handleFieldTypeChange}
             onFieldRequiredChange={handleFieldRequiredChange}
@@ -1366,7 +1474,7 @@ export default function CreateFormPage() {
                     setEditingFieldId((current) => (current === clientId ? null : clientId))
                     setShowAdvancedOptions(false)
                   }}
-                  onRemoveField={handleRemoveField}
+                  onRemoveField={handleRequestRemoveField}
                   onFieldLabelChange={handleFieldLabelChange}
                   onFieldTypeChange={handleFieldTypeChange}
                   onFieldRequiredChange={handleFieldRequiredChange}
@@ -1609,9 +1717,25 @@ export default function CreateFormPage() {
               <div className="space-y-4">
                 {fieldTypeGroups.map((group) => (
                   <div key={group.label}>
-                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                      {group.label}
-                    </p>
+                    <div className="mb-2">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                        {group.label}
+                      </p>
+                      {group.label === 'Contact' ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handleAddContactFieldSet()
+                            setShowAddFieldModal(false)
+                          }}
+                          className="mt-2 inline-flex items-center gap-1 rounded-md border border-emerald-200 px-2 py-1 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-50 dark:border-emerald-700/60 dark:text-emerald-300 dark:hover:bg-emerald-900/30"
+                          aria-label="Add name email phone fields"
+                        >
+                          <Plus className="h-3 w-3" />
+                          Add all
+                        </button>
+                      ) : null}
+                    </div>
                     <div className="grid gap-2 sm:grid-cols-2">
                       {group.types.map((opt) => {
                         const Icon = opt.icon
@@ -1620,7 +1744,11 @@ export default function CreateFormPage() {
                             key={`${group.label}-${opt.value}-${opt.label}`}
                             type="button"
                             onClick={() => {
-                              handleAddField(opt.value)
+                              if (group.label === 'Contact' && (opt.value === 'text' || opt.value === 'email' || opt.value === 'phone')) {
+                                handleAddContactField(opt.value)
+                              } else {
+                                handleAddField(opt.value)
+                              }
                               setShowAddFieldModal(false)
                             }}
                             className="flex items-center gap-3 rounded-lg border border-slate-200 p-3 text-left transition hover:border-emerald-300 hover:bg-emerald-50/50 dark:border-slate-600 dark:hover:border-emerald-600 dark:hover:bg-emerald-900/20"
@@ -1711,6 +1839,38 @@ export default function CreateFormPage() {
             className="flex-1"
           >
             Leave
+          </Button>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={pendingRemoveFieldId !== null}
+        onClose={handleCancelRemoveField}
+        title="Remove field"
+        size="sm"
+      >
+        <p className="text-sm text-slate-600 dark:text-slate-400">
+          Are you sure you want to remove this field?
+        </p>
+        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{pendingRemoveFieldLabel}</p>
+        <div className="mt-6 flex gap-3">
+          <Button
+            type="button"
+            variant="secondary"
+            size="lg"
+            onClick={handleCancelRemoveField}
+            className="flex-1"
+          >
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            variant="danger"
+            size="lg"
+            onClick={handleConfirmRemoveField}
+            className="flex-1"
+          >
+            Remove
           </Button>
         </div>
       </Modal>

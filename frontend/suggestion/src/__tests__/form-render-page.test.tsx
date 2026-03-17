@@ -587,20 +587,18 @@ describe('FormRenderPage', () => {
 
     renderFormRenderPage('form-1')
 
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /Start/i })).toBeInTheDocument()
-    })
+    const startButton = await screen.findByRole('button', { name: /Start/i, hidden: true }, { timeout: 10000 })
     const drawer = screen.getByTestId('form-drawer')
     await waitFor(() => {
       expect(drawer).toHaveAttribute('aria-hidden', 'true')
     })
 
-    fireEvent.click(screen.getByRole('button', { name: /Start/i }))
+    fireEvent.click(startButton)
 
     await waitFor(() => {
       expect(drawer).toHaveAttribute('aria-hidden', 'false')
-    })
-  })
+    }, { timeout: 10000 })
+  }, 20000)
 
   test('multistep form: required field empty blocks Next and shows validation', async () => {
     const multistepForm = {

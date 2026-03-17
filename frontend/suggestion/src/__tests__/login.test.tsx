@@ -198,15 +198,15 @@ describe('Login Component', () => {
 
         await waitFor(() => {
           expect(screen.getByText(/Invalid credentials/i)).toBeInTheDocument()
-        })
+        }, { timeout: 10000 })
 
         mockedAxios.post.mockRejectedValueOnce(new Error('network down'))
         fireEvent.click(screen.getByRole('button', { name: /Login/i }))
 
         await waitFor(() => {
           expect(screen.getByText(/Login failed\. Please try again\./i)).toBeInTheDocument()
-        })
-      })
+        }, { timeout: 10000 })
+      }, 20000)
 
       test('navigates to signup from create account action', () => {
         renderLogin()

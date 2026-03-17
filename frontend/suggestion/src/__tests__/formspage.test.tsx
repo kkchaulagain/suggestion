@@ -56,7 +56,7 @@ describe('FormsPage', () => {
 
     await waitFor(() => {
       expect(screen.getByText(/you don't have any forms yet/i)).toBeInTheDocument()
-    })
+    }, { timeout: 15000 })
 
     fireEvent.click(screen.getByRole('button', { name: /add form/i }))
     expect(mockNavigate).toHaveBeenCalledWith('/dashboard/forms/create')

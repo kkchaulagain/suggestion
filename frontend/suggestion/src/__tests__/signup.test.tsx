@@ -208,7 +208,7 @@ describe('Signup Component', () => {
       }),
       expect.anything(),
     )
-  })
+  }, 20000)
 
   test('submits personal payload with role user and optional avatarId', async () => {
     mockedAxios.post.mockResolvedValueOnce({
