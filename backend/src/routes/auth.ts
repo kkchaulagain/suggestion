@@ -432,6 +432,79 @@ router.get('/business',isAuthenticated,isBusinessRole, async (req: Authenticated
     });
   }
 });
+
+router.put('/business', isAuthenticated, isBusinessRole, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const id = req.id;
+    if (!id) {
+      return res.status(401).json({ success: false, message: 'Unauthorized access' });
+    }
+
+    const data = (req.body ?? {}) as {
+      type?: 'personal' | 'commercial';
+      businessname?: string;
+      location?: string;
+      pancardNumber?: string | number;
+      description?: string;
+    };
+
+    const updatePayload: Record<string, unknown> = {};
+
+    if (data.type !== undefined) {
+      if (data.type !== 'personal' && data.type !== 'commercial') {
+        return res.status(400).json({ success: false, message: 'Invalid business type' });
+      }
+      updatePayload.type = data.type;
+    }
+
+    if (typeof data.businessname === 'string') {
+      const businessname = data.businessname.trim();
+      if (!businessname) {
+        return res.status(400).json({ success: false, message: 'Business name is required' });
+      }
+      updatePayload.businessname = businessname;
+    }
+
+    if (typeof data.location === 'string') {
+      updatePayload.location = data.location.trim();
+    }
+
+    if (data.pancardNumber !== undefined) {
+      updatePayload.pancardNumber = String(data.pancardNumber).trim();
+    }
+
+    if (typeof data.description === 'string') {
+      const description = data.description.trim();
+      if (!description) {
+        return res.status(400).json({ success: false, message: 'Description is required' });
+      }
+      updatePayload.description = description;
+    }
+
+    if (Object.keys(updatePayload).length === 0) {
+      return res.status(400).json({ success: false, message: 'No valid fields to update' });
+    }
+
+    const business = await Business.findOneAndUpdate(
+      { owner: id },
+      { $set: updatePayload },
+      { new: true, runValidators: true }
+    );
+
+    if (!business) {
+      return res.status(404).json({ success: false, message: 'Business profile not found' });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Business profile updated successfully',
+      data: business,
+    });
+  } catch (_error) {
+    return res.status(500).json({ success: false, message: 'Something went wrong' });
+  }
+});
+
 router.put('/me', isAuthenticated, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const id = req.id
@@ -529,4 +602,35 @@ router.put('/me/change-password',isAuthenticated,async(req:AuthenticatedRequest,
   return res.status(500).json({message:'Something went Wrong',success:false})
  }
 })
+
+router.post('/verify-password',isAuthenticated,async(req:AuthenticatedRequest,res:Response)=>
+{
+  try{
+    const id=req.id
+    const password=req.body.password
+    if(typeof password!=='string'|| !password.trim())
+    {
+      return res.status(400).json({success:false,message:'password is required'})
+
+    }
+     const user=await User.findById(id).select('+password')
+     if(!user)
+     {
+      return res.status(404).json({success:false,message:'user not found'})
+
+     }
+      const passwordMatches=await bcrypt.compare(password,user.password)
+      if(!passwordMatches)
+      {
+        return res.status(404).json({success:false,message:'Incorrect Password'})
+
+      }
+      return res.status(200).json({success:true,message:'Password is correct'})
+    }
+    catch(_error)
+    {
+      return res.status(500).json({success:false,message:'Something went wrong'})
+    }   
+  }
+)
 module.exports = router;

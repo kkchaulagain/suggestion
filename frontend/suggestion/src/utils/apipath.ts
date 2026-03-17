@@ -6,6 +6,7 @@ export const refreshTokenApi = `${base}/api/auth/refresh-token`;
 export const logoutApi = `${base}/api/auth/logout`;
 export const meapi = `${base}/api/auth/me`;
 export const changePasswordApi = `${base}/api/auth/me/change-password`;
+export const verifyPasswordApi = `${base}/api/auth/verify-password`;
 export const businessmeapi = `${base}/api/auth/business`;
 export const onboardingApi = `${base}/api/onboarding/business-setup`;
 export const onboardingCountsApi = `${base}/api/onboarding/counts`;

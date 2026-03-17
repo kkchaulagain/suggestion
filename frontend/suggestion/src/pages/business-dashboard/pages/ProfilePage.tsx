@@ -3,13 +3,22 @@ import { useEffect, useState } from 'react'
 import { Check, KeyRound, LogOut, Pencil, Rocket, X } from 'lucide-react'
 import { useAuth } from '../../../context/AuthContext'
 import { Avatar, Button, Input, Modal } from '../../../components/ui'
-import { changePasswordApi, meapi } from '../../../utils/apipath'
+import { businessmeapi, changePasswordApi, meapi, verifyPasswordApi } from '../../../utils/apipath'
 import { useNavigate } from 'react-router-dom'
 
 interface ProfileData {
   name: string
   email: string
   avatarId?: string | null
+}
+
+interface BusinessData {
+  id: string
+  type: 'personal' | 'commercial'
+  businessname: string
+  location: string
+  pancardNumber: string
+  description: string
 }
 
 export default function ProfilePage() {
@@ -28,6 +37,16 @@ export default function ProfilePage() {
   const [passwordError, setPasswordError] = useState<string | null>(null)
   const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null)
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
+  const [isBusinessPasswordDialogOpen, setIsBusinessPasswordDialogOpen] = useState(false)
+  const [isBusinessEditDialogOpen, setIsBusinessEditDialogOpen] = useState(false)
+  const [businessConfirmPassword, setBusinessConfirmPassword] = useState('')
+  const [businessPasswordError, setBusinessPasswordError] = useState<string | null>(null)
+  const [isVerifyingBusinessPassword, setIsVerifyingBusinessPassword] = useState(false)
+  const [businessForm, setBusinessForm] = useState<BusinessData | null>(null)
+  const [isLoadingBusiness, setIsLoadingBusiness] = useState(false)
+  const [isSavingBusiness, setIsSavingBusiness] = useState(false)
+  const [businessEditError, setBusinessEditError] = useState<string | null>(null)
+  const [businessEditSuccess, setBusinessEditSuccess] = useState<string | null>(null)
   const { user, getAuthHeaders, logout } = useAuth()
   const navigate = useNavigate()
 
@@ -131,7 +150,156 @@ export default function ProfilePage() {
       setPasswordError(null)
     }
   }
+  const handleOpenBusinessPasswordModal = () => {
+    setBusinessConfirmPassword('')
+    setBusinessPasswordError(null)
+    setBusinessEditError(null)
+    setBusinessEditSuccess(null)
+    setIsBusinessPasswordDialogOpen(true)
+  }
 
+  const handleCloseBusinessPasswordModal = () => {
+    if (!isVerifyingBusinessPassword) {
+      setIsBusinessPasswordDialogOpen(false)
+      setBusinessConfirmPassword('')
+      setBusinessPasswordError(null)
+    }
+  }
+
+  const handleCloseBusinessEditModal = () => {
+    if (!isSavingBusiness) {
+      setIsBusinessEditDialogOpen(false)
+      setBusinessEditError(null)
+    }
+  }
+
+  const loadBusinessData = async () => {
+    setIsLoadingBusiness(true)
+    setBusinessEditError(null)
+    try {
+      const response = await axios.get(businessmeapi, {
+        withCredentials: true,
+        headers: getAuthHeaders(),
+      })
+
+      const data = response.data?.data as {
+        _id?: string
+        type?: 'personal' | 'commercial'
+        businessname?: string
+        location?: string
+        pancardNumber?: string | number
+        description?: string
+      } | undefined
+
+      if (!response.data?.success || !data?._id) {
+        setBusinessEditError('Unable to load business profile.')
+        return
+      }
+
+      setBusinessForm({
+        id: data._id,
+        type: data.type ?? 'personal',
+        businessname: data.businessname ?? '',
+        location: data.location ?? '',
+        pancardNumber: data.pancardNumber != null ? String(data.pancardNumber) : '',
+        description: data.description ?? '',
+      })
+      setIsBusinessEditDialogOpen(true)
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error)) {
+        setBusinessEditError(error.response?.data?.message ?? 'Unable to load business profile.')
+      } else {
+        setBusinessEditError('Unable to load business profile.')
+      }
+    } finally {
+      setIsLoadingBusiness(false)
+    }
+  }
+
+  const checkPassword = async () => {
+    if (!businessConfirmPassword.trim()) {
+      setBusinessPasswordError('Password is required to confirm')
+      return
+    }
+
+    setIsVerifyingBusinessPassword(true)
+    setBusinessPasswordError(null)
+
+    try {
+      const response = await axios.post(
+        verifyPasswordApi,
+        { password: businessConfirmPassword },
+        {
+          withCredentials: true,
+          headers: getAuthHeaders(),
+        }
+      )
+
+      if (response.data?.success) {
+        setIsBusinessPasswordDialogOpen(false)
+        setBusinessConfirmPassword('')
+        await loadBusinessData()
+      } else {
+        setBusinessPasswordError(response.data?.message ?? 'Password verification failed')
+      }
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error)) {
+        setBusinessPasswordError(error.response?.data?.message ?? 'Incorrect password')
+      } else {
+        setBusinessPasswordError('Incorrect password')
+      }
+    } finally {
+      setIsVerifyingBusinessPassword(false)
+    }
+  }
+
+  const handleSaveBusiness = async () => {
+    if (!businessForm) return
+
+    if (!businessForm.businessname.trim()) {
+      setBusinessEditError('Business name is required')
+      return
+    }
+
+    if (!businessForm.description.trim()) {
+      setBusinessEditError('Description is required')
+      return
+    }
+
+    setIsSavingBusiness(true)
+    setBusinessEditError(null)
+    setBusinessEditSuccess(null)
+
+    try {
+      const response = await axios.put(
+        businessmeapi,
+        {
+          type: businessForm.type,
+          businessname: businessForm.businessname.trim(),
+          location: businessForm.location.trim(),
+          pancardNumber: businessForm.pancardNumber.trim(),
+          description: businessForm.description.trim(),
+        },
+        {
+          withCredentials: true,
+          headers: getAuthHeaders(),
+        }
+      )
+
+      if (response.data?.success) {
+        setBusinessEditSuccess(response.data?.message ?? 'Business profile updated successfully')
+        setIsBusinessEditDialogOpen(false)
+      }
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error)) {
+        setBusinessEditError(error.response?.data?.message ?? 'Failed to update business profile.')
+      } else {
+        setBusinessEditError('Failed to update business profile.')
+      }
+    } finally {
+      setIsSavingBusiness(false)
+    }
+  }
   const handleChangePassword = async () => {
     if (!currentPassword || !newPassword || !confirmPassword) {
       setPasswordError('All password fields are required')
@@ -232,6 +400,16 @@ export default function ProfilePage() {
         </Button>
         <Button
           type="button"
+          variant="ghost"
+          size="sm"
+          className="min-h-0 rounded bg-slate-100 px-2.5 py-1.5 text-xs font-medium dark:bg-slate-700"
+          onClick={handleOpenBusinessPasswordModal}
+        >
+           <Pencil className="h-4 w-4"/>
+            Edit Business 
+        </Button>
+        <Button
+          type="button"
           variant="danger"
           size="sm"
           className="min-h-0 rounded px-2.5 py-1.5 text-xs font-medium"
@@ -243,6 +421,9 @@ export default function ProfilePage() {
       </div>
       {passwordSuccess ? (
         <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400">{passwordSuccess}</p>
+      ) : null}
+      {businessEditSuccess ? (
+        <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400">{businessEditSuccess}</p>
       ) : null}
 
       <Modal
@@ -379,6 +560,142 @@ export default function ProfilePage() {
           </Button>
         </div>
       </Modal>
+
+      <Modal
+        isOpen={isBusinessPasswordDialogOpen}
+        onClose={handleCloseBusinessPasswordModal}
+        title="Confirm Password"
+        >
+         <p className='text-sm text-muted-foreground'>
+           Enter password to confirm
+          </p>
+          <Input
+            id='password-confirmation'
+            label=''
+            type='password'
+            value={businessConfirmPassword}
+            onChange={setBusinessConfirmPassword}
+            placeholder='password'
+          />
+          {businessPasswordError ? (
+            <p className="text-xs font-medium text-rose-600 dark:text-rose-400">{businessPasswordError}</p>
+          ) : null}
+          <div className='mt-6 flex gap-3'>
+            <Button
+            type='button'
+            variant='secondary'
+            size='lg'
+            onClick={handleCloseBusinessPasswordModal}
+            disabled={isVerifyingBusinessPassword}
+            >
+            <X className="h-4 w-4" />
+            Cancel
+            </Button>
+            <Button
+             type='button'
+             variant='primary'
+             size='lg'
+             className='flex-1'
+            onClick={checkPassword}
+            disabled={isVerifyingBusinessPassword}
+            >
+              <Check className="h-4 w-4"/>
+              {isVerifyingBusinessPassword ? 'Verifying...' : 'Confirm'}
+            </Button>
+            </div>
+        </Modal>
+
+      <Modal
+        isOpen={isBusinessEditDialogOpen}
+        onClose={handleCloseBusinessEditModal}
+        title="Edit Business"
+      >
+        <div className="space-y-4">
+          {isLoadingBusiness ? (
+            <p className="text-sm text-slate-600 dark:text-slate-400">Loading business profile...</p>
+          ) : (
+            <>
+              <Input
+                id="edit-business-name"
+                label="Business Name"
+                type="text"
+                value={businessForm?.businessname ?? ''}
+                onChange={(value) => setBusinessForm(prev => (prev ? { ...prev, businessname: value } : prev))}
+                placeholder="Enter business name"
+              />
+              <div className="space-y-1">
+                <label htmlFor="edit-business-type" className="block text-sm font-medium text-slate-700 dark:text-slate-200">
+                  Business Type
+                </label>
+                <select
+                  id="edit-business-type"
+                  value={businessForm?.type ?? 'personal'}
+                  onChange={(event) => setBusinessForm(prev => (prev ? { ...prev, type: event.target.value as 'personal' | 'commercial' } : prev))}
+                  className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+                >
+                  <option value="personal">Personal</option>
+                  <option value="commercial">Commercial</option>
+                </select>
+              </div>
+              <Input
+                id="edit-business-location"
+                label="Location"
+                type="text"
+                value={businessForm?.location ?? ''}
+                onChange={(value) => setBusinessForm(prev => (prev ? { ...prev, location: value } : prev))}
+                placeholder="Enter location"
+              />
+              <Input
+                id="edit-business-pancard"
+                label="Pancard Number"
+                type="text"
+                value={businessForm?.pancardNumber ?? ''}
+                onChange={(value) => setBusinessForm(prev => (prev ? { ...prev, pancardNumber: value } : prev))}
+                placeholder="Enter pancard number"
+              />
+              <Input
+                id="edit-business-description"
+                label="Description"
+                type="text"
+                value={businessForm?.description ?? ''}
+                onChange={(value) => setBusinessForm(prev => (prev ? { ...prev, description: value } : prev))}
+                placeholder="Describe your business"
+              />
+            </>
+          )}
+
+          {businessEditError ? (
+            <p className="text-xs font-medium text-rose-600 dark:text-rose-400">{businessEditError}</p>
+          ) : null}
+        </div>
+
+        <div className="mt-6 flex gap-3">
+          <Button
+            type="button"
+            variant="secondary"
+            size="lg"
+            onClick={handleCloseBusinessEditModal}
+            className="flex-1"
+            disabled={isSavingBusiness}
+          >
+            <X className="h-4 w-4" />
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            variant="primary"
+            size="lg"
+            onClick={handleSaveBusiness}
+            className="flex-1"
+            disabled={isSavingBusiness || isLoadingBusiness || !businessForm}
+          >
+            <Check className="h-4 w-4" />
+            {isSavingBusiness ? 'Saving...' : 'Save Business'}
+          </Button>
+        </div>
+      </Modal>
+
+    
     </section>
   )
 }
