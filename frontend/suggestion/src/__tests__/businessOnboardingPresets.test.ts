@@ -1,4 +1,5 @@
 import {
+  getDefaultPageForRole,
   getStarterBundle,
   getRequiredPageRoles,
   validatePageRoles,
@@ -126,6 +127,15 @@ describe('businessOnboardingPresets', () => {
       const result = validatePageRoles('custom_start', [{ role: null }, {}])
       expect(result.valid).toBe(false)
       expect(result.missing).toEqual(['contact'])
+    })
+  })
+
+  describe('getDefaultPageForRole', () => {
+    it('generates incremented slug when defaults already exist', () => {
+      const page = getDefaultPageForRole('products', ['products', 'products-2'])
+      expect(page.slug).toBe('products-3')
+      expect(page.title).toBe('Products')
+      expect(page.role).toBe('products')
     })
   })
 })
