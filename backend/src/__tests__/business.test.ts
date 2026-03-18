@@ -167,6 +167,40 @@ describe('PATCH /api/v1/business/:id/detail', () => {
     expect(doc?.mapGeo?.coordinates).toEqual([83.9, 28.2]);
   });
 
+  it('patch profile clears mapLocation and mapGeo when map fields emptied', async () => {
+    const created = await Business.create(
+      buildBusiness({
+        mapLocation: {
+          googleMapsUrl: 'https://maps.example/x',
+          latitude: 27,
+          longitude: 85,
+        },
+      }),
+    );
+    await Business.findByIdAndUpdate(created._id, {
+      mapGeo: { type: 'Point', coordinates: [85, 27] },
+    });
+    const res = await authPatch(`/api/v1/business/${created._id}/detail`)
+      .send({
+        profile: {
+          mapLocation: {
+            googleMapsUrl: '',
+            googleReviewsUrl: '',
+            placeId: '',
+            latitude: '',
+            longitude: '',
+          },
+        },
+      })
+      .expect(200);
+    expect(res.body.business.mapLocation == null || res.body.business.mapLocation === undefined).toBe(
+      true,
+    );
+    const doc = await Business.findById(created._id).lean();
+    expect(doc?.mapLocation == null || Object.keys(doc.mapLocation || {}).length === 0).toBe(true);
+    expect(doc?.mapGeo).toBeUndefined();
+  });
+
   it('patch profile sets isPublicCompany', async () => {
     const created = await Business.create(buildBusiness({ isPublicCompany: false }));
     const res = await authPatch(`/api/v1/business/${created._id}/detail`)

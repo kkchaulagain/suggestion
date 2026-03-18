@@ -24,6 +24,7 @@ import { useAuth } from '../../../context/AuthContext'
 import { businessesListApi } from '../../../utils/apipath'
 import { Badge, Button, ErrorMessage, Input, Modal, Select, Textarea } from '../../../components/ui'
 import { EmptyState } from '../../../components/layout'
+import { formatDate, timeAgo } from '../utils/businessDetailTime'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -77,34 +78,6 @@ export interface BusinessDetailResponse {
     notes: CrmNote[]
     tasks: CrmTask[]
     timeline: CrmTimeline[]
-  }
-}
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function formatDate(iso?: string) {
-  if (!iso) return '—'
-  try {
-    return new Date(iso).toLocaleString()
-  } catch {
-    return iso
-  }
-}
-
-function timeAgo(iso?: string) {
-  if (!iso) return '—'
-  try {
-    const diff = Date.now() - new Date(iso).getTime()
-    const mins = Math.floor(diff / 60000)
-    if (mins < 1) return 'just now'
-    if (mins < 60) return `${mins}m ago`
-    const hours = Math.floor(mins / 60)
-    if (hours < 24) return `${hours}h ago`
-    const days = Math.floor(hours / 24)
-    if (days < 7) return `${days}d ago`
-    return formatDate(iso)
-  } catch {
-    return iso ?? '—'
   }
 }
 
