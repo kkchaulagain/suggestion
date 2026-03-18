@@ -17,7 +17,19 @@ function getConnectionUri() {
 
 async function connect() {
   const uri = getConnectionUri();
-  await mongoose.connect(uri);
+  const isTest = typeof process.env.JEST_WORKER_ID !== 'undefined';
+  /** Longer timeouts + keepalive reduce transient ECONNRESET on Atlas during heavy test runs. */
+  await mongoose.connect(
+    uri,
+    isTest
+      ? {
+          serverSelectionTimeoutMS: 25_000,
+          socketTimeoutMS: 120_000,
+          maxPoolSize: 15,
+          family: 4,
+        }
+      : {},
+  );
 }
 
 async function disconnect() {
