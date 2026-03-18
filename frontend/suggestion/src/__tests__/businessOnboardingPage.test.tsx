@@ -104,4 +104,65 @@ describe('BusinessOnboardingPage', () => {
       expect(screen.getByRole('button', { name: /Go to Forms/i })).toBeInTheDocument()
     })
   })
+
+  it('opens add page picker and adds selected role page', async () => {
+    renderOnboarding()
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Get started/i })).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: /Get started/i }))
+    fireEvent.click(screen.getByText(/Start from scratch/i))
+
+    fireEvent.click(screen.getByRole('button', { name: /^Add page$/i }))
+    expect(screen.getByText(/Choose a page type/i)).toBeInTheDocument()
+
+    fireEvent.click(screen.getByText(/Products page/i))
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue('Products')).toBeInTheDocument()
+      expect(screen.getByDisplayValue('products')).toBeInTheDocument()
+    })
+  })
+
+  it('removes a page from site structure', async () => {
+    renderOnboarding()
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Get started/i })).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: /Get started/i }))
+    fireEvent.click(screen.getByText(/Start from scratch/i))
+
+    expect(screen.getByDisplayValue('Contact us')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /Remove Contact us/i }))
+
+    await waitFor(() => {
+      expect(screen.queryByDisplayValue('Contact us')).not.toBeInTheDocument()
+      expect(screen.getByText(/No pages yet/i)).toBeInTheDocument()
+    })
+  })
+
+  it('sends showInNav=false when switch is turned off', async () => {
+    mockedAxios.post.mockResolvedValue({
+      data: { message: 'ok', forms: [], pages: [], onboardingCompleted: true },
+    })
+    renderOnboarding()
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Get started/i })).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /Get started/i }))
+    fireEvent.click(screen.getByText(/Start from scratch/i))
+
+    const navSwitch = screen.getByRole('switch', { name: /Show in navigation/i })
+    fireEvent.click(navSwitch)
+
+    fireEvent.click(screen.getByRole('button', { name: /Continue/i }))
+    fireEvent.click(screen.getByRole('button', { name: /Run setup/i }))
+
+    await waitFor(() => {
+      expect(mockedAxios.post).toHaveBeenCalled()
+    })
+    const postPayload = mockedAxios.post.mock.calls[0]?.[1] as { pages?: Array<{ showInNav?: boolean }> }
+    expect(postPayload.pages?.[0]?.showInNav).toBe(false)
+  })
 })
