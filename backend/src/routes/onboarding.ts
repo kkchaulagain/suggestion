@@ -183,6 +183,8 @@ async function postBusinessSetupHandler(req: AuthenticatedRequest, res: Response
           }
           return block;
         });
+        const role = typeof p.role === 'string' && p.role.trim() ? p.role.trim().slice(0, 40) : undefined;
+        const showInNav = p.showInNav !== false;
         const page = await Page.create({
           businessId,
           slug,
@@ -190,6 +192,8 @@ async function postBusinessSetupHandler(req: AuthenticatedRequest, res: Response
           metaTitle: typeof p.metaTitle === 'string' ? p.metaTitle.trim().slice(0, 120) : undefined,
           metaDescription: typeof p.metaDescription === 'string' ? p.metaDescription.trim().slice(0, 160) : undefined,
           status: p.status === 'published' ? 'published' : 'draft',
+          ...(role && { role }),
+          showInNav,
           blocks: resolvedBlocks,
         });
         createdPages.push({ _id: page._id, title: page.title, slug: page.slug });

@@ -269,6 +269,109 @@ describe('Pages API', () => {
     });
   });
 
+  describe('GET /api/pages/public/:id/navigation', () => {
+    it('returns 400 for invalid id', async () => {
+      await request(app).get('/api/pages/public/not-an-id/navigation').expect(400);
+    });
+
+    it('returns nav pages scoped to same business and showInNav=true', async () => {
+      const { businessId } = await createBusinessAuth();
+      const sourcePage = await Page.create({
+        businessId,
+        slug: 'source',
+        title: 'Source',
+        status: 'published',
+        showInNav: true,
+        blocks: [],
+      });
+      await Page.create({
+        businessId,
+        slug: 'home',
+        title: 'Home',
+        status: 'published',
+        showInNav: true,
+        blocks: [],
+      });
+      await Page.create({
+        businessId,
+        slug: 'hidden',
+        title: 'Hidden',
+        status: 'published',
+        showInNav: false,
+        blocks: [],
+      });
+      await Page.create({
+        businessId,
+        slug: 'draft-page',
+        title: 'Draft',
+        status: 'draft',
+        showInNav: true,
+        blocks: [],
+      });
+
+      const res = await request(app).get(`/api/pages/public/${sourcePage._id}/navigation`).expect(200);
+      expect(Array.isArray(res.body.pages)).toBe(true);
+      expect(res.body.pages.every((p: { showInNav: boolean; status?: string }) => p.showInNav === true)).toBe(true);
+      expect(res.body.pages.map((p: { slug: string }) => p.slug)).toContain('home');
+      expect(res.body.pages.map((p: { slug: string }) => p.slug)).not.toContain('hidden');
+      expect(res.body.pages.map((p: { slug: string }) => p.slug)).not.toContain('draft-page');
+    });
+
+    it('includes published pages where showInNav is undefined (legacy docs)', async () => {
+      const { businessId } = await createBusinessAuth();
+      const sourcePage = await Page.create({
+        businessId,
+        slug: 'legacy-source',
+        title: 'Legacy Source',
+        status: 'published',
+        blocks: [],
+      });
+      await Page.create({
+        businessId,
+        slug: 'legacy-visible',
+        title: 'Legacy Visible',
+        status: 'published',
+        blocks: [],
+      });
+      const hidden = await Page.create({
+        businessId,
+        slug: 'legacy-hidden',
+        title: 'Legacy Hidden',
+        status: 'published',
+        showInNav: false,
+        blocks: [],
+      });
+      await Page.updateOne({ _id: hidden._id }, { $unset: { showInNav: 1 } });
+
+      const res = await request(app).get(`/api/pages/public/${sourcePage._id}/navigation`).expect(200);
+      const slugs = res.body.pages.map((p: { slug: string }) => p.slug);
+      expect(slugs).toContain('legacy-visible');
+    });
+
+    it('returns 404 when source published page does not exist', async () => {
+      const mongoose = require('mongoose');
+      const id = new mongoose.Types.ObjectId();
+      await request(app).get(`/api/pages/public/${id}/navigation`).expect(404);
+    });
+
+    it('returns 500 when navigation query throws', async () => {
+      const { businessId } = await createBusinessAuth();
+      const sourcePage = await Page.create({
+        businessId,
+        slug: 'nav-source',
+        title: 'Nav Source',
+        status: 'published',
+        blocks: [],
+      });
+      const spy = jest.spyOn(Page, 'find').mockImplementationOnce(() => {
+        throw new Error('db failure');
+      });
+      const res = await request(app).get(`/api/pages/public/${sourcePage._id}/navigation`).expect(500);
+      expect(res.body.error).toBe('Failed to fetch navigation pages');
+      spy.mockRestore();
+    });
+  });
+
   describe('GET /api/pages/by-slug/:slug', () => {
     it('returns 404 when slug not found', async () => {
       await request(app).get('/api/pages/by-slug/no-such-page').expect(404);
@@ -464,6 +567,25 @@ describe('Pages API', () => {
         .send({ blocks: [{ type: 'invalid_type', payload: {} }] })
         .expect(400);
       expect(res.body.error).toMatch(/validation failed/i);
+    });
+
+    it('updates role and showInNav', async () => {
+      const { authHeader, businessId } = await createBusinessAuth();
+      const page = await Page.create({
+        businessId,
+        slug: 'role-page',
+        title: 'Role Page',
+        status: 'draft',
+        showInNav: true,
+        blocks: [],
+      });
+      const res = await request(app)
+        .put(`/api/pages/${page._id}`)
+        .set(authHeader)
+        .send({ role: 'home', showInNav: false })
+        .expect(200);
+      expect(res.body.page.role).toBe('home');
+      expect(res.body.page.showInNav).toBe(false);
     });
   });
 

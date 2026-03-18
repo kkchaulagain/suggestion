@@ -3,9 +3,11 @@ import { useParams } from 'react-router-dom'
 import axios from 'axios'
 import { pagesApi } from '../../utils/apipath'
 import { imageDisplayUrl } from '../../utils/placeholderImage'
-import { EmptyState, PublicLayout } from '../../components/layout'
+import { EmptyState } from '../../components/layout'
 import { HeroSection, FeatureCard, FeatureGrid, CTASection, StatsBar, TestimonialSection, PricingSection, FAQSection } from '../../components/landing'
 import EmbeddedFormBlock from '../feedback-form-render/EmbeddedFormBlock'
+import CmsPublicHeader from './components/CmsPublicHeader'
+import CmsPublicFooter from './components/CmsPublicFooter'
 import type { ApiBlock } from '../business-dashboard/pages/pageBlockTypes'
 import { FEATURE_ICON_MAP, HERO_ICON_MAP } from '../business-dashboard/pages/pageBlockRenderers'
 import type {
@@ -258,6 +260,7 @@ function renderBlock(block: Block, index: number): React.ReactNode {
 
 interface CmsPage {
   _id: string
+  businessId?: string
   slug: string
   title: string
   metaTitle?: string
@@ -266,9 +269,17 @@ interface CmsPage {
   blocks: Block[]
 }
 
+interface NavPageItem {
+  _id: string
+  slug: string
+  title: string
+  showInNav?: boolean
+}
+
 export default function PublicPageView() {
   const { id } = useParams<{ id: string; slug?: string }>()
   const [page, setPage] = useState<CmsPage | null>(null)
+  const [navItems, setNavItems] = useState<Array<{ label: string; href: string }>>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -282,8 +293,26 @@ export default function PublicPageView() {
       try {
         setLoading(true)
         setError('')
+        setNavItems([])
         const res = await axios.get<{ page: CmsPage }>(`${pagesApi}/public/${id}`)
         if (!cancelled) setPage(res.data.page)
+
+        // Fetch dedicated public navigation links for this page's business.
+        // Nav failures should not break the page render.
+        try {
+          const navRes = await axios.get<{ pages?: NavPageItem[] }>(`${pagesApi}/public/${id}/navigation`)
+          const publicPages = Array.isArray(navRes?.data?.pages) ? navRes.data.pages : []
+          if (!cancelled) {
+            setNavItems(
+              publicPages.map((p) => ({
+                label: p.title,
+                href: `/c/${p._id}/${p.slug}`,
+              }))
+            )
+          }
+        } catch {
+          if (!cancelled) setNavItems([])
+        }
       } catch (err: unknown) {
         if (!cancelled) {
           const status = (err as { response?: { status?: number } })?.response?.status
@@ -310,48 +339,52 @@ export default function PublicPageView() {
   const blocks = page?.blocks ?? []
 
   return (
-    <PublicLayout mainClassName="mx-auto w-full max-w-5xl px-4 py-10 sm:px-6 sm:py-14">
-      {loading ? (
-        <p className="text-stone-500 dark:text-stone-400">Loading…</p>
-      ) : error || !page ? (
-        <EmptyState type="error" message={error || 'Page not found.'} />
-      ) : (
-        <article className="space-y-16 sm:space-y-20">
-          {buildRenderNodes(blocks).map((node) => {
-            if (node.kind === 'feature_card_grid') {
-              const gridClass = node.blocks.length >= 3
-                ? 'grid gap-10 sm:grid-cols-2 lg:grid-cols-3'
-                : node.blocks.length === 2
-                  ? 'grid gap-10 sm:grid-cols-2'
-                  : 'grid gap-10'
+    <div className="flex min-h-screen flex-col bg-stone-50 text-stone-900 dark:bg-stone-950 dark:text-stone-100">
+      <CmsPublicHeader navItems={navItems} />
+      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-10 sm:px-6 sm:py-14">
+        {loading ? (
+          <p className="text-stone-500 dark:text-stone-400">Loading…</p>
+        ) : error || !page ? (
+          <EmptyState type="error" message={error || 'Page not found.'} />
+        ) : (
+          <article className="space-y-16 sm:space-y-20">
+            {buildRenderNodes(blocks).map((node) => {
+              if (node.kind === 'feature_card_grid') {
+                const gridClass = node.blocks.length >= 3
+                  ? 'grid gap-10 sm:grid-cols-2 lg:grid-cols-3'
+                  : node.blocks.length === 2
+                    ? 'grid gap-10 sm:grid-cols-2'
+                    : 'grid gap-10'
+                return (
+                  <div key={`grid-${node.indices[0]}`} className={gridClass}>
+                    {node.blocks.map((block, i) => {
+                      const p = block.payload as FeatureCardPayload
+                      const title = p?.title?.trim()
+                      const description = p?.description?.trim()
+                      if (!title && !description) return null
+                      const icon = FEATURE_ICON_MAP[(p?.icon ?? '').toLowerCase()] ?? FEATURE_ICON_MAP['file-text']
+                      return (
+                        <FeatureCard
+                          key={node.indices[i]}
+                          icon={icon}
+                          title={title || ''}
+                          description={description || ''}
+                        />
+                      )
+                    })}
+                  </div>
+                )
+              }
               return (
-                <div key={`grid-${node.indices[0]}`} className={gridClass}>
-                  {node.blocks.map((block, i) => {
-                    const p = block.payload as FeatureCardPayload
-                    const title = p?.title?.trim()
-                    const description = p?.description?.trim()
-                    if (!title && !description) return null
-                    const icon = FEATURE_ICON_MAP[(p?.icon ?? '').toLowerCase()] ?? FEATURE_ICON_MAP['file-text']
-                    return (
-                      <FeatureCard
-                        key={node.indices[i]}
-                        icon={icon}
-                        title={title || ''}
-                        description={description || ''}
-                      />
-                    )
-                  })}
+                <div key={`block-${node.index}`}>
+                  {renderBlock(node.block, node.index)}
                 </div>
               )
-            }
-            return (
-              <div key={`block-${node.index}`}>
-                {renderBlock(node.block, node.index)}
-              </div>
-            )
-          })}
-        </article>
-      )}
-    </PublicLayout>
+            })}
+          </article>
+        )}
+      </main>
+      <CmsPublicFooter links={navItems} />
+    </div>
   )
 }

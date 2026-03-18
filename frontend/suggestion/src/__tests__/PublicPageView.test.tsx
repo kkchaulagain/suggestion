@@ -67,6 +67,63 @@ describe('PublicPageView', () => {
     })
   })
 
+  test('renders dedicated public header/footer nav from showInNav pages', async () => {
+    mockedAxios.get
+      .mockResolvedValueOnce({
+        data: {
+          page: {
+            _id: 'page-1',
+            businessId: 'biz-1',
+            slug: 'landing',
+            title: 'Landing',
+            status: 'published',
+            blocks: [],
+          },
+        },
+      })
+      .mockResolvedValueOnce({
+        data: {
+          pages: [
+            { _id: 'page-1', slug: 'landing', title: 'Home', showInNav: true },
+            { _id: 'page-2', slug: 'contact', title: 'Contact', showInNav: true },
+          ],
+        },
+      })
+
+    renderPublicPageView()
+
+    await waitFor(() => {
+      expect(screen.getAllByRole('link', { name: 'Home' }).length).toBeGreaterThan(0)
+    })
+    expect(screen.getAllByRole('link', { name: 'Contact' }).length).toBeGreaterThan(0)
+    expect(screen.queryByRole('link', { name: /Log in/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /Get started/i })).not.toBeInTheDocument()
+  })
+
+  test('still renders page content when nav API fails', async () => {
+    mockedAxios.get
+      .mockResolvedValueOnce({
+        data: {
+          page: {
+            _id: 'page-1',
+            businessId: 'biz-1',
+            slug: 'landing',
+            title: 'Landing',
+            status: 'published',
+            blocks: [{ type: 'heading', payload: { level: 1, text: 'Welcome' } }],
+          },
+        },
+      })
+      .mockRejectedValueOnce(new Error('Navigation failed'))
+
+    renderPublicPageView()
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Welcome', level: 1 })).toBeInTheDocument()
+    })
+    expect(screen.queryByText(/Page not found/i)).not.toBeInTheDocument()
+  })
+
   test('renders page with heading and paragraph blocks', async () => {
     mockedAxios.get.mockResolvedValueOnce({
       data: {
@@ -355,11 +412,19 @@ describe('PublicPageView', () => {
         data: {
           page: {
             _id: 'page-1',
+            businessId: 'biz-1',
             slug: 'landing',
             title: 'Landing',
             status: 'published',
             blocks: [{ type: 'form', payload: { formId: 'form-123' } }],
           },
+        },
+      })
+      .mockResolvedValueOnce({
+        data: {
+          pages: [
+            { _id: 'page-1', slug: 'landing', title: 'Landing', showInNav: true },
+          ],
         },
       })
       .mockResolvedValueOnce({

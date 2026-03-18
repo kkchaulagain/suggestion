@@ -85,6 +85,7 @@ router.post(
       if (existing) {
         return res.status(400).json({ error: 'A page with this slug already exists' });
       }
+      const showInNav = body.showInNav !== false;
       const page = await Page.create({
         businessId: req.businessProfile._id,
         slug,
@@ -92,6 +93,7 @@ router.post(
         metaTitle: typeof body.metaTitle === 'string' ? body.metaTitle.trim().slice(0, 120) : undefined,
         metaDescription: typeof body.metaDescription === 'string' ? body.metaDescription.trim().slice(0, 160) : undefined,
         status: body.status === 'published' ? 'published' : 'draft',
+        showInNav,
         blocks: Array.isArray(body.blocks) ? body.blocks : [],
       });
       return res.status(201).json({ message: 'Page created', page });
@@ -136,6 +138,32 @@ router.get('/public/:id', async (req: Request, res: Response) => {
     return res.status(200).json({ page });
   } catch (_err) {
     return res.status(500).json({ error: 'Failed to fetch page' });
+  }
+});
+
+/** Public: get navigation pages for a published page's business (showInNav=true, published only). */
+router.get('/public/:id/navigation', async (req: Request, res: Response) => {
+  const id = req.params.id;
+  if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ error: 'Invalid page id' });
+  }
+  try {
+    const sourcePage = await Page.findOne({ _id: id, status: 'published' }).select('businessId').lean();
+    if (!sourcePage) {
+      return res.status(404).json({ error: 'Page not found' });
+    }
+    const pages = await Page.find({
+      businessId: sourcePage.businessId,
+      status: 'published',
+      // Backward-compatible: pages created before showInNav existed should still appear.
+      showInNav: { $ne: false },
+    })
+      .select('_id slug title role showInNav')
+      .sort({ createdAt: 1 })
+      .lean();
+    return res.status(200).json({ pages });
+  } catch (_err) {
+    return res.status(500).json({ error: 'Failed to fetch navigation pages' });
   }
 });
 
@@ -201,6 +229,13 @@ router.put(
       }
       if (Array.isArray(body.blocks)) {
         page.blocks = body.blocks;
+      }
+      if (typeof body.role === 'string') {
+        const role = body.role.trim().slice(0, 40);
+        page.role = role || undefined;
+      }
+      if (typeof body.showInNav === 'boolean') {
+        page.showInNav = body.showInNav;
       }
       if (typeof body.slug === 'string') {
         const newSlug = normalizeSlug(body.slug);
