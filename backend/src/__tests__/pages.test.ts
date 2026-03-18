@@ -347,6 +347,29 @@ describe('Pages API', () => {
       const slugs = res.body.pages.map((p: { slug: string }) => p.slug);
       expect(slugs).toContain('legacy-visible');
     });
+
+    it('returns 404 when source published page does not exist', async () => {
+      const mongoose = require('mongoose');
+      const id = new mongoose.Types.ObjectId();
+      await request(app).get(`/api/pages/public/${id}/navigation`).expect(404);
+    });
+
+    it('returns 500 when navigation query throws', async () => {
+      const { businessId } = await createBusinessAuth();
+      const sourcePage = await Page.create({
+        businessId,
+        slug: 'nav-source',
+        title: 'Nav Source',
+        status: 'published',
+        blocks: [],
+      });
+      const spy = jest.spyOn(Page, 'find').mockImplementationOnce(() => {
+        throw new Error('db failure');
+      });
+      const res = await request(app).get(`/api/pages/public/${sourcePage._id}/navigation`).expect(500);
+      expect(res.body.error).toBe('Failed to fetch navigation pages');
+      spy.mockRestore();
+    });
   });
 
   describe('GET /api/pages/by-slug/:slug', () => {
@@ -544,6 +567,25 @@ describe('Pages API', () => {
         .send({ blocks: [{ type: 'invalid_type', payload: {} }] })
         .expect(400);
       expect(res.body.error).toMatch(/validation failed/i);
+    });
+
+    it('updates role and showInNav', async () => {
+      const { authHeader, businessId } = await createBusinessAuth();
+      const page = await Page.create({
+        businessId,
+        slug: 'role-page',
+        title: 'Role Page',
+        status: 'draft',
+        showInNav: true,
+        blocks: [],
+      });
+      const res = await request(app)
+        .put(`/api/pages/${page._id}`)
+        .set(authHeader)
+        .send({ role: 'home', showInNav: false })
+        .expect(200);
+      expect(res.body.page.role).toBe('home');
+      expect(res.body.page.showInNav).toBe(false);
     });
   });
 
