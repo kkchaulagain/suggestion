@@ -6,7 +6,8 @@ const businessSchema = new mongoose.Schema({
     owner:{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
-        required: true,
+        required: false,
+        default: undefined,
     },
     type: {
         type: String,
@@ -38,7 +39,30 @@ const businessSchema = new mongoose.Schema({
         type: Date,
         required: false,
     },
+    crmTags: {
+        type: [String],
+        default: [],
+    },
+    customFields: {
+        type: [
+            {
+                key: { type: String, required: true },
+                value: { type: mongoose.Schema.Types.Mixed },
+                fieldType: { type: String, default: 'text' },
+            },
+        ],
+        default: [],
+    },
 },{timestamps: true});
+
+/** Legacy documents or partial inserts may omit `type`; default before validate so save() passes. */
+businessSchema.pre('validate', function (this: { type?: string; set: (k: string, v: string) => void }, next: () => void) {
+  if (this.type == null || this.type === '') {
+    this.set('type', 'commercial');
+  }
+  next();
+});
+
 export const Business = mongoose.model('Business', businessSchema);
 
 module.exports = Business;

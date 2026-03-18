@@ -20,6 +20,7 @@ import SubmissionsPage from './pages/business-dashboard/pages/SubmissionsPage'
 import BusinessOnboardingPage from './pages/business-dashboard/pages/BusinessOnboardingPage'
 import PublicPageView from './pages/cms-public/PublicPageView'
 import BusinessesPage from './pages/business-dashboard/pages/BusinessesPage'
+import BusinessDetailPage from './pages/business-dashboard/pages/BusinessDetailPage'
 import FormRenderLayout from './pages/feedback-form-render/FormRenderLayout'
 import FormRenderPage from './pages/feedback-form-render/FormRenderPage'
 import FormResultsPage from './pages/feedback-form-render/FormResultsPage'
@@ -80,6 +81,14 @@ function App() {
             <Route path="pages/:pageId/edit" element={<CreatePagePage />} />
             <Route path="submissions" element={<SubmissionsPage />} />
             <Route path="businesses" element={<RoleGuard roles={['admin']}><BusinessesPage /></RoleGuard>} />
+            <Route
+              path="businesses/:businessId"
+              element={
+                <RoleGuard roles={['admin']}>
+                  <BusinessDetailPage />
+                </RoleGuard>
+              }
+            />
             <Route path="users" element={<RoleGuard roles={['admin']}><UsersPage /></RoleGuard>} />
             <Route path="profile" element={<ProfilePage />} />
           </Route>

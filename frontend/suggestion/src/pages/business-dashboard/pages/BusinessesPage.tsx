@@ -1,17 +1,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
-import { Check, Eye, Pencil, RefreshCw, Trash2, X } from 'lucide-react'
+import { Check, Pencil, RefreshCw, Trash2, X } from 'lucide-react'
 import { useAuth } from '../../../context/AuthContext'
 import { businessesListApi } from '../../../utils/apipath'
 import { Button, Card, Input, Textarea, ErrorMessage, Modal } from '../../../components/ui'
 import { EmptyState } from '../../../components/layout'
+import BusinessCreateWizard from '../components/BusinessCreateWizard'
 
-interface BusinessListItem {
+export interface BusinessListItem {
   id: string
   owner: string
   businessname: string
   location: string
-  pancardNumber: number
+  pancardNumber: number | string
   description: string
 }
 
@@ -23,9 +25,12 @@ interface BusinessDetailResponse {
   business: BusinessListItem
 }
 
-type ModalMode = 'view' | 'edit' | null
+type ModalMode = 'edit' | null
+type ViewMode = 'list' | 'create'
 
 export default function BusinessesPage() {
+  const navigate = useNavigate()
+  const [viewMode, setViewMode] = useState<ViewMode>('list')
   const [businesses, setBusinesses] = useState<BusinessListItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -68,12 +73,6 @@ export default function BusinessesPage() {
   useEffect(() => {
     void loadBusinesses()
   }, [loadBusinesses])
-
-  const openView = (business: BusinessListItem) => {
-    setSelectedBusiness(business)
-    setModalMode('view')
-    setModalError('')
-  }
 
   const openEdit = (business: BusinessListItem) => {
     setSelectedBusiness(business)
@@ -128,14 +127,36 @@ export default function BusinessesPage() {
     }
   }
 
+  const handleCreateSuccess = () => {
+    setViewMode('list')
+    void loadBusinesses()
+  }
+
+  if (viewMode === 'create') {
+    return (
+      <Card>
+        <BusinessCreateWizard
+          authConfig={authHeaders}
+          onCancel={() => setViewMode('list')}
+          onSuccess={handleCreateSuccess}
+        />
+      </Card>
+    )
+  }
+
   return (
     <Card>
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">Registered Businesses</h3>
-        <Button type="button" variant="secondary" size="sm" onClick={() => void loadBusinesses()}>
-          <RefreshCw className="h-4 w-4" />
-          Refresh
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button type="button" variant="primary" size="sm" onClick={() => setViewMode('create')}>
+            Add business
+          </Button>
+          <Button type="button" variant="secondary" size="sm" onClick={() => void loadBusinesses()} aria-label="Refresh list">
+            <RefreshCw className="h-4 w-4" />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       {loading ? (
@@ -146,7 +167,10 @@ export default function BusinessesPage() {
 
       <div className="mt-4 space-y-4">
         {businesses.map((business) => (
-          <div key={business.id} className="rounded-xl border border-slate-200 p-4 dark:border-slate-700 dark:bg-slate-800/50">
+          <div
+            key={business.id}
+            className="rounded-xl border border-slate-200 p-4 dark:border-slate-700 dark:bg-slate-800/50"
+          >
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="text-base font-semibold text-slate-900 dark:text-slate-100">{business.businessname}</p>
@@ -159,8 +183,12 @@ export default function BusinessesPage() {
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                <Button type="button" variant="secondary" size="sm" onClick={() => openView(business)}>
-                  <Eye className="h-4 w-4" />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => navigate(`/dashboard/businesses/${business.id}`)}
+                >
                   View
                 </Button>
                 <Button type="button" variant="secondary" size="sm" onClick={() => openEdit(business)}>
@@ -179,92 +207,55 @@ export default function BusinessesPage() {
 
       {error ? <ErrorMessage message={error} className="mt-4" /> : null}
 
-      {modalMode && selectedBusiness ? (
-        <Modal
-          isOpen
-          onClose={closeModal}
-          title={modalMode === 'view' ? 'Business details' : 'Edit business'}
-        >
-          {modalMode === 'view' ? (
-              <div className="space-y-2">
-                <p className="text-sm text-slate-600 dark:text-slate-300">
-                  <span className="font-semibold text-slate-700 dark:text-slate-200">Name:</span> {selectedBusiness.businessname}
-                </p>
-                <p className="text-sm text-slate-600 dark:text-slate-300">
-                  <span className="font-semibold text-slate-700 dark:text-slate-200">Location:</span> {selectedBusiness.location}
-                </p>
-                <p className="text-sm text-slate-600 dark:text-slate-300">
-                  <span className="font-semibold text-slate-700 dark:text-slate-200">PAN:</span> {selectedBusiness.pancardNumber ?? 'N/A'}
-                </p>
-                <p className="text-sm text-slate-600 dark:text-slate-300">
-                  <span className="font-semibold text-slate-700 dark:text-slate-200">Description:</span>{' '}
-                  {selectedBusiness.description || '—'}
-                </p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  <span className="font-semibold">ID:</span> {selectedBusiness.id} ·{' '}
-                  <span className="font-semibold">Owner:</span> {selectedBusiness.owner}
-                </p>
-              </div>
-            ) : (
-              <form
-                className="space-y-4"
-                onSubmit={(e) => {
-                  e.preventDefault()
-                  void handleSaveEdit()
-                }}
-              >
-                <Input
-                  id="edit-businessname"
-                  label="Business name"
-                  type="text"
-                  value={editForm.businessname}
-                  onChange={(v) => setEditForm((f) => ({ ...f, businessname: v }))}
-                />
-                <Input
-                  id="edit-location"
-                  label="Location"
-                  type="text"
-                  value={editForm.location}
-                  onChange={(v) => setEditForm((f) => ({ ...f, location: v }))}
-                />
-                <Input
-                  id="edit-pancard"
-                  label="PAN number"
-                  type="number"
-                  value={editForm.pancardNumber ? String(editForm.pancardNumber) : ''}
-                  onChange={(v) =>
-                    setEditForm((f) => ({ ...f, pancardNumber: Number(v) || 0 }))
-                  }
-                />
-                <Textarea
-                  id="edit-description"
-                  label="Description"
-                  value={editForm.description}
-                  onChange={(v) => setEditForm((f) => ({ ...f, description: v }))}
-                  rows={3}
-                />
-                {modalError ? <ErrorMessage message={modalError} /> : null}
-                <div className="flex justify-end gap-2">
-                  <Button type="button" variant="secondary" size="sm" onClick={closeModal}>
-                    <X className="h-4 w-4" />
-                    Cancel
-                  </Button>
-                  <Button type="submit" variant="primary" size="sm" disabled={saving}>
-                    <Check className="h-4 w-4" />
-                    {saving ? 'Saving...' : 'Save'}
-                  </Button>
-                </div>
-              </form>
-            )}
-
-            {modalMode === 'view' ? (
-              <div className="flex justify-end">
-                <Button type="button" variant="secondary" size="sm" onClick={closeModal}>
-                  <X className="h-4 w-4" />
-                  Close
-                </Button>
-              </div>
-            ) : null}
+      {modalMode === 'edit' && selectedBusiness ? (
+        <Modal isOpen onClose={closeModal} title="Edit business">
+          <form
+            className="space-y-4"
+            onSubmit={(e) => {
+              e.preventDefault()
+              void handleSaveEdit()
+            }}
+          >
+            <Input
+              id="edit-businessname"
+              label="Business name"
+              type="text"
+              value={editForm.businessname}
+              onChange={(v) => setEditForm((f) => ({ ...f, businessname: v }))}
+            />
+            <Input
+              id="edit-location"
+              label="Location"
+              type="text"
+              value={editForm.location}
+              onChange={(v) => setEditForm((f) => ({ ...f, location: v }))}
+            />
+            <Input
+              id="edit-pancard"
+              label="PAN number"
+              type="number"
+              value={editForm.pancardNumber ? String(editForm.pancardNumber) : ''}
+              onChange={(v) => setEditForm((f) => ({ ...f, pancardNumber: Number(v) || 0 }))}
+            />
+            <Textarea
+              id="edit-description"
+              label="Description"
+              value={editForm.description}
+              onChange={(v) => setEditForm((f) => ({ ...f, description: v }))}
+              rows={3}
+            />
+            {modalError ? <ErrorMessage message={modalError} /> : null}
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="secondary" size="sm" onClick={closeModal}>
+                <X className="h-4 w-4" />
+                Cancel
+              </Button>
+              <Button type="submit" variant="primary" size="sm" disabled={saving}>
+                <Check className="h-4 w-4" />
+                {saving ? 'Saving...' : 'Save'}
+              </Button>
+            </div>
+          </form>
         </Modal>
       ) : null}
     </Card>
