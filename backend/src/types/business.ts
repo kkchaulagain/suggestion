@@ -5,7 +5,7 @@ export type BusinessType = 'personal' | 'commercial';
 
 export type BusinessDocument = {
   _id: Types.ObjectId;
-  owner: Types.ObjectId;
+  owner?: Types.ObjectId | null;
   type: BusinessType;
   businessname: string;
   location?: string;

@@ -1,12 +1,21 @@
 import type { Request, Response } from 'express';
+import type { Types } from 'mongoose';
 const Business = require('../../models/Business');
+const CrmActivity = require('../../models/CrmActivity');
+const CrmNote = require('../../models/CrmNote');
+const CrmTask = require('../../models/CrmTask');
 import type { BusinessDocument, BusinessListItem, GetBusinessesResponse, GetBusinessResponse, } from '../../types/business';
 import type { ApiResponse } from '../../types/api';
+import {
+  deleteAllCrmForBusiness,
+  loadCrmPayload,
+  type BusinessCrmFields,
+} from '../../services/crmForBusiness';
 
 function toListItem(doc: BusinessDocument): BusinessListItem {
   const item: BusinessListItem = {
     id: String(doc._id),
-    owner: String(doc.owner),
+    owner: doc.owner != null ? String(doc.owner) : '',
     type: doc.type,
     businessname: doc.businessname,
     description: doc.description,
@@ -18,6 +27,54 @@ function toListItem(doc: BusinessDocument): BusinessListItem {
     item.pancardNumber = doc.pancardNumber;
   }
   return item;
+}
+
+async function createBusiness(req: Request, res: Response): Promise<void> {
+  const body = req.body as Record<string, unknown>;
+  const { businessname, description, location, pancardNumber, type, customFields } = body;
+  const name = typeof businessname === 'string' ? businessname.trim() : '';
+  const desc = typeof description === 'string' ? description.trim() : '';
+  if (!name || !desc) {
+    res.status(400).json({ message: 'businessname and description are required', ok: false });
+    return;
+  }
+  const bizType =
+    type === 'personal' || type === 'commercial' ? type : 'commercial';
+  const payload: Record<string, unknown> = {
+    type: bizType,
+    businessname: name,
+    description: desc,
+  };
+  if (location != null && String(location).trim()) {
+    payload.location = String(location).trim();
+  }
+  if (pancardNumber != null && String(pancardNumber).trim()) {
+    payload.pancardNumber = String(pancardNumber).trim();
+  }
+  if (Array.isArray(customFields)) {
+    const cleaned = customFields
+      .filter(
+        (row): row is { key: string; value: unknown; fieldType?: string } =>
+          row != null &&
+          typeof row === 'object' &&
+          typeof (row as { key?: unknown }).key === 'string' &&
+          String((row as { key: string }).key).trim() !== '',
+      )
+      .map((row) => ({
+        key: String(row.key).trim(),
+        value: row.value,
+        fieldType: typeof row.fieldType === 'string' ? row.fieldType : 'text',
+      }));
+    if (cleaned.length > 0) {
+      payload.customFields = cleaned;
+    }
+  }
+  const business = await Business.create(payload);
+  res.status(201).json({
+    message: 'Business created successfully',
+    ok: true,
+    business: toListItem(business as BusinessDocument),
+  });
 }
 
 async function getBusiness(req: Request, res: Response): Promise<void> {
@@ -48,8 +105,7 @@ async function findBusinessById(req: Request, res: Response): Promise<void> {
 
 async function deleteBusiness(req:Request,res:Response):Promise<void>{
   const {id}= req.params;
-  const business = await Business.findByIdAndDelete(id);
-  
+  const business = await Business.findById(id);
   if(!business){
     const payload:ApiResponse={
       message:'Business not found',
@@ -58,7 +114,9 @@ async function deleteBusiness(req:Request,res:Response):Promise<void>{
     res.status(404).json(payload);
     return;
   }
-  //business found and deleted from DB
+  const bid = business._id as Types.ObjectId;
+  await deleteAllCrmForBusiness(bid);
+  await Business.findByIdAndDelete(id);
   const payload:ApiResponse={
     message:'Business deleted successfully',
     ok:true,
@@ -102,4 +160,208 @@ async function updateBusiness(req: Request, res: Response): Promise<void> {
     business: toListItem(business),
   });
 }
-module.exports = { getBusiness,findBusinessById,deleteBusiness,updateBusiness };
+
+async function getBusinessDetail(req: Request, res: Response): Promise<void> {
+  const { id } = req.params;
+  const business = await Business.findById(id);
+  if (!business) {
+    res.status(404).json({ message: 'Business not found', ok: false });
+    return;
+  }
+  const bid = business._id as Types.ObjectId;
+  const crm = await loadCrmPayload(bid, business as unknown as BusinessCrmFields);
+  res.json({
+    ok: true,
+    business: toListItem(business as BusinessDocument),
+    crm,
+  });
+}
+
+async function patchBusinessDetail(req: Request, res: Response): Promise<void> {
+  const { id } = req.params;
+  const body = req.body as Record<string, unknown>;
+  const business = await Business.findById(id);
+  if (!business) {
+    res.status(404).json({ message: 'Business not found', ok: false });
+    return;
+  }
+
+  const businessId = business._id as Types.ObjectId;
+  let applied = false;
+  let businessDirty = false;
+
+  const doc = business as unknown as {
+    businessname: string;
+    location?: string;
+    pancardNumber?: string;
+    description: string;
+    crmTags: string[];
+  };
+  if (!Array.isArray(doc.crmTags)) {
+    (business as { crmTags: string[] }).crmTags = [];
+  }
+
+  const profile = body.profile;
+  if (profile != null && typeof profile === 'object' && !Array.isArray(profile)) {
+    const p = profile as Record<string, unknown>;
+    if (typeof p.businessname === 'string' && p.businessname.trim()) {
+      doc.businessname = p.businessname.trim();
+      businessDirty = true;
+    }
+    if (typeof p.location === 'string') {
+      doc.location = p.location.trim();
+      businessDirty = true;
+    }
+    if (p.pancardNumber !== undefined) {
+      const pan = String(p.pancardNumber ?? '').trim();
+      if (pan) {
+        doc.pancardNumber = pan;
+      } else {
+        business.set('pancardNumber', undefined);
+      }
+      businessDirty = true;
+    }
+    if (typeof p.description === 'string' && p.description.trim()) {
+      doc.description = p.description.trim();
+      businessDirty = true;
+    }
+    await CrmActivity.create({
+      businessId,
+      eventType: 'profile',
+      summary: 'Profile updated',
+      createdAt: new Date(),
+    });
+    applied = true;
+  }
+
+  if (Array.isArray(body.tags)) {
+    (business as { crmTags: string[] }).crmTags = (body.tags as unknown[])
+      .filter((t): t is string => typeof t === 'string')
+      .map((t) => t.trim())
+      .filter(Boolean);
+    businessDirty = true;
+    await CrmActivity.create({
+      businessId,
+      eventType: 'tags',
+      summary: 'Tags updated',
+      createdAt: new Date(),
+    });
+    applied = true;
+  }
+
+  const addNote = body.addNote;
+  if (addNote != null && typeof addNote === 'object' && typeof (addNote as { text?: unknown }).text === 'string') {
+    const text = String((addNote as { text: string }).text).trim();
+    if (text) {
+      await CrmNote.create({ businessId, text, createdAt: new Date() });
+      await CrmActivity.create({
+        businessId,
+        eventType: 'note',
+        summary: 'Note added',
+        createdAt: new Date(),
+      });
+      applied = true;
+    }
+  }
+
+  const addTask = body.addTask;
+  if (addTask != null && typeof addTask === 'object' && typeof (addTask as { title?: unknown }).title === 'string') {
+    const title = String((addTask as { title: string }).title).trim();
+    if (title) {
+      const due = (addTask as { dueDate?: string }).dueDate;
+      if (due) {
+        await CrmTask.create({
+          businessId,
+          title,
+          completed: false,
+          dueDate: new Date(due),
+          createdAt: new Date(),
+        });
+      } else {
+        await CrmTask.create({
+          businessId,
+          title,
+          completed: false,
+          createdAt: new Date(),
+        });
+      }
+      await CrmActivity.create({
+        businessId,
+        eventType: 'task',
+        summary: `Task added: ${title}`,
+        createdAt: new Date(),
+      });
+      applied = true;
+    }
+  }
+
+  const updateTask = body.updateTask;
+  if (
+    updateTask != null &&
+    typeof updateTask === 'object' &&
+    typeof (updateTask as { taskId?: unknown }).taskId === 'string'
+  ) {
+    const taskId = (updateTask as { taskId: string }).taskId;
+    const updatedTask = await CrmTask.findOneAndUpdate(
+      { _id: taskId, businessId },
+      { completed: !!(updateTask as { completed?: boolean }).completed },
+      { new: true },
+    );
+    if (updatedTask) {
+      await CrmActivity.create({
+        businessId,
+        eventType: 'task',
+        summary: 'Task status updated',
+        createdAt: new Date(),
+      });
+      applied = true;
+    }
+  }
+
+  const addTimeline = body.addTimeline;
+  if (
+    addTimeline != null &&
+    typeof addTimeline === 'object' &&
+    typeof (addTimeline as { eventType?: unknown }).eventType === 'string' &&
+    typeof (addTimeline as { summary?: unknown }).summary === 'string'
+  ) {
+    await CrmActivity.create({
+      businessId,
+      eventType: String((addTimeline as { eventType: string }).eventType).slice(0, 64),
+      summary: String((addTimeline as { summary: string }).summary).slice(0, 500),
+      createdAt: new Date(),
+    });
+    applied = true;
+  }
+
+  if (!applied) {
+    res.status(400).json({ message: 'No valid CRM update in body', ok: false });
+    return;
+  }
+
+  if (businessDirty) {
+    await business.save();
+  }
+
+  const saved = await Business.findById(id);
+  if (!saved) {
+    res.status(404).json({ message: 'Business not found', ok: false });
+    return;
+  }
+  const crm = await loadCrmPayload(saved._id as Types.ObjectId, saved as unknown as BusinessCrmFields);
+  res.json({
+    ok: true,
+    business: toListItem(saved as BusinessDocument),
+    crm,
+  });
+}
+
+module.exports = {
+  getBusiness,
+  findBusinessById,
+  deleteBusiness,
+  updateBusiness,
+  createBusiness,
+  getBusinessDetail,
+  patchBusinessDetail,
+};
