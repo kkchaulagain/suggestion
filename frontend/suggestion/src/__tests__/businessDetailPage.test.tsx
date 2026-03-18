@@ -100,6 +100,69 @@ describe('BusinessDetailPage', () => {
     expect(within(dialog).getByLabelText(/Description/i)).toHaveValue('Hello desc')
   })
 
+  test('edit dialog: company listing, map fields, web presence links', async () => {
+    mockGet(
+      defaultBusiness({
+        mapLocation: {
+          googleMapsUrl: 'https://old.maps/',
+          googleReviewsUrl: 'https://old.reviews/',
+          latitude: 1,
+          longitude: 2,
+          placeId: 'oldPlace',
+        },
+      }),
+    )
+    mockedAxios.patch.mockResolvedValue({
+      data: { ok: true, business: defaultBusiness(), crm: defaultCrm() },
+    })
+    renderDetail()
+    const dialog = await openEditDialog()
+
+    fireEvent.change(within(dialog).getByLabelText(/Company listing/i), { target: { value: 'public' } })
+    fireEvent.change(document.getElementById('edit-maps-url')!, {
+      target: { value: 'https://maps.google.com/new' },
+    })
+    fireEvent.change(document.getElementById('edit-reviews-url')!, {
+      target: { value: 'https://reviews.google.com/new' },
+    })
+    fireEvent.change(document.getElementById('edit-lat')!, { target: { value: '27.71' } })
+    fireEvent.change(document.getElementById('edit-lng')!, { target: { value: '85.32' } })
+    fireEvent.change(document.getElementById('edit-place-id')!, { target: { value: 'ChIJnew' } })
+
+    expect(within(dialog).getByText(/Preview Maps/i).closest('a')).toHaveAttribute(
+      'href',
+      'https://maps.google.com/new',
+    )
+    expect(within(dialog).getByText(/Preview Reviews/i).closest('a')).toHaveAttribute(
+      'href',
+      'https://reviews.google.com/new',
+    )
+    expect(within(dialog).getByText(/Google Search/i).closest('a')).toHaveAttribute(
+      'href',
+      expect.stringContaining('CRM%20Biz'),
+    )
+
+    fireEvent.click(within(dialog).getByRole('button', { name: /Save changes/i }))
+    await waitFor(() => {
+      expect(mockedAxios.patch).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          profile: expect.objectContaining({
+            isPublicCompany: true,
+            mapLocation: expect.objectContaining({
+              googleMapsUrl: 'https://maps.google.com/new',
+              googleReviewsUrl: 'https://reviews.google.com/new',
+              latitude: '27.71',
+              longitude: '85.32',
+              placeId: 'ChIJnew',
+            }),
+          }),
+        }),
+        expect.any(Object),
+      )
+    })
+  })
+
   test('Cancel closes dialog without saving', async () => {
     mockGet()
     renderDetail()
