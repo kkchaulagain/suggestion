@@ -148,6 +148,35 @@ describe('PATCH /api/v1/business/:id/detail', () => {
     expect(res.body.business.location).toBe('Ktm');
   });
 
+  it('patch profile updates mapLocation and mapGeo', async () => {
+    const created = await Business.create(buildBusiness({}));
+    const res = await authPatch(`/api/v1/business/${created._id}/detail`)
+      .send({
+        profile: {
+          mapLocation: {
+            googleMapsUrl: 'https://maps.app.goo.gl/x',
+            latitude: 28.2,
+            longitude: 83.9,
+          },
+        },
+      })
+      .expect(200);
+    expect(res.body.business.mapLocation?.latitude).toBe(28.2);
+    expect(res.body.business.mapLocation?.googleMapsUrl).toContain('maps');
+    const doc = await Business.findById(created._id).lean();
+    expect(doc?.mapGeo?.coordinates).toEqual([83.9, 28.2]);
+  });
+
+  it('patch profile sets isPublicCompany', async () => {
+    const created = await Business.create(buildBusiness({ isPublicCompany: false }));
+    const res = await authPatch(`/api/v1/business/${created._id}/detail`)
+      .send({ profile: { isPublicCompany: true } })
+      .expect(200);
+    expect(res.body.business.isPublicCompany).toBe(true);
+    const doc = await Business.findById(created._id).lean();
+    expect(doc?.isPublicCompany).toBe(true);
+  });
+
   it('adds task and updateTask toggles completed', async () => {
     const created = await Business.create(buildBusiness({}));
     const addRes = await authPatch(`/api/v1/business/${created._id}/detail`)
@@ -295,6 +324,7 @@ describe('POST /api/v1/business', () => {
       location: 'Pokhara',
       pancardNumber: '111222333',
       type: 'commercial',
+      isPublicCompany: false,
     });
     expect(res.body.business).toHaveProperty('id');
     const doc = await Business.findById(res.body.business.id);
@@ -312,6 +342,43 @@ describe('POST /api/v1/business', () => {
     expect(listRes.body.businesses.some((b: { businessname: string }) => b.businessname === 'Listed Biz')).toBe(
       true,
     );
+  });
+
+  it('creates public company when isPublicCompany true', async () => {
+    const res = await authPost('/api/v1/business')
+      .send({
+        businessname: 'Listed PLC',
+        description: 'Listed entity',
+        isPublicCompany: true,
+      })
+      .expect(201);
+    expect(res.body.business.isPublicCompany).toBe(true);
+    const doc = await Business.findById(res.body.business.id).lean();
+    expect(doc?.isPublicCompany).toBe(true);
+  });
+
+  it('creates business with mapLocation and mapGeo when lat/lng set', async () => {
+    const res = await authPost('/api/v1/business')
+      .send({
+        businessname: 'Geo Co',
+        description: 'Pinned',
+        mapLocation: {
+          googleMapsUrl: 'https://maps.google.com/?q=here',
+          googleReviewsUrl: 'https://maps.google.com/reviews',
+          latitude: 27.5,
+          longitude: 85.2,
+          placeId: 'ChIJtest',
+        },
+      })
+      .expect(201);
+    expect(res.body.business.mapLocation).toMatchObject({
+      latitude: 27.5,
+      longitude: 85.2,
+      placeId: 'ChIJtest',
+    });
+    const doc = await Business.findById(res.body.business.id).lean();
+    expect(doc.mapGeo?.type).toBe('Point');
+    expect(doc.mapGeo?.coordinates).toEqual([85.2, 27.5]);
   });
 
   it('creates business with personal type and customFields', async () => {
@@ -339,6 +406,42 @@ describe('POST /api/v1/business', () => {
       ]),
     );
     expect(doc.customFields).toHaveLength(2);
+  });
+});
+
+describe('GET /api/v1/business/map-pins', () => {
+  afterEach(async () => {
+    try {
+      await cleanBusinessAndCrm();
+    } catch {
+      /* ignore */
+    }
+  });
+
+  it('returns only public businesses that have map coordinates', async () => {
+    await Business.create({
+      ...buildBusiness({ businessname: 'Listed Pin' }),
+      isPublicCompany: true,
+      mapLocation: { latitude: 27.71, longitude: 85.32 },
+      mapGeo: { type: 'Point', coordinates: [85.32, 27.71] },
+    });
+    await Business.create({
+      ...buildBusiness({ businessname: 'Private Pin' }),
+      isPublicCompany: false,
+      mapLocation: { latitude: 1, longitude: 2 },
+      mapGeo: { type: 'Point', coordinates: [2, 1] },
+    });
+    await Business.create({
+      ...buildBusiness({ businessname: 'Public No Geo' }),
+      isPublicCompany: true,
+    });
+
+    const res = await authGet('/api/v1/business/map-pins').expect(200);
+    expect(res.body.ok).toBe(true);
+    expect(res.body.pins).toHaveLength(1);
+    expect(res.body.pins[0].name).toBe('Listed Pin');
+    expect(res.body.pins[0].latitude).toBe(27.71);
+    expect(res.body.pins[0].longitude).toBe(85.32);
   });
 });
 
@@ -564,4 +667,12 @@ it('should return 200 and update only sent fields', async () => {
   expect(res.body.business.businessname).toBe('Pashupatinath Arts');
   expect(res.body.business.location).toBe('Bhaktapur');
 });
+
+  it('updates isPublicCompany via PUT', async () => {
+    const created = await Business.create(buildBusiness({ isPublicCompany: false }));
+    const res = await authPut(`/api/v1/business/${created._id}`)
+      .send({ isPublicCompany: true })
+      .expect(200);
+    expect(res.body.business.isPublicCompany).toBe(true);
+  });
 })

@@ -163,6 +163,7 @@ describe('BusinessesPage', () => {
           businessname: 'New Co',
           description: 'About new co',
           type: 'commercial',
+          isPublicCompany: false,
           location: 'Ktm',
           pancardNumber: '111',
         }),
@@ -275,6 +276,7 @@ describe('BusinessesPage', () => {
           location: 'New Location',
           pancardNumber: 999,
           description: 'Updated desc',
+          isPublicCompany: false,
         }),
         expect.any(Object),
       )

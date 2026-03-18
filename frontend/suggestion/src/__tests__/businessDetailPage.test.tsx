@@ -154,7 +154,7 @@ describe('BusinessDetailPage', () => {
     await screen.findByLabelText(/Business name/i)
     fireEvent.change(screen.getByLabelText(/Business name/i), { target: { value: 'New' } })
     fireEvent.change(screen.getByLabelText(/^Location$/i), { target: { value: 'L2' } })
-    fireEvent.change(screen.getByLabelText(/PAN/i), { target: { value: '99' } })
+    fireEvent.change(document.getElementById('detail-pan')!, { target: { value: '99' } })
     fireEvent.change(screen.getByLabelText(/^Description$/i), { target: { value: 'D2' } })
     fireEvent.click(screen.getByRole('button', { name: /Save profile/i }))
 
@@ -167,6 +167,14 @@ describe('BusinessDetailPage', () => {
             location: 'L2',
             pancardNumber: '99',
             description: 'D2',
+            isPublicCompany: false,
+            mapLocation: {
+              googleMapsUrl: '',
+              googleReviewsUrl: '',
+              placeId: '',
+              latitude: '',
+              longitude: '',
+            },
           },
         },
         expect.any(Object),

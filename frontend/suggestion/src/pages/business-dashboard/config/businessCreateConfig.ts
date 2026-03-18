@@ -50,6 +50,17 @@ export const BUSINESS_CREATE_STEPS: BusinessCreateStepConfig[] = [
           { value: 'personal', label: 'Personal' },
         ],
       },
+      {
+        name: 'companyListing',
+        label: 'Company listing',
+        type: 'select',
+        required: true,
+        storage: 'core',
+        options: [
+          { value: 'private', label: 'Private company' },
+          { value: 'public', label: 'Public company' },
+        ],
+      },
     ],
   },
   {
@@ -125,7 +136,7 @@ export const BUSINESS_CREATE_STEPS: BusinessCreateStepConfig[] = [
 ]
 
 export function getInitialCreateValues(): Record<string, string> {
-  const out: Record<string, string> = { type: 'commercial' }
+  const out: Record<string, string> = { type: 'commercial', companyListing: 'private' }
   for (const step of BUSINESS_CREATE_STEPS) {
     for (const f of step.fields) {
       if (out[f.name] === undefined) {
@@ -156,6 +167,7 @@ export interface CreateBusinessPayload {
   businessname: string
   description: string
   type: 'commercial' | 'personal'
+  isPublicCompany: boolean
   location?: string
   pancardNumber?: string
   customFields?: Array<{ key: string; value: string; fieldType: string }>
@@ -177,10 +189,12 @@ export function valuesToCreatePayload(values: Record<string, string>): CreateBus
       })
     }
   }
+  const listing = (values.companyListing ?? 'private').trim().toLowerCase()
   const payload: CreateBusinessPayload = {
     businessname: (values.businessname ?? '').trim(),
     description: (values.description ?? '').trim(),
     type,
+    isPublicCompany: listing === 'public',
   }
   const loc = (values.location ?? '').trim()
   if (loc) payload.location = loc

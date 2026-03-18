@@ -4,7 +4,7 @@ import axios from 'axios'
 import { ArrowLeft, Plus } from 'lucide-react'
 import { useAuth } from '../../../context/AuthContext'
 import { businessesListApi } from '../../../utils/apipath'
-import { Button, Card, ErrorMessage, Input, Textarea } from '../../../components/ui'
+import { Button, Card, ErrorMessage, Input, Textarea, Select } from '../../../components/ui'
 import { EmptyState } from '../../../components/layout'
 import { isSectionEnabled, type DetailSectionId } from './businessDetailPageConfig'
 
@@ -16,6 +16,14 @@ export interface BusinessListItem {
   location?: string
   pancardNumber?: string | number
   description: string
+  isPublicCompany?: boolean
+  mapLocation?: {
+    googleMapsUrl?: string
+    googleReviewsUrl?: string
+    latitude?: number
+    longitude?: number
+    placeId?: string
+  }
 }
 
 export interface CrmNote {
@@ -84,6 +92,12 @@ export default function BusinessDetailPage() {
     location: '',
     pancardNumber: '',
     description: '',
+    isPublicCompany: false,
+    mapGoogleMapsUrl: '',
+    mapGoogleReviewsUrl: '',
+    mapLatitude: '',
+    mapLongitude: '',
+    mapPlaceId: '',
   })
   const [newNote, setNewNote] = useState('')
   const [newTaskTitle, setNewTaskTitle] = useState('')
@@ -100,11 +114,18 @@ export default function BusinessDetailPage() {
       )
       setData(res.data)
       const b = res.data.business
+      const m = b.mapLocation
       setProfileDraft({
         businessname: b.businessname ?? '',
         location: String(b.location ?? ''),
         pancardNumber: String(b.pancardNumber ?? ''),
         description: b.description ?? '',
+        isPublicCompany: b.isPublicCompany ?? false,
+        mapGoogleMapsUrl: m?.googleMapsUrl ?? '',
+        mapGoogleReviewsUrl: m?.googleReviewsUrl ?? '',
+        mapLatitude: m?.latitude != null && !Number.isNaN(m.latitude) ? String(m.latitude) : '',
+        mapLongitude: m?.longitude != null && !Number.isNaN(m.longitude) ? String(m.longitude) : '',
+        mapPlaceId: m?.placeId ?? '',
       })
     } catch {
       setError('Could not load business.')
@@ -144,6 +165,14 @@ export default function BusinessDetailPage() {
         location: profileDraft.location.trim(),
         pancardNumber: profileDraft.pancardNumber.trim(),
         description: profileDraft.description.trim(),
+        isPublicCompany: profileDraft.isPublicCompany,
+        mapLocation: {
+          googleMapsUrl: profileDraft.mapGoogleMapsUrl.trim(),
+          googleReviewsUrl: profileDraft.mapGoogleReviewsUrl.trim(),
+          placeId: profileDraft.mapPlaceId.trim(),
+          latitude: profileDraft.mapLatitude.trim(),
+          longitude: profileDraft.mapLongitude.trim(),
+        },
       },
     })
   }
@@ -239,6 +268,16 @@ export default function BusinessDetailPage() {
                 value={profileDraft.location}
                 onChange={(v) => setProfileDraft((p) => ({ ...p, location: v }))}
               />
+              <Select
+                id="detail-company-listing"
+                label="Company listing"
+                value={profileDraft.isPublicCompany ? 'public' : 'private'}
+                onChange={(v) => setProfileDraft((p) => ({ ...p, isPublicCompany: v === 'public' }))}
+                options={[
+                  { value: 'private', label: 'Private company' },
+                  { value: 'public', label: 'Public company' },
+                ]}
+              />
               <Input
                 id="detail-pan"
                 label="PAN / tax ID"
@@ -256,6 +295,64 @@ export default function BusinessDetailPage() {
                 Save profile
               </Button>
             </div>
+          </Card>
+        ) : null}
+
+        {enabled('overview') ? (
+          <Card className="lg:col-span-2">
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Map &amp; location</h3>
+            <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+              Structured data for maps. Public businesses with latitude &amp; longitude appear in{' '}
+              <code className="rounded bg-slate-100 px-1 text-xs dark:bg-slate-800">GET /api/v1/business/map-pins</code>.
+            </p>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <Input
+                id="detail-maps-url"
+                label="Google Maps URL"
+                type="url"
+                value={profileDraft.mapGoogleMapsUrl}
+                onChange={(v) => setProfileDraft((p) => ({ ...p, mapGoogleMapsUrl: v }))}
+                placeholder="https://maps.google.com/..."
+              />
+              <Input
+                id="detail-reviews-url"
+                label="Google Reviews URL"
+                type="url"
+                value={profileDraft.mapGoogleReviewsUrl}
+                onChange={(v) => setProfileDraft((p) => ({ ...p, mapGoogleReviewsUrl: v }))}
+                placeholder="https://..."
+              />
+              <Input
+                id="detail-lat"
+                label="Latitude"
+                type="text"
+                inputMode="decimal"
+                value={profileDraft.mapLatitude}
+                onChange={(v) => setProfileDraft((p) => ({ ...p, mapLatitude: v }))}
+                placeholder="e.g. 27.7172"
+              />
+              <Input
+                id="detail-lng"
+                label="Longitude"
+                type="text"
+                inputMode="decimal"
+                value={profileDraft.mapLongitude}
+                onChange={(v) => setProfileDraft((p) => ({ ...p, mapLongitude: v }))}
+                placeholder="e.g. 85.3240"
+              />
+              <Input
+                id="detail-place-id"
+                className="sm:col-span-2"
+                label="Google Place ID (optional)"
+                type="text"
+                value={profileDraft.mapPlaceId}
+                onChange={(v) => setProfileDraft((p) => ({ ...p, mapPlaceId: v }))}
+                placeholder="ChIJ..."
+              />
+            </div>
+            <Button type="button" variant="secondary" size="sm" className="mt-4" disabled={saving} onClick={saveProfile}>
+              Save map &amp; profile
+            </Button>
           </Card>
         ) : null}
 

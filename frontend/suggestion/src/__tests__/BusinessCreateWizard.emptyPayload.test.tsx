@@ -14,6 +14,7 @@ jest.mock('../pages/business-dashboard/config/businessCreateConfig', () => {
       businessname: '',
       description: '',
       type: 'commercial' as const,
+      isPublicCompany: false,
     }),
   }
 })
