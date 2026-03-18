@@ -56,6 +56,18 @@ const pageSchema = new mongoose.Schema(
       enum: { values: PAGE_STATUSES, message: 'Status must be draft or published' },
       default: 'draft',
     },
+    /** Optional page role from onboarding template (e.g. home, contact, services) for nav and validation. */
+    role: {
+      type: String,
+      trim: true,
+      maxlength: 40,
+      default: undefined,
+    },
+    /** Whether to show this page in site navigation. Default true. */
+    showInNav: {
+      type: Boolean,
+      default: true,
+    },
     blocks: {
       type: [blockSchema],
       default: [],

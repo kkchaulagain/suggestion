@@ -1,5 +1,7 @@
 import {
   getStarterBundle,
+  getRequiredPageRoles,
+  validatePageRoles,
   SITE_ARCHETYPES,
   type OnboardingFormPayload,
   type OnboardingPagePayload,
@@ -70,9 +72,60 @@ describe('businessOnboardingPresets', () => {
       })
     })
 
+    it('pages include role and slug from template structure', () => {
+      archetypeIds.forEach((id) => {
+        const { pages } = getStarterBundle(id)
+        pages.forEach((page: OnboardingPagePayload) => {
+          expect(page).toHaveProperty('role')
+          expect(page).toHaveProperty('slug')
+          expect(typeof page.role).toBe('string')
+          expect(typeof page.slug).toBe('string')
+        })
+      })
+    })
+
     it('returns empty forms and pages for unknown archetype', () => {
       const bundle = getStarterBundle('unknown' as SiteArchetypeId)
       expect(bundle).toEqual({ forms: [], pages: [] })
+    })
+  })
+
+  describe('getRequiredPageRoles', () => {
+    it('returns ordered page roles per archetype', () => {
+      expect(getRequiredPageRoles('business_service')).toEqual(['contact', 'services'])
+      expect(getRequiredPageRoles('selling_products')).toEqual(['home', 'products', 'contact'])
+      expect(getRequiredPageRoles('custom_start')).toEqual(['contact'])
+    })
+
+    it('returns empty array for unknown archetype', () => {
+      expect(getRequiredPageRoles('unknown' as SiteArchetypeId)).toEqual([])
+    })
+  })
+
+  describe('validatePageRoles', () => {
+    it('returns valid when all required roles are present', () => {
+      expect(validatePageRoles('custom_start', [{ role: 'contact' }]).valid).toBe(true)
+      expect(validatePageRoles('custom_start', [{ role: 'contact' }]).missing).toEqual([])
+      expect(
+        validatePageRoles('selling_products', [
+          { role: 'home' },
+          { role: 'products' },
+          { role: 'contact' },
+        ]).valid
+      ).toBe(true)
+    })
+
+    it('returns invalid and lists missing roles when some are absent', () => {
+      const result = validatePageRoles('selling_products', [{ role: 'home' }])
+      expect(result.valid).toBe(false)
+      expect(result.missing).toContain('products')
+      expect(result.missing).toContain('contact')
+    })
+
+    it('ignores pages without role', () => {
+      const result = validatePageRoles('custom_start', [{ role: null }, {}])
+      expect(result.valid).toBe(false)
+      expect(result.missing).toEqual(['contact'])
     })
   })
 })
