@@ -37,7 +37,7 @@ function defaultBusiness(overrides = {}) {
 }
 
 function defaultCrm(overrides = {}) {
-  return { tags: [], customFields: [], notes: [], tasks: [], timeline: [], ...overrides }
+  return { tags: [], customFields: [], notes: [], tasks: [], timeline: [], contacts: [], ...overrides }
 }
 
 function mockGet(business = defaultBusiness(), crm = defaultCrm()) {
@@ -407,6 +407,37 @@ describe('BusinessDetailPage', () => {
         { tags: ['pressed'] },
         expect.any(Object),
       )
+    })
+  })
+
+  // ── Contacts tab ───────────────────────────────────────────────────────────
+
+  test('Contacts tab lists contacts from CRM payload', async () => {
+    mockGet(
+      defaultBusiness(),
+      defaultCrm({
+        contacts: [
+          {
+            id: 'c1',
+            displayName: 'Alex Lead',
+            email: 'alex@example.com',
+            phone: '+1 555 0100',
+            submissionCount: 2,
+            lastSubmittedAt: '2025-06-01T12:00:00.000Z',
+          },
+        ],
+      }),
+    )
+
+    renderDetail()
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Edit$/i })).toBeInTheDocument())
+    fireEvent.click(screen.getByRole('button', { name: /Contacts/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText('Alex Lead')).toBeInTheDocument()
+      expect(screen.getByText('alex@example.com')).toBeInTheDocument()
+      expect(screen.getByText('+1 555 0100')).toBeInTheDocument()
+      expect(screen.getByText(/2 submissions/i)).toBeInTheDocument()
     })
   })
 

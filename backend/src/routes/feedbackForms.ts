@@ -8,6 +8,7 @@ const { FeedbackForm } = require('../models/FeedbackForm');
 const { FeedbackSubmission } = require('../models/FeedbackSubmission');
 const Business = require('../models/Business');
 const User = require('../models/User');
+const { syncContactFromSubmission } = require('../services/syncContactFromSubmission');
 const { isAuthenticated } = require('../middleware/isauthenticated');
 const { authorize } = require('../middleware/authorize');
 const router = express.Router();
@@ -469,6 +470,16 @@ router.post('/:id/submit', async (req: Request, res: Response) => {
       responses: validation.responses,
       submittedAt: new Date(),
     });
+    try {
+      await syncContactFromSubmission(
+        form.businessId as Types.ObjectId,
+        (form.fields || []) as { name: string; type?: string }[],
+        validation.responses,
+        doc._id as Types.ObjectId,
+      );
+    } catch (syncErr) {
+      console.error('syncContactFromSubmission failed', syncErr);
+    }
     return res.status(201).json({ message: 'Submission received', submissionId: doc._id });
   } catch (_err) {
     return res.status(500).json({ error: 'Failed to save submission' });

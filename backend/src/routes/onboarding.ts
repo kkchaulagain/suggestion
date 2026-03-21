@@ -4,6 +4,7 @@ const express = require('express');
 const { FeedbackForm } = require('../models/FeedbackForm');
 const { FeedbackSubmission } = require('../models/FeedbackSubmission');
 const { Page } = require('../models/Page');
+const Contact = require('../models/Contact');
 const Business = require('../models/Business');
 const { isAuthenticated } = require('../middleware/isauthenticated');
 const { authorize } = require('../middleware/authorize');
@@ -124,6 +125,7 @@ async function postBusinessSetupHandler(req: AuthenticatedRequest, res: Response
         await Page.deleteMany({ businessId });
         await FeedbackSubmission.deleteMany({ businessId });
         await FeedbackForm.deleteMany({ businessId });
+        await Contact.deleteMany({ businessId });
       }
 
       const createdForms: { _id: Types.ObjectId; title: string }[] = [];

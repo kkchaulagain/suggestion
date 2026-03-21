@@ -8,6 +8,7 @@ const Business = require('../models/Business');
 const CrmNote = require('../models/CrmNote');
 const CrmTask = require('../models/CrmTask');
 const CrmActivity = require('../models/CrmActivity');
+const Contact = require('../models/Contact');
 const User = require('../models/User');
 const { buildBusiness } = require('./factories/businessFactory');
 
@@ -32,6 +33,7 @@ afterAll(async () => {
     await CrmNote.deleteMany({});
     await CrmTask.deleteMany({});
     await CrmActivity.deleteMany({});
+    await Contact.deleteMany({});
     await Business.deleteMany({});
     await User.deleteMany({});
   } catch {
@@ -44,6 +46,7 @@ async function cleanBusinessAndCrm() {
   await CrmNote.deleteMany({});
   await CrmTask.deleteMany({});
   await CrmActivity.deleteMany({});
+  await Contact.deleteMany({});
   await Business.deleteMany({});
 }
 
@@ -105,6 +108,7 @@ describe('GET /api/v1/business/:id/detail', () => {
       notes: [],
       tasks: [],
       timeline: [],
+      contacts: [],
     });
   });
 });
@@ -604,10 +608,20 @@ describe('Delete /api/v1/bussines/:id',()=>
         .send({ addNote: { text: 'orphan check' } })
         .expect(200);
       expect(await CrmNote.countDocuments({ businessId: created._id })).toBe(1);
+      await Contact.create({
+        businessId: created._id,
+        email: 'orphan-contact@example.com',
+        lastSubmissionId: new mongoose.Types.ObjectId(),
+        submissionCount: 1,
+        firstSubmittedAt: new Date(),
+        lastSubmittedAt: new Date(),
+      });
+      expect(await Contact.countDocuments({ businessId: created._id })).toBe(1);
 
       await authDelete(`/api/v1/business/${created._id}`).expect(200);
       expect(await CrmNote.countDocuments({ businessId: created._id })).toBe(0);
       expect(await CrmActivity.countDocuments({ businessId: created._id })).toBe(0);
+      expect(await Contact.countDocuments({ businessId: created._id })).toBe(0);
     });
 });
 describe('Update /api/v1/business/:id',()=>
