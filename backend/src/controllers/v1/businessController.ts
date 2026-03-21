@@ -11,12 +11,18 @@ import {
   loadCrmPayload,
   type BusinessCrmFields,
 } from '../../services/crmForBusiness';
+import {
+  mapLocationFromCreateBody,
+  mapLocationToApi,
+  mergeMapLocationPatch,
+} from '../../utils/businessMapLocation';
 
 function toListItem(doc: BusinessDocument): BusinessListItem {
   const item: BusinessListItem = {
     id: String(doc._id),
     owner: doc.owner != null ? String(doc.owner) : '',
     type: doc.type,
+    isPublicCompany: Boolean((doc as { isPublicCompany?: boolean }).isPublicCompany),
     businessname: doc.businessname,
     description: doc.description,
   };
@@ -26,12 +32,17 @@ function toListItem(doc: BusinessDocument): BusinessListItem {
   if (doc.pancardNumber !== undefined && doc.pancardNumber !== '') {
     item.pancardNumber = doc.pancardNumber;
   }
+  const map = mapLocationToApi(doc as { mapLocation?: unknown });
+  if (map) {
+    item.mapLocation = map;
+  }
   return item;
 }
 
 async function createBusiness(req: Request, res: Response): Promise<void> {
   const body = req.body as Record<string, unknown>;
-  const { businessname, description, location, pancardNumber, type, customFields } = body;
+  const { businessname, description, location, pancardNumber, type, customFields, isPublicCompany } =
+    body;
   const name = typeof businessname === 'string' ? businessname.trim() : '';
   const desc = typeof description === 'string' ? description.trim() : '';
   if (!name || !desc) {
@@ -40,10 +51,15 @@ async function createBusiness(req: Request, res: Response): Promise<void> {
   }
   const bizType =
     type === 'personal' || type === 'commercial' ? type : 'commercial';
+  const isPublic =
+    isPublicCompany === true ||
+    isPublicCompany === 'true' ||
+    String(isPublicCompany).toLowerCase() === 'true';
   const payload: Record<string, unknown> = {
     type: bizType,
     businessname: name,
     description: desc,
+    isPublicCompany: Boolean(isPublic),
   };
   if (location != null && String(location).trim()) {
     payload.location = String(location).trim();
@@ -68,6 +84,11 @@ async function createBusiness(req: Request, res: Response): Promise<void> {
     if (cleaned.length > 0) {
       payload.customFields = cleaned;
     }
+  }
+  const { mapLocation: mlCreate, mapGeo: geoCreate } = mapLocationFromCreateBody(body.mapLocation);
+  if (mlCreate) {
+    payload.mapLocation = mlCreate;
+    if (geoCreate) payload.mapGeo = geoCreate;
   }
   const business = await Business.create(payload);
   res.status(201).json({
@@ -126,7 +147,7 @@ async function deleteBusiness(req:Request,res:Response):Promise<void>{
 async function updateBusiness(req: Request, res: Response): Promise<void> {
   const { id } = req.params;
  //geting form the body cause we wanna change that
-  const { businessname, location, pancardNumber, description } = req.body;
+  const { businessname, location, pancardNumber, description, isPublicCompany } = req.body;
 
   //checking empty body FIRST
   const updateFields: Partial<BusinessListItem> = {};
@@ -134,6 +155,9 @@ async function updateBusiness(req: Request, res: Response): Promise<void> {
   if (location) updateFields.location = location;
   if (pancardNumber != null && String(pancardNumber).trim()) updateFields.pancardNumber = String(pancardNumber).trim();
   if (description) updateFields.description = description;
+  if (typeof isPublicCompany === 'boolean') {
+    updateFields.isPublicCompany = isPublicCompany;
+  }
 
   if (Object.keys(updateFields).length === 0) {
     res.status(400).json({
@@ -158,6 +182,25 @@ async function updateBusiness(req: Request, res: Response): Promise<void> {
     message: 'Business updated successfully',
     ok: true,
     business: toListItem(business),
+  });
+}
+
+async function getPublicBusinessMapPins(req: Request, res: Response): Promise<void> {
+  const rows = await Business.find({
+    isPublicCompany: true,
+    mapGeo: { $exists: true, $ne: null },
+  })
+    .select('businessname mapGeo mapLocation')
+    .lean();
+  res.json({
+    ok: true,
+    pins: rows.map((b: { _id: Types.ObjectId; businessname: string; mapGeo?: { coordinates: number[] }; mapLocation?: { googleMapsUrl?: string } }) => ({
+      id: String(b._id),
+      name: b.businessname,
+      latitude: b.mapGeo?.coordinates?.[1],
+      longitude: b.mapGeo?.coordinates?.[0],
+      googleMapsUrl: b.mapLocation?.googleMapsUrl,
+    })),
   });
 }
 
@@ -223,6 +266,24 @@ async function patchBusinessDetail(req: Request, res: Response): Promise<void> {
     }
     if (typeof p.description === 'string' && p.description.trim()) {
       doc.description = p.description.trim();
+      businessDirty = true;
+    }
+    if (typeof p.isPublicCompany === 'boolean') {
+      (business as { isPublicCompany: boolean }).isPublicCompany = p.isPublicCompany;
+      businessDirty = true;
+    }
+    if (p.mapLocation != null && typeof p.mapLocation === 'object' && !Array.isArray(p.mapLocation)) {
+      const { mapLocation: ml, mapGeo } = mergeMapLocationPatch(
+        (business as { mapLocation?: unknown }).mapLocation,
+        p.mapLocation as Record<string, unknown>,
+      );
+      if (ml == null) {
+        business.set('mapLocation', undefined);
+        business.set('mapGeo', undefined);
+      } else {
+        business.set('mapLocation', ml);
+        business.set('mapGeo', mapGeo ?? undefined);
+      }
       businessDirty = true;
     }
     await CrmActivity.create({
@@ -362,6 +423,7 @@ module.exports = {
   deleteBusiness,
   updateBusiness,
   createBusiness,
+  getPublicBusinessMapPins,
   getBusinessDetail,
   patchBusinessDetail,
 };

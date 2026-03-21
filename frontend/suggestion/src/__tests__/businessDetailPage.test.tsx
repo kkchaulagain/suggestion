@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { Route, Routes } from 'react-router-dom'
 import { TestRouter } from './test-router'
@@ -25,6 +25,33 @@ function renderDetail(businessId = 'bid1') {
   )
 }
 
+function defaultBusiness(overrides = {}) {
+  return {
+    id: 'bid1',
+    owner: '',
+    businessname: 'CRM Biz',
+    location: 'Ktm',
+    description: 'Hello desc',
+    ...overrides,
+  }
+}
+
+function defaultCrm(overrides = {}) {
+  return { tags: [], customFields: [], notes: [], tasks: [], timeline: [], ...overrides }
+}
+
+function mockGet(business = defaultBusiness(), crm = defaultCrm()) {
+  mockedAxios.get.mockResolvedValue({
+    data: { ok: true, business, crm },
+  })
+}
+
+async function openEditDialog() {
+  const editBtn = await screen.findByRole('button', { name: /^Edit$/i })
+  fireEvent.click(editBtn)
+  return screen.findByRole('dialog')
+}
+
 describe('BusinessDetailPage', () => {
   beforeEach(() => {
     jest.clearAllMocks()
@@ -32,61 +59,201 @@ describe('BusinessDetailPage', () => {
     mockedAxios.patch.mockReset()
   })
 
-  test('loads detail and shows profile', async () => {
-    mockedAxios.get.mockResolvedValue({
+  // ── Rendering ──────────────────────────────────────────────────────────────
+
+  test('loads detail and shows business name in header and description in sidebar', async () => {
+    mockGet()
+    renderDetail()
+    await waitFor(() => {
+      expect(screen.getByText(/CRM Biz/i)).toBeInTheDocument()
+      expect(screen.getByText(/Hello desc/i)).toBeInTheDocument()
+    })
+  })
+
+  test('load failure shows error', async () => {
+    mockedAxios.get.mockRejectedValueOnce(new Error('fail'))
+    renderDetail()
+    await waitFor(() => {
+      expect(screen.getByText(/Could not load business/i)).toBeInTheDocument()
+    })
+  })
+
+  test('shows public/private badge', async () => {
+    mockGet(defaultBusiness({ isPublicCompany: true }))
+    renderDetail()
+    await waitFor(() => expect(screen.getByText('Public')).toBeInTheDocument())
+
+    jest.clearAllMocks()
+    mockGet(defaultBusiness({ isPublicCompany: false }))
+    renderDetail()
+    await waitFor(() => expect(screen.getByText('Private')).toBeInTheDocument())
+  })
+
+  // ── Edit dialog ────────────────────────────────────────────────────────────
+
+  test('Edit button opens dialog with prefilled fields', async () => {
+    mockGet()
+    renderDetail()
+    const dialog = await openEditDialog()
+    expect(within(dialog).getByLabelText(/Business name/i)).toHaveValue('CRM Biz')
+    expect(within(dialog).getByLabelText(/Location/i)).toHaveValue('Ktm')
+    expect(within(dialog).getByLabelText(/Description/i)).toHaveValue('Hello desc')
+  })
+
+  test('edit dialog: company listing, map fields, web presence links', async () => {
+    mockGet(
+      defaultBusiness({
+        mapLocation: {
+          googleMapsUrl: 'https://old.maps/',
+          googleReviewsUrl: 'https://old.reviews/',
+          latitude: 1,
+          longitude: 2,
+          placeId: 'oldPlace',
+        },
+      }),
+    )
+    mockedAxios.patch.mockResolvedValue({
+      data: { ok: true, business: defaultBusiness(), crm: defaultCrm() },
+    })
+    renderDetail()
+    const dialog = await openEditDialog()
+
+    fireEvent.change(within(dialog).getByLabelText(/Company listing/i), { target: { value: 'public' } })
+    fireEvent.change(document.getElementById('edit-maps-url')!, {
+      target: { value: 'https://maps.google.com/new' },
+    })
+    fireEvent.change(document.getElementById('edit-reviews-url')!, {
+      target: { value: 'https://reviews.google.com/new' },
+    })
+    fireEvent.change(document.getElementById('edit-lat')!, { target: { value: '27.71' } })
+    fireEvent.change(document.getElementById('edit-lng')!, { target: { value: '85.32' } })
+    fireEvent.change(document.getElementById('edit-place-id')!, { target: { value: 'ChIJnew' } })
+
+    expect(within(dialog).getByText(/Preview Maps/i).closest('a')).toHaveAttribute(
+      'href',
+      'https://maps.google.com/new',
+    )
+    expect(within(dialog).getByText(/Preview Reviews/i).closest('a')).toHaveAttribute(
+      'href',
+      'https://reviews.google.com/new',
+    )
+    expect(within(dialog).getByText(/Google Search/i).closest('a')).toHaveAttribute(
+      'href',
+      expect.stringContaining('CRM%20Biz'),
+    )
+
+    fireEvent.click(within(dialog).getByRole('button', { name: /Save changes/i }))
+    await waitFor(() => {
+      expect(mockedAxios.patch).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          profile: expect.objectContaining({
+            isPublicCompany: true,
+            mapLocation: expect.objectContaining({
+              googleMapsUrl: 'https://maps.google.com/new',
+              googleReviewsUrl: 'https://reviews.google.com/new',
+              latitude: '27.71',
+              longitude: '85.32',
+              placeId: 'ChIJnew',
+            }),
+          }),
+        }),
+        expect.any(Object),
+      )
+    })
+  })
+
+  test('Cancel closes dialog without saving', async () => {
+    mockGet()
+    renderDetail()
+    const dialog = await openEditDialog()
+    fireEvent.click(within(dialog).getByRole('button', { name: /Cancel/i }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(mockedAxios.patch).not.toHaveBeenCalled()
+  })
+
+  test('save profile sends trimmed profile patch and closes dialog', async () => {
+    mockGet(defaultBusiness({ businessname: 'Old', location: 'Loc', pancardNumber: '9', description: 'Desc' }))
+    mockedAxios.patch.mockResolvedValue({
       data: {
         ok: true,
-        business: {
-          id: 'bid1',
-          owner: '',
-          businessname: 'CRM Biz',
-          location: 'Ktm',
-          description: 'Hello',
-        },
-        crm: { tags: [], customFields: [], notes: [], tasks: [], timeline: [] },
+        business: defaultBusiness({ businessname: 'New', location: 'L2', pancardNumber: '99', description: 'D2' }),
+        crm: defaultCrm(),
       },
     })
 
     renderDetail()
+    const dialog = await openEditDialog()
+
+    fireEvent.change(within(dialog).getByLabelText(/Business name/i), { target: { value: 'New' } })
+    fireEvent.change(within(dialog).getByLabelText(/^Location/i), { target: { value: 'L2' } })
+    fireEvent.change(document.getElementById('edit-pan')!, { target: { value: '99' } })
+    fireEvent.change(within(dialog).getByLabelText(/Description/i), { target: { value: 'D2' } })
+    fireEvent.click(within(dialog).getByRole('button', { name: /Save changes/i }))
 
     await waitFor(() => {
-      expect(screen.getByText(/CRM Biz/i)).toBeInTheDocument()
-      expect(screen.getByDisplayValue('Hello')).toBeInTheDocument()
+      expect(mockedAxios.patch).toHaveBeenCalledWith(
+        expect.stringContaining('/bid1/detail'),
+        {
+          profile: {
+            businessname: 'New',
+            location: 'L2',
+            pancardNumber: '99',
+            description: 'D2',
+            isPublicCompany: false,
+            mapLocation: {
+              googleMapsUrl: '',
+              googleReviewsUrl: '',
+              placeId: '',
+              latitude: '',
+              longitude: '',
+            },
+          },
+        },
+        expect.any(Object),
+      )
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     })
   })
 
-  test('add note calls patch and shows note', async () => {
-    mockedAxios.get.mockResolvedValue({
-      data: {
-        ok: true,
-        business: {
-          id: 'bid1',
-          businessname: 'B',
-          description: 'D',
-        },
-        crm: { tags: [], customFields: [], notes: [], tasks: [], timeline: [] },
-      },
-    })
+  test('patch failure shows API message or default', async () => {
+    mockGet()
+    mockedAxios.patch
+      .mockRejectedValueOnce({ response: { data: { message: 'Bad patch' } } })
+      .mockRejectedValueOnce(new Error('x'))
 
+    renderDetail()
+    const dialog = await openEditDialog()
+    fireEvent.click(within(dialog).getByRole('button', { name: /Save changes/i }))
+    await waitFor(() => expect(screen.getByText(/Bad patch/i)).toBeInTheDocument())
+
+    // Dialog was closed (saveProfile closes it); reopen for second attempt
+    const dialog2 = await openEditDialog()
+    fireEvent.click(within(dialog2).getByRole('button', { name: /Save changes/i }))
+    await waitFor(() => expect(screen.getByText(/Update failed/i)).toBeInTheDocument())
+  })
+
+  // ── Notes tab (default) ────────────────────────────────────────────────────
+
+  test('add note calls patch and note appears', async () => {
+    mockGet()
     mockedAxios.patch.mockResolvedValue({
       data: {
         ok: true,
-        business: { id: 'bid1', businessname: 'B', description: 'D' },
+        business: defaultBusiness(),
         crm: {
-          tags: [],
-          customFields: [],
+          ...defaultCrm(),
           notes: [{ id: 'n1', text: 'Hello note', createdAt: '2025-01-01T00:00:00.000Z' }],
-          tasks: [],
           timeline: [{ id: 't1', eventType: 'note', summary: 'Note added', createdAt: '2025-01-01T00:00:00.000Z' }],
         },
       },
     })
 
     renderDetail()
+    await waitFor(() => expect(screen.getByTestId('detail-add-note')).toBeInTheDocument())
 
-    await screen.findByRole('heading', { name: /^Notes$/i })
-    const noteField = screen.getByLabelText(/New note/i)
-    fireEvent.change(noteField, { target: { value: 'Hello note' } })
+    const noteTextarea = document.getElementById('detail-note') as HTMLTextAreaElement
+    fireEvent.change(noteTextarea, { target: { value: 'Hello note' } })
     fireEvent.click(screen.getByTestId('detail-add-note'))
 
     await waitFor(() => {
@@ -99,112 +266,58 @@ describe('BusinessDetailPage', () => {
     })
   })
 
-  test('load failure shows error', async () => {
-    mockedAxios.get.mockRejectedValueOnce(new Error('fail'))
+  test('note shows em dash when createdAt missing', async () => {
+    mockGet(
+      defaultBusiness(),
+      defaultCrm({ notes: [{ id: 'n1', text: 'Note', createdAt: '' }] }),
+    )
     renderDetail()
-    await waitFor(() => {
-      expect(screen.getByText(/Could not load business/i)).toBeInTheDocument()
-    })
+    await waitFor(() => expect(screen.getByText('—')).toBeInTheDocument())
   })
 
-  test('patch failure shows API message or default', async () => {
-    mockedAxios.get.mockResolvedValue({
-      data: {
-        ok: true,
-        business: { id: 'bid1', businessname: 'B', description: 'D' },
-        crm: { tags: [], customFields: [], notes: [], tasks: [], timeline: [] },
-      },
+  test('note date falls back when toLocaleString throws', async () => {
+    jest.spyOn(Date.prototype, 'toLocaleString').mockImplementation(() => {
+      throw new Error('bad locale')
     })
-    mockedAxios.patch
-      .mockRejectedValueOnce({ response: { data: { message: 'Bad patch' } } })
-      .mockRejectedValueOnce(new Error('x'))
-
+    mockGet(
+      defaultBusiness(),
+      defaultCrm({ notes: [{ id: 'n1', text: 'N', createdAt: '2020-06-15T12:00:00.000Z' }] }),
+    )
     renderDetail()
-    await screen.findByRole('heading', { name: /^Profile$/i })
-    fireEvent.click(screen.getByRole('button', { name: /Save profile/i }))
-    await waitFor(() => expect(screen.getByText(/Bad patch/i)).toBeInTheDocument())
-
-    fireEvent.click(screen.getByRole('button', { name: /Save profile/i }))
-    await waitFor(() => expect(screen.getByText(/Update failed/i)).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText('2020-06-15T12:00:00.000Z')).toBeInTheDocument())
+    jest.restoreAllMocks()
   })
 
-  test('save profile sends trimmed profile patch', async () => {
-    mockedAxios.get.mockResolvedValue({
-      data: {
-        ok: true,
-        business: {
-          id: 'bid1',
-          businessname: 'Old',
-          location: 'Loc',
-          pancardNumber: 9,
-          description: 'Desc',
-        },
-        crm: { tags: [], customFields: [], notes: [], tasks: [], timeline: [] },
-      },
-    })
-    mockedAxios.patch.mockResolvedValue({
-      data: {
-        ok: true,
-        business: { id: 'bid1', businessname: 'New', location: 'L2', pancardNumber: '9', description: 'D2' },
-        crm: { tags: [], customFields: [], notes: [], tasks: [], timeline: [] },
-      },
-    })
+  // ── Tasks tab ─────────────────────────────────────────────────────────────
 
-    renderDetail()
-    await screen.findByLabelText(/Business name/i)
-    fireEvent.change(screen.getByLabelText(/Business name/i), { target: { value: 'New' } })
-    fireEvent.change(screen.getByLabelText(/^Location$/i), { target: { value: 'L2' } })
-    fireEvent.change(screen.getByLabelText(/PAN/i), { target: { value: '99' } })
-    fireEvent.change(screen.getByLabelText(/^Description$/i), { target: { value: 'D2' } })
-    fireEvent.click(screen.getByRole('button', { name: /Save profile/i }))
-
-    await waitFor(() => {
-      expect(mockedAxios.patch).toHaveBeenCalledWith(
-        expect.stringContaining('/bid1/detail'),
-        {
-          profile: {
-            businessname: 'New',
-            location: 'L2',
-            pancardNumber: '99',
-            description: 'D2',
-          },
-        },
-        expect.any(Object),
-      )
-    })
-  })
+  async function goToTasksTab() {
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Edit$/i })).toBeInTheDocument())
+    fireEvent.click(screen.getByRole('button', { name: /Tasks/i }))
+  }
 
   test('add task empty does not patch; filled task patches', async () => {
-    mockedAxios.get.mockResolvedValue({
-      data: {
-        ok: true,
-        business: { id: 'bid1', businessname: 'B', description: 'D' },
-        crm: { tags: [], customFields: [], notes: [], tasks: [], timeline: [] },
-      },
-    })
+    mockGet()
     mockedAxios.patch.mockResolvedValue({
       data: {
         ok: true,
-        business: { id: 'bid1', businessname: 'B', description: 'D' },
-        crm: {
-          tags: [],
-          customFields: [],
-          notes: [],
-          tasks: [{ id: 't1', title: 'Do it', completed: false, createdAt: '2025-01-01' }],
-          timeline: [],
-        },
+        business: defaultBusiness(),
+        crm: defaultCrm({ tasks: [{ id: 't1', title: 'Do it', completed: false, createdAt: '2025-01-01' }] }),
       },
     })
 
     renderDetail()
-    await screen.findByRole('heading', { name: /^Tasks$/i })
-    const taskAdd = screen.getAllByRole('button', { name: /^Add$/i })[1]
+    await goToTasksTab()
+
+    // The tasks "Add" button comes after the task input (#detail-task) in the DOM
+    const taskInput = await screen.findByPlaceholderText(/Task title/i)
+    const addBtn = taskInput.closest('div')!.parentElement!
+      .querySelector('button') as HTMLButtonElement
     const n = mockedAxios.patch.mock.calls.length
-    fireEvent.click(taskAdd)
+    fireEvent.click(addBtn)
     expect(mockedAxios.patch.mock.calls.length).toBe(n)
 
-    fireEvent.change(screen.getByLabelText(/New task/i), { target: { value: 'Do it' } })
-    fireEvent.click(taskAdd)
+    fireEvent.change(document.getElementById('detail-task')!, { target: { value: 'Do it' } })
+    fireEvent.click(addBtn)
 
     await waitFor(() => {
       expect(mockedAxios.patch).toHaveBeenCalledWith(
@@ -216,37 +329,22 @@ describe('BusinessDetailPage', () => {
   })
 
   test('toggle task sends updateTask', async () => {
-    mockedAxios.get.mockResolvedValue({
-      data: {
-        ok: true,
-        business: { id: 'bid1', businessname: 'B', description: 'D' },
-        crm: {
-          tags: [],
-          customFields: [],
-          notes: [],
-          tasks: [{ id: 't1', title: 'T', completed: false, createdAt: '2025-01-01' }],
-          timeline: [],
-        },
-      },
-    })
+    mockGet(
+      defaultBusiness(),
+      defaultCrm({ tasks: [{ id: 't1', title: 'T', completed: false, createdAt: '2025-01-01' }] }),
+    )
     mockedAxios.patch.mockResolvedValue({
       data: {
         ok: true,
-        business: { id: 'bid1', businessname: 'B', description: 'D' },
-        crm: {
-          tags: [],
-          customFields: [],
-          notes: [],
-          tasks: [{ id: 't1', title: 'T', completed: true, createdAt: '2025-01-01' }],
-          timeline: [],
-        },
+        business: defaultBusiness(),
+        crm: defaultCrm({ tasks: [{ id: 't1', title: 'T', completed: true, createdAt: '2025-01-01' }] }),
       },
     })
 
     renderDetail()
+    await goToTasksTab()
     await screen.findByText('T')
-    const cb = screen.getByRole('checkbox')
-    fireEvent.click(cb)
+    fireEvent.click(screen.getByRole('button', { name: /Mark complete/i }))
 
     await waitFor(() => {
       expect(mockedAxios.patch).toHaveBeenCalledWith(
@@ -257,33 +355,30 @@ describe('BusinessDetailPage', () => {
     })
   })
 
+  // ── Tags (sidebar) ─────────────────────────────────────────────────────────
+
   test('add duplicate tag clears input without patch; new tag patches', async () => {
-    mockedAxios.get.mockResolvedValue({
-      data: {
-        ok: true,
-        business: { id: 'bid1', businessname: 'B', description: 'D' },
-        crm: { tags: ['vip'], customFields: [], notes: [], tasks: [], timeline: [] },
-      },
-    })
+    mockGet(defaultBusiness(), defaultCrm({ tags: ['vip'] }))
     mockedAxios.patch.mockResolvedValue({
       data: {
         ok: true,
-        business: { id: 'bid1', businessname: 'B', description: 'D' },
-        crm: { tags: ['vip', 'new'], customFields: [], notes: [], tasks: [], timeline: [] },
+        business: defaultBusiness(),
+        crm: defaultCrm({ tags: ['vip', 'new'] }),
       },
     })
 
     renderDetail()
-    await screen.findByText('vip')
-    const tagInput = screen.getByLabelText(/Add tag/i)
-    const tagAdd = screen.getAllByRole('button', { name: /^Add$/i })[0]
+    await waitFor(() => expect(screen.getAllByText('vip').length).toBeGreaterThan(0))
+    const tagInput = screen.getByPlaceholderText(/Add tag/i)
+    const addBtn = screen.getByRole('button', { name: /^Add$/i })
+
     fireEvent.change(tagInput, { target: { value: 'vip' } })
     const before = mockedAxios.patch.mock.calls.length
-    fireEvent.click(tagAdd)
+    fireEvent.click(addBtn)
     expect(mockedAxios.patch.mock.calls.length).toBe(before)
 
     fireEvent.change(tagInput, { target: { value: 'new' } })
-    fireEvent.click(tagAdd)
+    fireEvent.click(addBtn)
 
     await waitFor(() => {
       expect(mockedAxios.patch).toHaveBeenCalledWith(
@@ -294,94 +389,85 @@ describe('BusinessDetailPage', () => {
     })
   })
 
-  test('renders custom fields when present', async () => {
-    mockedAxios.get.mockResolvedValue({
-      data: {
-        ok: true,
-        business: { id: 'bid1', businessname: 'B', description: 'D' },
-        crm: {
-          tags: ['a', 'b'],
-          customFields: [{ key: 'k1', value: 42, fieldType: 'number' }],
-          notes: [],
-          tasks: [],
-          timeline: [],
-        },
-      },
+  test('Enter key in tag input triggers add', async () => {
+    mockGet(defaultBusiness(), defaultCrm({ tags: [] }))
+    mockedAxios.patch.mockResolvedValue({
+      data: { ok: true, business: defaultBusiness(), crm: defaultCrm({ tags: ['pressed'] }) },
     })
 
     renderDetail()
+    await waitFor(() => expect(screen.getByPlaceholderText(/Add tag/i)).toBeInTheDocument())
+    const tagInput = screen.getByPlaceholderText(/Add tag/i)
+    fireEvent.change(tagInput, { target: { value: 'pressed' } })
+    fireEvent.keyDown(tagInput, { key: 'Enter' })
+
     await waitFor(() => {
-      expect(screen.getByText('k1:')).toBeInTheDocument()
-      expect(screen.getByText('42')).toBeInTheDocument()
-      expect(screen.getByText('a')).toBeInTheDocument()
+      expect(mockedAxios.patch).toHaveBeenCalledWith(
+        expect.any(String),
+        { tags: ['pressed'] },
+        expect.any(Object),
+      )
     })
   })
 
-  test('activity timeline lists events', async () => {
-    mockedAxios.get.mockResolvedValue({
-      data: {
-        ok: true,
-        business: { id: 'bid1', businessname: 'B', description: 'D' },
-        crm: {
-          tags: [],
-          customFields: [],
-          notes: [],
-          tasks: [],
-          timeline: [
-            { id: 'ev1', eventType: 'profile_update', summary: 'Name changed', createdAt: '2024-01-02T00:00:00.000Z' },
-          ],
-        },
-      },
-    })
+  // ── Activity tab ───────────────────────────────────────────────────────────
+
+  test('activity timeline lists events on Activity tab', async () => {
+    mockGet(
+      defaultBusiness(),
+      defaultCrm({
+        timeline: [
+          { id: 'ev1', eventType: 'profile_update', summary: 'Name changed', createdAt: '2024-01-02T00:00:00.000Z' },
+        ],
+      }),
+    )
 
     renderDetail()
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Edit$/i })).toBeInTheDocument())
+    fireEvent.click(screen.getByRole('button', { name: /Activity/i }))
+
     await waitFor(() => {
       expect(screen.getByText('profile_update')).toBeInTheDocument()
       expect(screen.getByText(/Name changed/i)).toBeInTheDocument()
     })
   })
 
-  test('note shows em dash when createdAt missing', async () => {
-    mockedAxios.get.mockResolvedValue({
-      data: {
-        ok: true,
-        business: { id: 'bid1', businessname: 'B', description: 'D' },
-        crm: {
-          tags: [],
-          customFields: [],
-          notes: [{ id: 'n1', text: 'Note', createdAt: '' }],
-          tasks: [],
-          timeline: [],
-        },
-      },
-    })
+  // ── Sidebar ────────────────────────────────────────────────────────────────
 
-    renderDetail()
-    await waitFor(() => expect(screen.getByText('—')).toBeInTheDocument())
-  })
-
-  test('note date falls back when toLocaleString throws', async () => {
-    jest.spyOn(Date.prototype, 'toLocaleString').mockImplementation(() => {
-      throw new Error('bad locale')
-    })
-    mockedAxios.get.mockResolvedValue({
-      data: {
-        ok: true,
-        business: { id: 'bid1', businessname: 'B', description: 'D' },
-        crm: {
-          tags: [],
-          customFields: [],
-          notes: [{ id: 'n1', text: 'N', createdAt: '2020-06-15T12:00:00.000Z' }],
-          tasks: [],
-          timeline: [],
-        },
-      },
-    })
+  test('renders custom fields in sidebar', async () => {
+    mockGet(
+      defaultBusiness(),
+      defaultCrm({
+        tags: ['alpha', 'beta'],
+        customFields: [{ key: 'k1', value: 42, fieldType: 'number' }],
+      }),
+    )
 
     renderDetail()
     await waitFor(() => {
-      expect(screen.getByText('2020-06-15T12:00:00.000Z')).toBeInTheDocument()
+      expect(screen.getByText('k1')).toBeInTheDocument()
+      expect(screen.getByText('42')).toBeInTheDocument()
+      expect(screen.getAllByText('alpha').length).toBeGreaterThan(0)
     })
-    jest.restoreAllMocks()
+  })
+
+  test('renders map links when mapLocation set', async () => {
+    mockGet(
+      defaultBusiness({
+        mapLocation: {
+          googleMapsUrl: 'https://maps.google.com/?q=here',
+          googleReviewsUrl: 'https://reviews.google.com/',
+          latitude: 27.7,
+          longitude: 85.3,
+        },
+      }),
+    )
+
+    renderDetail()
+    await waitFor(() => {
+      expect(screen.getByText(/Open in Maps/i)).toBeInTheDocument()
+      expect(screen.getByText(/View Reviews/i)).toBeInTheDocument()
+      expect(screen.getByText('27.7, 85.3')).toBeInTheDocument()
+    })
   })
 })

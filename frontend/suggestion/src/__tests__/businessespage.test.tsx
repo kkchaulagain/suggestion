@@ -163,6 +163,7 @@ describe('BusinessesPage', () => {
           businessname: 'New Co',
           description: 'About new co',
           type: 'commercial',
+          isPublicCompany: false,
           location: 'Ktm',
           pancardNumber: '111',
         }),
@@ -261,6 +262,7 @@ describe('BusinessesPage', () => {
     })
 
     const dialog = await screen.findByRole('dialog')
+    fireEvent.change(within(dialog).getByLabelText(/Company listing/i), { target: { value: 'public' } })
     fireEvent.change(within(dialog).getByLabelText(/Business name/i), { target: { value: 'Acme Updated' } })
     fireEvent.change(within(dialog).getByLabelText(/^Location$/i), { target: { value: 'New Location' } })
     fireEvent.change(within(dialog).getByLabelText(/PAN number/i), { target: { value: '999' } })
@@ -275,6 +277,7 @@ describe('BusinessesPage', () => {
           location: 'New Location',
           pancardNumber: 999,
           description: 'Updated desc',
+          isPublicCompany: true,
         }),
         expect.any(Object),
       )

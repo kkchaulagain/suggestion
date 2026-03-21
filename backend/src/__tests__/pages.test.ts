@@ -1,6 +1,10 @@
 const request = require('supertest');
+const mongoose = require('mongoose');
 const { connect, disconnect } = require('../db');
 const app = require('../app');
+
+/** Transient Mongo/Atlas ECONNRESET under long --runInBand suites */
+jest.retryTimes(2, { logErrorsBeforeRetry: true });
 const { Page } = require('../models/Page');
 const User = require('../models/User');
 const Business = require('../models/Business');
@@ -85,6 +89,19 @@ async function createUserAuthNoBusiness() {
 describe('Pages API', () => {
   beforeAll(async () => {
     await connect();
+  });
+
+  beforeEach(async () => {
+    if (mongoose.connection.readyState !== 1) {
+      try {
+        if (mongoose.connection.readyState !== 0) {
+          await mongoose.disconnect();
+        }
+      } catch {
+        /* ignore */
+      }
+      await connect();
+    }
   });
 
   afterAll(async () => {

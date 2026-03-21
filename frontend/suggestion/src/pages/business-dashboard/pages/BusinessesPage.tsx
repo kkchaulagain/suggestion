@@ -4,7 +4,7 @@ import axios from 'axios'
 import { Check, Pencil, RefreshCw, Trash2, X } from 'lucide-react'
 import { useAuth } from '../../../context/AuthContext'
 import { businessesListApi } from '../../../utils/apipath'
-import { Button, Card, Input, Textarea, ErrorMessage, Modal } from '../../../components/ui'
+import { Button, Card, Input, Textarea, Select, ErrorMessage, Modal } from '../../../components/ui'
 import { EmptyState } from '../../../components/layout'
 import BusinessCreateWizard from '../components/BusinessCreateWizard'
 
@@ -15,6 +15,7 @@ export interface BusinessListItem {
   location: string
   pancardNumber: number | string
   description: string
+  isPublicCompany?: boolean
 }
 
 interface BusinessesResponse {
@@ -36,11 +37,14 @@ export default function BusinessesPage() {
   const [error, setError] = useState('')
   const [modalMode, setModalMode] = useState<ModalMode>(null)
   const [selectedBusiness, setSelectedBusiness] = useState<BusinessListItem | null>(null)
-  const [editForm, setEditForm] = useState<Pick<BusinessListItem, 'businessname' | 'location' | 'pancardNumber' | 'description'>>({
+  const [editForm, setEditForm] = useState<
+    Pick<BusinessListItem, 'businessname' | 'location' | 'pancardNumber' | 'description' | 'isPublicCompany'>
+  >({
     businessname: '',
     location: '',
     pancardNumber: 0,
     description: '',
+    isPublicCompany: false,
   })
   const [modalError, setModalError] = useState('')
   const [saving, setSaving] = useState(false)
@@ -81,6 +85,7 @@ export default function BusinessesPage() {
       location: business.location,
       pancardNumber: business.pancardNumber,
       description: business.description,
+      isPublicCompany: business.isPublicCompany ?? false,
     })
     setModalMode('edit')
     setModalError('')
@@ -229,6 +234,16 @@ export default function BusinessesPage() {
               type="text"
               value={editForm.location}
               onChange={(v) => setEditForm((f) => ({ ...f, location: v }))}
+            />
+            <Select
+              id="edit-company-listing"
+              label="Company listing"
+              value={editForm.isPublicCompany ? 'public' : 'private'}
+              onChange={(v) => setEditForm((f) => ({ ...f, isPublicCompany: v === 'public' }))}
+              options={[
+                { value: 'private', label: 'Private company' },
+                { value: 'public', label: 'Public company' },
+              ]}
             />
             <Input
               id="edit-pancard"

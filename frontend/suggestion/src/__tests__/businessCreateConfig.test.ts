@@ -6,9 +6,10 @@ import {
 } from '../pages/business-dashboard/config/businessCreateConfig'
 
 describe('businessCreateConfig', () => {
-  test('getInitialCreateValues includes type default', () => {
+  test('getInitialCreateValues includes type and private company default', () => {
     const v = getInitialCreateValues()
     expect(v.type).toBe('commercial')
+    expect(v.companyListing).toBe('private')
     expect(BUSINESS_CREATE_STEPS.length).toBeGreaterThan(0)
   })
 
@@ -43,9 +44,12 @@ describe('businessCreateConfig', () => {
       businessname: 'Co',
       description: 'D',
       type: 'commercial',
+      isPublicCompany: false,
       location: 'L',
       pancardNumber: 'P',
     })
+    v.companyListing = 'public'
+    expect(valuesToCreatePayload(v).isPublicCompany).toBe(true)
     expect(p.customFields).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ key: 'contactEmail', value: 'a@b.com' }),

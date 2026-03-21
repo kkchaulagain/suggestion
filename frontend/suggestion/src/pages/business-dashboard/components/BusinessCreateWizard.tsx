@@ -174,6 +174,12 @@ export default function BusinessCreateWizard({
               <dt className="font-semibold text-slate-700 dark:text-slate-300">Type</dt>
               <dd className="text-slate-600 dark:text-slate-400">{payload.type}</dd>
             </div>
+            <div>
+              <dt className="font-semibold text-slate-700 dark:text-slate-300">Company listing</dt>
+              <dd className="text-slate-600 dark:text-slate-400">
+                {payload.isPublicCompany ? 'Public company' : 'Private company'}
+              </dd>
+            </div>
             {payload.location ? (
               <div>
                 <dt className="font-semibold text-slate-700 dark:text-slate-300">Location</dt>
