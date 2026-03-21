@@ -2,6 +2,7 @@ import type { Types } from 'mongoose';
 const CrmNote = require('../models/CrmNote');
 const CrmTask = require('../models/CrmTask');
 const CrmActivity = require('../models/CrmActivity');
+const Contact = require('../models/Contact');
 
 export const CRM_LIST_LIMIT = 200;
 
@@ -15,12 +16,22 @@ export type CrmTaskDto = {
 };
 export type CrmTimelineDto = { id: string; eventType: string; summary: string; createdAt: string };
 
+export type CrmContactDto = {
+  id: string;
+  email?: string;
+  phone?: string;
+  displayName?: string;
+  submissionCount: number;
+  lastSubmittedAt: string;
+};
+
 export type CrmPayload = {
   tags: string[];
   customFields: Array<{ key: string; value: unknown; fieldType: string }>;
   notes: CrmNoteDto[];
   tasks: CrmTaskDto[];
   timeline: CrmTimelineDto[];
+  contacts: CrmContactDto[];
 };
 
 export type BusinessCrmFields = {
@@ -33,10 +44,11 @@ export async function loadCrmPayload(
   business: BusinessCrmFields,
 ): Promise<CrmPayload> {
   const bid = businessId;
-  const [noteDocs, taskDocs, activityDocs] = await Promise.all([
+  const [noteDocs, taskDocs, activityDocs, contactDocs] = await Promise.all([
     CrmNote.find({ businessId: bid }).sort({ createdAt: -1 }).limit(CRM_LIST_LIMIT).lean(),
     CrmTask.find({ businessId: bid }).sort({ createdAt: -1 }).limit(CRM_LIST_LIMIT).lean(),
     CrmActivity.find({ businessId: bid }).sort({ createdAt: -1 }).limit(CRM_LIST_LIMIT).lean(),
+    Contact.find({ businessId: bid }).sort({ lastSubmittedAt: -1 }).limit(CRM_LIST_LIMIT).lean(),
   ]);
 
   const tags = Array.isArray(business.crmTags) ? business.crmTags : [];
@@ -83,7 +95,28 @@ export async function loadCrmPayload(
     }),
   );
 
-  return { tags, customFields, notes, tasks, timeline };
+  const contacts: CrmContactDto[] = contactDocs.map(
+    (c: {
+      _id: Types.ObjectId;
+      email?: string;
+      phone?: string;
+      displayName?: string;
+      submissionCount?: number;
+      lastSubmittedAt?: Date;
+    }) => ({
+      id: String(c._id),
+      ...(c.email ? { email: c.email } : {}),
+      ...(c.phone ? { phone: c.phone } : {}),
+      ...(c.displayName ? { displayName: c.displayName } : {}),
+      submissionCount: typeof c.submissionCount === 'number' ? c.submissionCount : 0,
+      lastSubmittedAt:
+        c.lastSubmittedAt instanceof Date
+          ? c.lastSubmittedAt.toISOString()
+          : String(c.lastSubmittedAt ?? ''),
+    }),
+  );
+
+  return { tags, customFields, notes, tasks, timeline, contacts };
 }
 
 export async function deleteAllCrmForBusiness(businessId: Types.ObjectId): Promise<void> {
@@ -91,5 +124,6 @@ export async function deleteAllCrmForBusiness(businessId: Types.ObjectId): Promi
     CrmNote.deleteMany({ businessId }),
     CrmTask.deleteMany({ businessId }),
     CrmActivity.deleteMany({ businessId }),
+    Contact.deleteMany({ businessId }),
   ]);
 }

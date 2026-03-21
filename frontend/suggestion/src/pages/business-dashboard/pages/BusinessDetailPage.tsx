@@ -19,6 +19,7 @@ import {
   X,
   ClipboardList,
   Activity,
+  Users,
 } from 'lucide-react'
 import { useAuth } from '../../../context/AuthContext'
 import { businessesListApi } from '../../../utils/apipath'
@@ -64,6 +65,14 @@ export interface CrmTimeline {
   summary: string
   createdAt: string
 }
+export interface CrmContact {
+  id: string
+  email?: string
+  phone?: string
+  displayName?: string
+  submissionCount: number
+  lastSubmittedAt: string
+}
 export interface CustomFieldRow {
   key: string
   value: unknown
@@ -78,6 +87,7 @@ export interface BusinessDetailResponse {
     notes: CrmNote[]
     tasks: CrmTask[]
     timeline: CrmTimeline[]
+    contacts: CrmContact[]
   }
 }
 
@@ -87,6 +97,7 @@ const EVENT_COLORS: Record<string, string> = {
   profile: 'text-emerald-600 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-900/20',
   tags: 'text-amber-600 bg-amber-50 dark:text-amber-400 dark:bg-amber-900/20',
   timeline: 'text-rose-600 bg-rose-50 dark:text-rose-400 dark:bg-rose-900/20',
+  contact: 'text-cyan-600 bg-cyan-50 dark:text-cyan-400 dark:bg-cyan-900/20',
 }
 function eventColor(type: string) {
   return EVENT_COLORS[type] ?? 'text-slate-600 bg-slate-100 dark:text-slate-300 dark:bg-slate-700'
@@ -94,11 +105,12 @@ function eventColor(type: string) {
 
 // ─── Tabs ─────────────────────────────────────────────────────────────────────
 
-type TabId = 'notes' | 'tasks' | 'activity'
+type TabId = 'notes' | 'tasks' | 'contacts' | 'activity'
 
 const TABS: { id: TabId; label: string; icon: typeof MessageSquare }[] = [
   { id: 'notes', label: 'Notes', icon: MessageSquare },
   { id: 'tasks', label: 'Tasks', icon: ClipboardList },
+  { id: 'contacts', label: 'Contacts', icon: Users },
   { id: 'activity', label: 'Activity', icon: Activity },
 ]
 
@@ -294,6 +306,7 @@ export default function BusinessDetailPage() {
   const tabCounts: Record<TabId, number> = {
     notes: crm.notes.length,
     tasks: crm.tasks.length,
+    contacts: crm.contacts?.length ?? 0,
     activity: crm.timeline.length,
   }
 
@@ -646,6 +659,49 @@ export default function BusinessDetailPage() {
                         {t.completed ? (
                           <Check className="h-4 w-4 shrink-0 text-emerald-400" />
                         ) : null}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : null}
+
+            {/* ── Contacts tab ─────────────────────────────────────────── */}
+            {activeTab === 'contacts' ? (
+              <div className="space-y-4">
+                {(crm.contacts ?? []).length === 0 ? (
+                  <EmptyState
+                    type="empty"
+                    message="No contacts yet. They appear when visitors submit forms that include an email or phone number."
+                  />
+                ) : (
+                  <div className="space-y-2">
+                    {(crm.contacts ?? []).map((c) => (
+                      <div
+                        key={c.id}
+                        className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-800"
+                      >
+                        <div className="flex flex-wrap items-start justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                              {c.displayName?.trim() || '—'}
+                            </p>
+                            {c.email ? (
+                              <p className="mt-1 text-sm text-slate-600 dark:text-slate-300 break-all">{c.email}</p>
+                            ) : null}
+                            {c.phone ? (
+                              <p className="mt-0.5 text-sm text-slate-600 dark:text-slate-300">{c.phone}</p>
+                            ) : null}
+                          </div>
+                          <div className="flex shrink-0 flex-col items-end gap-1 text-right">
+                            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600 dark:bg-slate-700 dark:text-slate-300">
+                              {c.submissionCount} submission{c.submissionCount === 1 ? '' : 's'}
+                            </span>
+                            {c.lastSubmittedAt ? (
+                              <span className="text-[11px] text-slate-400">{formatDate(c.lastSubmittedAt)}</span>
+                            ) : null}
+                          </div>
+                        </div>
                       </div>
                     ))}
                   </div>
