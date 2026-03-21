@@ -5,6 +5,8 @@ const { FeedbackForm } = require('../models/FeedbackForm');
 const { FeedbackSubmission } = require('../models/FeedbackSubmission');
 const User = require('../models/User');
 const Business = require('../models/Business');
+const Contact = require('../models/Contact');
+const CrmActivity = require('../models/CrmActivity');
 
 async function createBusinessAuth() {
   const email = `biz_${Date.now()}_${Math.random().toString(16).slice(2)}@example.com`;
@@ -40,6 +42,8 @@ describe('Feedback Submissions API', () => {
   afterAll(async () => {
     await FeedbackSubmission.deleteMany({});
     await FeedbackForm.deleteMany({});
+    await Contact.deleteMany({});
+    await CrmActivity.deleteMany({});
     await Business.deleteMany({});
     await User.deleteMany({});
     await disconnect();
@@ -48,6 +52,8 @@ describe('Feedback Submissions API', () => {
   afterEach(async () => {
     await FeedbackSubmission.deleteMany({});
     await FeedbackForm.deleteMany({});
+    await Contact.deleteMany({});
+    await CrmActivity.deleteMany({});
     await Business.deleteMany({});
     await User.deleteMany({});
   });
@@ -80,6 +86,118 @@ describe('Feedback Submissions API', () => {
       expect(submission.formSnapshot.map((f: { name: string }) => f.name)).toEqual(['rating', 'comment']);
       expect(submission.responses).toEqual({ rating: '2', comment: 'Great service' });
       expect(submission.submittedAt).toBeTruthy();
+    });
+
+    it('creates a Contact when submission includes email', async () => {
+      const { businessId } = await createBusinessAuth();
+      const form = await FeedbackForm.create({
+        businessId,
+        title: 'Lead',
+        fields: [
+          { name: 'name', label: 'Name', type: 'name' },
+          { name: 'email', label: 'Email', type: 'email', required: true },
+        ],
+      });
+
+      await request(app)
+        .post(`/api/feedback-forms/${form._id}/submit`)
+        .send({ name: 'Pat', email: 'Pat@EXAMPLE.com' })
+        .expect(201);
+
+      const contacts = await Contact.find({ businessId });
+      expect(contacts).toHaveLength(1);
+      expect(contacts[0].email).toBe('pat@example.com');
+      expect(contacts[0].displayName).toBe('Pat');
+      expect(contacts[0].submissionCount).toBe(1);
+    });
+
+    it('increments submissionCount for same email on repeat submit', async () => {
+      const { businessId } = await createBusinessAuth();
+      const form = await FeedbackForm.create({
+        businessId,
+        title: 'Lead',
+        fields: [{ name: 'email', label: 'Email', type: 'email', required: true }],
+      });
+
+      await request(app)
+        .post(`/api/feedback-forms/${form._id}/submit`)
+        .send({ email: 'same@example.com' })
+        .expect(201);
+      await request(app)
+        .post(`/api/feedback-forms/${form._id}/submit`)
+        .send({ email: 'same@example.com' })
+        .expect(201);
+
+      const contacts = await Contact.find({ businessId });
+      expect(contacts).toHaveLength(1);
+      expect(contacts[0].submissionCount).toBe(2);
+    });
+
+    it('dedupes phone-only submissions', async () => {
+      const { businessId } = await createBusinessAuth();
+      const form = await FeedbackForm.create({
+        businessId,
+        title: 'Phone lead',
+        fields: [{ name: 'phone', label: 'Phone', type: 'phone', required: true }],
+      });
+
+      await request(app)
+        .post(`/api/feedback-forms/${form._id}/submit`)
+        .send({ phone: '+99  111  222' })
+        .expect(201);
+      await request(app)
+        .post(`/api/feedback-forms/${form._id}/submit`)
+        .send({ phone: '+99 111 222' })
+        .expect(201);
+
+      const contacts = await Contact.find({ businessId });
+      expect(contacts).toHaveLength(1);
+      expect(contacts[0].phone).toBe('+99 111 222');
+      expect(contacts[0].submissionCount).toBe(2);
+    });
+
+    it('merges separate email-only and phone-only contacts when submission has both', async () => {
+      const { businessId } = await createBusinessAuth();
+      const formEmail = await FeedbackForm.create({
+        businessId,
+        title: 'E',
+        fields: [{ name: 'email', label: 'E', type: 'email', required: true }],
+      });
+      await request(app)
+        .post(`/api/feedback-forms/${formEmail._id}/submit`)
+        .send({ email: 'merge@test.com' })
+        .expect(201);
+
+      const formPhone = await FeedbackForm.create({
+        businessId,
+        title: 'P',
+        fields: [{ name: 'phone', label: 'P', type: 'phone', required: true }],
+      });
+      await request(app)
+        .post(`/api/feedback-forms/${formPhone._id}/submit`)
+        .send({ phone: '+1 555 000' })
+        .expect(201);
+
+      expect(await Contact.countDocuments({ businessId })).toBe(2);
+
+      const formBoth = await FeedbackForm.create({
+        businessId,
+        title: 'B',
+        fields: [
+          { name: 'email', label: 'E', type: 'email', required: true },
+          { name: 'phone', label: 'P', type: 'phone', required: true },
+        ],
+      });
+      await request(app)
+        .post(`/api/feedback-forms/${formBoth._id}/submit`)
+        .send({ email: 'merge@test.com', phone: '+1 555 000' })
+        .expect(201);
+
+      expect(await Contact.countDocuments({ businessId })).toBe(1);
+      const merged = await Contact.findOne({ businessId }).lean();
+      expect(merged?.email).toBe('merge@test.com');
+      expect(merged?.phone).toBe('+1 555 000');
+      expect(merged?.submissionCount).toBe(3);
     });
 
     it('stores checkbox values as array', async () => {

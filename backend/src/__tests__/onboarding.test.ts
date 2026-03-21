@@ -1,10 +1,12 @@
 const request = require('supertest');
+const mongoose = require('mongoose');
 const { connect, disconnect } = require('../db');
 const app = require('../app');
 const { FeedbackForm } = require('../models/FeedbackForm');
 const { FeedbackSubmission } = require('../models/FeedbackSubmission');
 const { Page } = require('../models/Page');
 const Business = require('../models/Business');
+const Contact = require('../models/Contact');
 const User = require('../models/User');
 const onboardingRouter = require('../routes/onboarding');
 
@@ -217,6 +219,15 @@ describe('Onboarding API', () => {
           responses: { q: 'a' },
         });
       }
+      await Contact.create({
+        businessId,
+        email: 'reset-wipe@example.com',
+        lastSubmissionId: new mongoose.Types.ObjectId(),
+        submissionCount: 1,
+        firstSubmittedAt: new Date(),
+        lastSubmittedAt: new Date(),
+      });
+      expect(await Contact.countDocuments({ businessId })).toBe(1);
 
       await request(app)
         .post('/api/onboarding/business-setup')
@@ -237,9 +248,11 @@ describe('Onboarding API', () => {
       const formCount = await FeedbackForm.countDocuments({ businessId });
       const pageCount = await Page.countDocuments({ businessId });
       const submissionCount = await FeedbackSubmission.countDocuments({ businessId });
+      const contactCount = await Contact.countDocuments({ businessId });
       expect(formCount).toBe(1);
       expect(pageCount).toBe(0);
       expect(submissionCount).toBe(0);
+      expect(contactCount).toBe(0);
       const form = await FeedbackForm.findOne({ businessId }).lean();
       expect(form?.title).toBe('New Form');
     });
