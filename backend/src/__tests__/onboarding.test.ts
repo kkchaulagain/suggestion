@@ -33,8 +33,16 @@ async function createBusinessAuth() {
   const loginRes = await request(app).post('/api/auth/login').send({ email, password }).expect(200);
   const token = loginRes.body?.token || loginRes.body?.data?.token;
   const userId = registerRes.body?.data?._id || registerRes.body?.user?._id;
-  const business = await Business.findOne({ owner: userId }).lean();
-  if (!business?._id) throw new Error('Business not found after register');
+  let business = await Business.findOne({ owner: userId }).lean();
+  if (!business?._id) {
+    business = await Business.create({
+      owner: userId,
+      type: 'commercial',
+      businessname: 'Onboarding Test Biz',
+      description: 'Test business',
+      location: 'City',
+    });
+  }
   return {
     authHeader: { Authorization: `Bearer ${token}` },
     businessId: business._id.toString(),

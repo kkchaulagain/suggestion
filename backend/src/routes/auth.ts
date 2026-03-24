@@ -446,6 +446,7 @@ router.put('/business', isAuthenticated, isBusinessRole, async (req: Authenticat
       location?: string;
       pancardNumber?: string | number;
       description?: string;
+      emailNotificationsEnabled?: boolean;
     };
 
     const updatePayload: Record<string, unknown> = {};
@@ -479,6 +480,10 @@ router.put('/business', isAuthenticated, isBusinessRole, async (req: Authenticat
         return res.status(400).json({ success: false, message: 'Description is required' });
       }
       updatePayload.description = description;
+    }
+
+    if (typeof data.emailNotificationsEnabled === 'boolean') {
+      updatePayload.emailNotificationsEnabled = data.emailNotificationsEnabled;
     }
 
     if (Object.keys(updatePayload).length === 0) {

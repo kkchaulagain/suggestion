@@ -26,6 +26,7 @@ import FormRenderPage from './pages/feedback-form-render/FormRenderPage'
 import FormResultsPage from './pages/feedback-form-render/FormResultsPage'
 import ProfilePage from './pages/business-dashboard/pages/ProfilePage'
 import UsersPage from './pages/business-dashboard/pages/UsersPage'
+import NotificationsPage from './pages/business-dashboard/pages/NotificationsPage'
 
 function App() {
   return (
@@ -80,6 +81,7 @@ function App() {
             <Route path="pages/create" element={<CreatePagePage />} />
             <Route path="pages/:pageId/edit" element={<CreatePagePage />} />
             <Route path="submissions" element={<SubmissionsPage />} />
+            <Route path="notifications" element={<RoleGuard roles={['business', 'admin']}><NotificationsPage /></RoleGuard>} />
             <Route path="businesses" element={<RoleGuard roles={['admin']}><BusinessesPage /></RoleGuard>} />
             <Route
               path="businesses/:businessId"

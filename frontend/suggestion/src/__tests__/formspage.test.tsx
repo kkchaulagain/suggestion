@@ -147,7 +147,7 @@ describe('FormsPage', () => {
   })
 
   test('shows fallback QR error when backend does not provide error message', async () => {
-    mockedAxios.get.mockResolvedValueOnce({
+    mockedAxios.get.mockResolvedValue({
       data: {
         feedbackForms: [
           {

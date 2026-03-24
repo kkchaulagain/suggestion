@@ -1,5 +1,5 @@
 import type { LucideIcon } from 'lucide-react'
-import { FileText, Inbox, Building2, UserCircle, Users, Layout } from 'lucide-react'
+import { FileText, Inbox, Building2, UserCircle, Users, Layout, Mail } from 'lucide-react'
 
 export interface SidebarItem {
   label: string
@@ -17,6 +17,7 @@ export const sidebarItems: SidebarItem[] = [
   { label: 'Forms', path: '/dashboard/forms', icon: FileText, requiredRoles: [...DASHBOARD_ROLES] },
   { label: 'Pages', path: '/dashboard/pages', icon: Layout, requiredRoles: [...DASHBOARD_ROLES] },
   { label: 'Submissions', path: '/dashboard/submissions', icon: Inbox, requiredRoles: [...DASHBOARD_ROLES] },
+  { label: 'Notifications', path: '/dashboard/notifications', icon: Mail, requiredRoles: ['business', 'admin'] },
   { label: 'Businesses', path: '/dashboard/businesses', icon: Building2, requiredRoles: ['admin'] },
   { label: 'Users', path: '/dashboard/users', icon: Users, requiredRoles: ['admin'] },
   { label: 'Profile', path: '/dashboard/profile', icon: UserCircle, requiredRoles: [...DASHBOARD_ROLES] },

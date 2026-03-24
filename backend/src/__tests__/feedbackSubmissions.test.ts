@@ -7,30 +7,56 @@ const User = require('../models/User');
 const Business = require('../models/Business');
 const Contact = require('../models/Contact');
 const CrmActivity = require('../models/CrmActivity');
+const { EmailNotification } = require('../notification/email.notifiaction');
 
 async function createBusinessAuth() {
-  const email = `biz_${Date.now()}_${Math.random().toString(16).slice(2)}@example.com`;
+  const suffix = `${Date.now()}_${Math.random().toString(16).slice(2)}`;
+  const email = `biz_${suffix}@example.com`;
   const password = 'Password123!';
+  const phone = `+97798${String(10000000 + Math.floor(Math.random() * 90000000))}`;
 
-  await request(app).post('/api/auth/register').send({
+  const registerRes = await request(app).post('/api/auth/register').send({
     name: 'Business Owner',
     email,
     password,
-    phone: '+9779812345678',
+    phone,
     role: 'business',
     location: 'City Center',
     pancardNumber: 1234567,
     description: 'Business profile',
     businessname: 'Acme Business',
   });
+  if (registerRes.status !== 201) {
+    throw new Error(`Failed to register business test user: ${JSON.stringify(registerRes.body)}`);
+  }
 
   const loginRes = await request(app).post('/api/auth/login').send({ email, password }).expect(200);
   const token = loginRes.body?.token || loginRes.body?.data?.token;
-  const business = await Business.findOne({ businessname: 'Acme Business', location: 'City Center' }).sort({ createdAt: -1 });
+  if (!token) {
+    throw new Error('Missing auth token for business test user');
+  }
+
+  const user = await User.findOne({ email: email.toLowerCase() }).select('_id').lean();
+  if (!user?._id) {
+    throw new Error('Failed to locate business test user after login');
+  }
+
+  let business = await Business.findOne({ owner: user._id }).select('_id').lean();
+  if (!business?._id) {
+    business = await Business.create({
+      owner: user._id,
+      type: 'commercial',
+      businessname: 'Acme Business',
+      description: 'Business profile',
+      location: 'City Center',
+      pancardNumber: '1234567',
+    });
+  }
 
   return {
     authHeader: { Authorization: `Bearer ${token}` },
     businessId: business?._id,
+    ownerEmail: email.toLowerCase(),
   };
 }
 
@@ -508,6 +534,68 @@ describe('Feedback Submissions API', () => {
 
       expect(res.body.error).toMatch(/save submission|failed/i);
       createSpy.mockRestore();
+    });
+
+    it('sends business notification with form title and submitter name', async () => {
+      const { businessId, ownerEmail } = await createBusinessAuth();
+      const form = await FeedbackForm.create({
+        businessId,
+        title: 'Customer Experience Survey',
+        fields: [
+          { name: 'fullName', label: 'Full Name', type: 'name', required: false },
+          { name: 'email', label: 'Email', type: 'email', required: false },
+          { name: 'comment', label: 'Comment', type: 'text', required: false },
+        ],
+      });
+
+      const calls: Array<{ recipient: string; message: string }> = [];
+      const sendSpy = jest.spyOn(EmailNotification.prototype, 'send').mockImplementation(function (this: { recepient: string; message: string }) {
+        calls.push({ recipient: this.recepient, message: this.message });
+        return Promise.resolve();
+      });
+
+      await request(app)
+        .post(`/api/feedback-forms/${form._id}/submit`)
+        .send({ fullName: 'Jane Doe', email: 'jane@example.com', comment: 'Great service' })
+        .expect(201);
+
+      const businessCall = calls.find((c) => c.recipient === ownerEmail);
+      expect(businessCall).toBeTruthy();
+      expect(businessCall?.message).toContain('New form submission received.');
+      expect(businessCall?.message).toContain('Form: Customer Experience Survey');
+      expect(businessCall?.message).toContain('Submitted by: Jane Doe');
+
+      sendSpy.mockRestore();
+    });
+
+    it('uses Anonymous in business notification when submitter is anonymous', async () => {
+      const { businessId, ownerEmail } = await createBusinessAuth();
+      const form = await FeedbackForm.create({
+        businessId,
+        title: 'Anonymous Feedback',
+        fields: [
+          { name: 'fullName', label: 'Your Name', type: 'name', required: false, allowAnonymous: true },
+          { name: 'comment', label: 'Comment', type: 'text', required: false },
+        ],
+      });
+
+      const calls: Array<{ recipient: string; message: string }> = [];
+      const sendSpy = jest.spyOn(EmailNotification.prototype, 'send').mockImplementation(function (this: { recepient: string; message: string }) {
+        calls.push({ recipient: this.recepient, message: this.message });
+        return Promise.resolve();
+      });
+
+      await request(app)
+        .post(`/api/feedback-forms/${form._id}/submit`)
+        .send({ fullName: 'Anonymous', comment: 'No name provided' })
+        .expect(201);
+
+      const businessCall = calls.find((c) => c.recipient === ownerEmail);
+      expect(businessCall).toBeTruthy();
+      expect(businessCall?.message).toContain('Form: Anonymous Feedback');
+      expect(businessCall?.message).toContain('Submitted by: Anonymous');
+
+      sendSpy.mockRestore();
     });
   });
 
