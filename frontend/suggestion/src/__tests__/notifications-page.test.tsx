@@ -150,10 +150,10 @@ describe('NotificationsPage', () => {
   test('shows errors when forms, recipients, and qr assets fail to load', async () => {
     mockedAxios.get.mockRejectedValueOnce(new Error('forms failed'))
 
-    const firstRender = renderNotificationsPage()
+    const secondRender = renderNotificationsPage()
 
     expect(await screen.findByText(/Unable to load forms for notifications\./i)).toBeInTheDocument()
-    firstRender.unmount()
+    secondRender.unmount()
 
     mockedAxios.get
       .mockResolvedValueOnce({
@@ -165,7 +165,7 @@ describe('NotificationsPage', () => {
 
     mockedAxios.post.mockRejectedValueOnce({ response: { data: { error: 'QR generation failed' } } })
 
-    const firstRender = renderNotificationsPage()
+    renderNotificationsPage()
 
     await waitFor(() => {
       expect(screen.getByDisplayValue(/Please complete: NPS Survey/i)).toBeInTheDocument()
@@ -291,7 +291,7 @@ describe('NotificationsPage', () => {
     fireEvent.click(screen.getByRole('switch', { name: /toggle email notifications/i }))
     expect(await screen.findByText(/Update failed on server/i)).toBeInTheDocument()
 
-    firstRender.unmount()
+    secondRender.unmount()
     mockBusiness = undefined
     const rerendered = renderNotificationsPage()
     await waitFor(() => {
