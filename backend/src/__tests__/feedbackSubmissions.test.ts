@@ -912,4 +912,319 @@ describe('Feedback Submissions API', () => {
       findSpy.mockRestore();
     });
   });
+
+  describe('Feedback notification recipients and campaign routes', () => {
+    it('returns deduped recipients with pagination and multiple email extraction strategies', async () => {
+      const { authHeader, businessId } = await createBusinessAuth();
+      const form = await FeedbackForm.create({
+        businessId,
+        title: 'Notification Survey',
+        fields: [{ name: 'comment', label: 'Comment', type: 'text' }],
+      });
+
+      await FeedbackSubmission.create({
+        formId: form._id,
+        businessId,
+        formSnapshot: [{ name: 'comment', label: 'Comment', type: 'text' }],
+        submitterEmail: 'Direct@Example.com ',
+        responses: { comment: 'one' },
+      });
+      await FeedbackSubmission.create({
+        formId: form._id,
+        businessId,
+        formSnapshot: [{ name: 'comment', label: 'Comment', type: 'text' }],
+        responses: { contactEmail: 'secondary@example.com' },
+      });
+      await FeedbackSubmission.create({
+        formId: form._id,
+        businessId,
+        formSnapshot: [{ name: 'comment', label: 'Comment', type: 'text' }],
+        responses: { message: 'third@example.com' },
+      });
+      await FeedbackSubmission.create({
+        formId: form._id,
+        businessId,
+        formSnapshot: [{ name: 'comment', label: 'Comment', type: 'text' }],
+        responses: { email: 'direct@example.com' },
+      });
+      await FeedbackSubmission.create({
+        formId: form._id,
+        businessId,
+        formSnapshot: [{ name: 'comment', label: 'Comment', type: 'text' }],
+        responses: { message: 'not-an-email' },
+      });
+
+      const page1 = await request(app)
+        .get(`/api/feedback-forms/${form._id}/notification-recipients`)
+        .query({ page: 1, pageSize: 2 })
+        .set(authHeader)
+        .expect(200);
+
+      expect(page1.body.formId).toBe(form._id.toString());
+      expect(page1.body.formTitle).toBe('Notification Survey');
+      expect(page1.body.totalRecipients).toBe(3);
+      expect(page1.body.recipients).toHaveLength(2);
+
+      const page2 = await request(app)
+        .get(`/api/feedback-forms/${form._id}/notification-recipients`)
+        .query({ page: 2, pageSize: 2 })
+        .set(authHeader)
+        .expect(200);
+
+      expect(page2.body.recipients).toHaveLength(1);
+      expect(page2.body.recipients[0].email).toContain('@example.com');
+    });
+
+    it('skips entries with missing submission id even if an email exists', async () => {
+      const { authHeader, businessId } = await createBusinessAuth();
+      const form = await FeedbackForm.create({
+        businessId,
+        title: 'Skip Missing ID',
+        fields: [{ name: 'comment', label: 'Comment', type: 'text' }],
+      });
+
+      const findSpy = jest.spyOn(FeedbackSubmission, 'find').mockReturnValueOnce({
+        select: () => ({
+          sort: () => ({
+            lean: () => Promise.resolve([
+              { submitterEmail: 'missing-id@example.com', responses: {} },
+              {
+                _id: new (require('mongoose').Types.ObjectId)(),
+                submitterEmail: 'valid@example.com',
+                responses: {},
+                submittedAt: new Date(),
+              },
+            ]),
+          }),
+        }),
+      } as never);
+
+      const res = await request(app)
+        .get(`/api/feedback-forms/${form._id}/notification-recipients`)
+        .set(authHeader)
+        .expect(200);
+
+      expect(res.body.totalRecipients).toBe(1);
+      expect(res.body.recipients[0].email).toBe('valid@example.com');
+      findSpy.mockRestore();
+    });
+
+    it('returns 400/404 for invalid recipient route inputs', async () => {
+      const { authHeader, businessId } = await createBusinessAuth();
+      const form = await FeedbackForm.create({
+        businessId,
+        title: 'Existing',
+        fields: [{ name: 'comment', label: 'Comment', type: 'text' }],
+      });
+
+      await request(app)
+        .get('/api/feedback-forms/not-an-id/notification-recipients')
+        .set(authHeader)
+        .expect(400);
+
+      await request(app)
+        .get(`/api/feedback-forms/${new (require('mongoose').Types.ObjectId)()}/notification-recipients`)
+        .set(authHeader)
+        .expect(404);
+
+      const okRes = await request(app)
+        .get(`/api/feedback-forms/${form._id}/notification-recipients`)
+        .set(authHeader)
+        .expect(200);
+      expect(okRes.body.formId).toBe(form._id.toString());
+    });
+
+    it('returns 500 when recipient fetch throws', async () => {
+      const { authHeader, businessId } = await createBusinessAuth();
+      const form = await FeedbackForm.create({
+        businessId,
+        title: 'Recipient Error',
+        fields: [{ name: 'comment', label: 'Comment', type: 'text' }],
+      });
+
+      const findSpy = jest.spyOn(FeedbackSubmission, 'find').mockReturnValueOnce({
+        select: () => ({
+          sort: () => ({
+            lean: () => Promise.reject(new Error('recipient fetch failed')),
+          }),
+        }),
+      } as never);
+
+      const res = await request(app)
+        .get(`/api/feedback-forms/${form._id}/notification-recipients`)
+        .set(authHeader)
+        .expect(500);
+
+      expect(res.body.error).toMatch(/recipients/i);
+      findSpy.mockRestore();
+    });
+
+    it('validates campaign payload and scheduleAt', async () => {
+      const { authHeader, businessId } = await createBusinessAuth();
+      const form = await FeedbackForm.create({
+        businessId,
+        title: 'Campaign Form',
+        fields: [{ name: 'email', label: 'Email', type: 'email' }],
+      });
+
+      await request(app)
+        .post('/api/feedback-forms/not-an-id/notifications/campaign')
+        .set(authHeader)
+        .send({ subject: 'x', htmlBody: '<p>x</p>' })
+        .expect(400);
+
+      await request(app)
+        .post(`/api/feedback-forms/${form._id}/notifications/campaign`)
+        .set(authHeader)
+        .send({ subject: '   ', htmlBody: '<p>x</p>' })
+        .expect(400);
+
+      await request(app)
+        .post(`/api/feedback-forms/${form._id}/notifications/campaign`)
+        .set(authHeader)
+        .send({ subject: 'Subject', htmlBody: '   ' })
+        .expect(400);
+
+      await request(app)
+        .post(`/api/feedback-forms/${form._id}/notifications/campaign`)
+        .set(authHeader)
+        .send({ subject: 'Subject', htmlBody: '<p>x</p>', scheduleAt: 'not-a-date' })
+        .expect(400);
+
+      await request(app)
+        .post(`/api/feedback-forms/${form._id}/notifications/campaign`)
+        .set(authHeader)
+        .send({ subject: 'Subject', htmlBody: '<p>x</p>', scheduleAt: new Date(Date.now() - 60_000).toISOString() })
+        .expect(400);
+    });
+
+    it('returns 404 and 400 for campaign target/recipient failures', async () => {
+      const { authHeader, businessId } = await createBusinessAuth();
+      const form = await FeedbackForm.create({
+        businessId,
+        title: 'Campaign Form',
+        fields: [{ name: 'email', label: 'Email', type: 'email' }],
+      });
+
+      await request(app)
+        .post(`/api/feedback-forms/${new (require('mongoose').Types.ObjectId)()}/notifications/campaign`)
+        .set(authHeader)
+        .send({ subject: 'Subject', htmlBody: '<p>x</p>' })
+        .expect(404);
+
+      const noRecipients = await request(app)
+        .post(`/api/feedback-forms/${form._id}/notifications/campaign`)
+        .set(authHeader)
+        .send({ subject: 'Subject', htmlBody: '<p>x</p>' })
+        .expect(400);
+
+      expect(noRecipients.body.error).toMatch(/no valid recipient/i);
+    });
+
+    it('schedules campaign for future delivery', async () => {
+      const { authHeader, businessId } = await createBusinessAuth();
+      const form = await FeedbackForm.create({
+        businessId,
+        title: 'Scheduled Campaign',
+        fields: [{ name: 'email', label: 'Email', type: 'email' }],
+      });
+
+      await FeedbackSubmission.create({
+        formId: form._id,
+        businessId,
+        formSnapshot: [{ name: 'email', label: 'Email', type: 'email' }],
+        responses: { email: 'scheduled@example.com' },
+      });
+
+      const sendSpy = jest.spyOn(EmailNotification.prototype, 'send').mockResolvedValue(undefined);
+
+      const scheduledAt = new Date(Date.now() + 60_000).toISOString();
+      const res = await request(app)
+        .post(`/api/feedback-forms/${form._id}/notifications/campaign`)
+        .set(authHeader)
+        .send({ subject: 'Campaign', htmlBody: '<p>Body</p>', scheduleAt: scheduledAt })
+        .expect(202);
+
+      expect(res.body.message).toBe('Campaign scheduled successfully');
+      expect(res.body.formId).toBe(form._id.toString());
+      expect(res.body.recipientCount).toBe(1);
+      expect(typeof res.body.campaignId).toBe('string');
+
+      sendSpy.mockRestore();
+    });
+
+    it('sends campaign immediately and reports per-recipient failures', async () => {
+      const { authHeader, businessId } = await createBusinessAuth();
+      const form = await FeedbackForm.create({
+        businessId,
+        title: 'Immediate Campaign',
+        fields: [{ name: 'email', label: 'Email', type: 'email' }],
+      });
+
+      await FeedbackSubmission.create({
+        formId: form._id,
+        businessId,
+        formSnapshot: [{ name: 'email', label: 'Email', type: 'email' }],
+        responses: { email: 'ok@example.com' },
+      });
+      await FeedbackSubmission.create({
+        formId: form._id,
+        businessId,
+        formSnapshot: [{ name: 'email', label: 'Email', type: 'email' }],
+        responses: { email: 'fail@example.com' },
+      });
+
+      const sendSpy = jest.spyOn(EmailNotification.prototype, 'send').mockImplementation(function (this: { recepient: string }) {
+        if (this.recepient === 'fail@example.com') {
+          return Promise.reject(new Error('smtp failed'));
+        }
+        return Promise.resolve();
+      });
+
+      const res = await request(app)
+        .post(`/api/feedback-forms/${form._id}/notifications/campaign`)
+        .set(authHeader)
+        .send({ subject: 'Campaign', htmlBody: '<p>Body</p>' })
+        .expect(200);
+
+      expect(res.body.message).toBe('Campaign sent');
+      expect(res.body.recipientCount).toBe(2);
+      expect(res.body.sent).toBe(1);
+      expect(res.body.failed).toBe(1);
+      expect(res.body.failures).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ email: 'fail@example.com', reason: 'smtp failed' }),
+        ]),
+      );
+
+      sendSpy.mockRestore();
+    });
+
+    it('returns 500 when campaign send flow throws unexpectedly', async () => {
+      const { authHeader, businessId } = await createBusinessAuth();
+      const form = await FeedbackForm.create({
+        businessId,
+        title: 'Campaign Error',
+        fields: [{ name: 'email', label: 'Email', type: 'email' }],
+      });
+
+      await FeedbackSubmission.create({
+        formId: form._id,
+        businessId,
+        formSnapshot: [{ name: 'email', label: 'Email', type: 'email' }],
+        responses: { email: 'ok@example.com' },
+      });
+
+      const shareSpy = jest.spyOn(require('qrcode'), 'toDataURL').mockRejectedValueOnce(new Error('qr failed'));
+
+      const res = await request(app)
+        .post(`/api/feedback-forms/${form._id}/notifications/campaign`)
+        .set(authHeader)
+        .send({ subject: 'Campaign', htmlBody: '<p>Body</p>' })
+        .expect(500);
+
+      expect(res.body.error).toMatch(/failed to send campaign/i);
+      shareSpy.mockRestore();
+    });
+  });
 });

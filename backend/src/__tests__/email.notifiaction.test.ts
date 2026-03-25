@@ -70,4 +70,20 @@ describe('EmailNotification', () => {
       }),
     ]);
   });
+
+  it('renders QR unavailable placeholder when campaign template includes QR token without data URL', async () => {
+    const notification = new EmailNotification('campaign@example.com', 'ignored', {
+      subject: 'Please complete this form',
+      rawHtmlBody: '<div>{{FORM_TITLE}}{{FORM_QR_IMAGE}}</div>',
+      formTitle: 'NPS Survey',
+      formUrl: 'https://frontend.example.com/forms/123',
+    });
+
+    await notification.send();
+
+    expect(transporter.sendMail).toHaveBeenCalledTimes(1);
+    const mailArg = transporter.sendMail.mock.calls[0][0];
+    expect(mailArg.html).toContain('QR unavailable');
+    expect(mailArg.attachments).toBeUndefined();
+  });
 });

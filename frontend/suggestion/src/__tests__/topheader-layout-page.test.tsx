@@ -32,6 +32,7 @@ describe('TopHeader', () => {
     mockedAxios.get.mockReset()
     mockAxiosInterceptors()
     localStorage.clear()
+    jest.useRealTimers()
   })
 
   test('renders title and theme toggle', () => {
@@ -156,6 +157,143 @@ describe('TopHeader', () => {
     expect(await screen.findByText(/New submissions/i)).toBeInTheDocument()
     expect(screen.getByText(/New submission on Support Form/i)).toBeInTheDocument()
     expect(screen.getByText(/New submission on Feedback Form/i)).toBeInTheDocument()
+  })
+
+  test('covers notification name fallbacks, relative time labels, and closes on outside and link clicks', async () => {
+    jest.useFakeTimers()
+    jest.setSystemTime(new Date('2026-03-26T12:00:00.000Z'))
+    localStorage.setItem('auth_token', 'fake-token')
+    localStorage.setItem('dashboard_submission_notifications_last_seen_1', '0')
+
+    mockedAxios.get.mockImplementation((url) => {
+      if (typeof url !== 'string') return Promise.resolve({ data: {} })
+      if (url.includes('/api/auth/me')) {
+        return Promise.resolve({
+          data: { success: true, data: { _id: '1', name: 'Biz', email: 'b@t.com', role: 'business' } },
+        })
+      }
+      if (url.includes('/api/auth/business')) {
+        return Promise.resolve({
+          data: { success: true, business: { _id: 'biz-1', onboardingCompleted: true, emailNotificationsEnabled: true } },
+        })
+      }
+      if (url.includes('/api/feedback-forms/submissions')) {
+        return Promise.resolve({
+          data: {
+            submissions: [
+              {
+                _id: 'yesterday',
+                formId: 'form-1',
+                formTitle: 'Yesterday Form',
+                submittedAt: '2026-03-25T10:00:00.000Z',
+                formSnapshot: [{ name: 'full_name', label: 'Full Name' }],
+                responses: { full_name: '' },
+              },
+              {
+                _id: 'days',
+                formId: 'form-2',
+                formTitle: 'Days Form',
+                submittedAt: '2026-03-23T12:00:00.000Z',
+                responses: { customer_name: 'Morgan' },
+              },
+              {
+                _id: 'date',
+                formId: 'form-3',
+                formTitle: '',
+                submittedAt: '2026-03-10T12:00:00.000Z',
+                responses: {},
+              },
+            ],
+          },
+        })
+      }
+      return Promise.resolve({ data: {} })
+    })
+
+    render(
+      <TestRouter>
+        <ThemeProvider>
+          <AuthProvider>
+            <TopHeader title="Forms" />
+          </AuthProvider>
+        </ThemeProvider>
+      </TestRouter>,
+    )
+
+    const bellButton = await screen.findByLabelText(/open submission notifications/i)
+    fireEvent.click(bellButton)
+
+    expect(await screen.findByText(/Yesterday/i)).toBeInTheDocument()
+    expect(screen.getByText(/3d ago/i)).toBeInTheDocument()
+    expect(screen.getByText(new Date('2026-03-10T12:00:00.000Z').toLocaleDateString(undefined, { month: 'short', day: 'numeric' }))).toBeInTheDocument()
+    expect(screen.getByText(/Anonymous/i)).toBeInTheDocument()
+    expect(screen.getByText(/Morgan/i)).toBeInTheDocument()
+    expect(screen.getByText(/Untitled Form/i)).toBeInTheDocument()
+
+    fireEvent.mouseDown(document.body)
+    await waitFor(() => {
+      expect(screen.queryByText(/New submissions/i)).not.toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByLabelText(/open submission notifications/i))
+    const viewAll = await screen.findByText(/View all/i)
+    fireEvent.click(viewAll)
+    await waitFor(() => {
+      expect(screen.queryByText(/New submissions/i)).not.toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByLabelText(/open submission notifications/i))
+    const itemLink = await screen.findByText(/New submission on Yesterday Form/i)
+    fireEvent.click(itemLink)
+    await waitFor(() => {
+      expect(screen.queryByText(/New submissions/i)).not.toBeInTheDocument()
+    })
+  })
+
+  test('clears notifications for failed fetches and interval refreshes', async () => {
+    jest.useFakeTimers()
+    localStorage.setItem('auth_token', 'fake-token')
+
+    mockedAxios.get.mockImplementation((url) => {
+      if (typeof url !== 'string') return Promise.resolve({ data: {} })
+      if (url.includes('/api/auth/me')) {
+        return Promise.resolve({
+          data: { success: true, data: { _id: '1', name: 'Biz', email: 'b@t.com', role: 'business' } },
+        })
+      }
+      if (url.includes('/api/auth/business')) {
+        return Promise.resolve({
+          data: { success: true, business: { _id: 'biz-1', onboardingCompleted: true, emailNotificationsEnabled: true } },
+        })
+      }
+      if (url.includes('/api/feedback-forms/submissions')) {
+        return Promise.reject(new Error('fetch failed'))
+      }
+      return Promise.resolve({ data: {} })
+    })
+
+    render(
+      <TestRouter>
+        <ThemeProvider>
+          <AuthProvider>
+            <TopHeader title="Forms" />
+          </AuthProvider>
+        </ThemeProvider>
+      </TestRouter>,
+    )
+
+    await screen.findByLabelText(/open submission notifications/i)
+    jest.runOnlyPendingTimers()
+    await waitFor(() => {
+      expect(mockedAxios.get).toHaveBeenCalledWith(
+        expect.stringContaining('/api/feedback-forms/submissions'),
+        expect.any(Object),
+      )
+    })
+    jest.advanceTimersByTime(30000)
+    await waitFor(() => {
+      expect(mockedAxios.get).toHaveBeenCalled()
+    })
   })
 })
 
