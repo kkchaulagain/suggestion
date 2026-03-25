@@ -249,13 +249,6 @@ export default function NotificationsPage() {
 
   useEffect(() => {
     if (!selectedForm) return
-    if (!subject.trim()) {
-      setSubject(`Please complete: ${selectedForm.title || 'Feedback form'}`)
-    }
-  }, [selectedForm, subject])
-
-  useEffect(() => {
-    if (!selectedForm) return
     setMessageBody((current) =>
       current.trim()
         ? current
@@ -272,12 +265,14 @@ export default function NotificationsPage() {
     () => buildPreviewHtml(htmlBody, selectedForm?.title || 'Selected form', selectedFormQr),
     [htmlBody, selectedForm, selectedFormQr],
   )
+  const defaultSubject = selectedForm?.title ? `Please complete: ${selectedForm.title}` : 'Please complete: Feedback form'
+  const resolvedSubject = subject || defaultSubject
 
   const formOptions = forms.map((form) => ({ value: form._id, label: form.title || 'Untitled form' }))
 
   const validate = () => {
     if (!formId) return 'Please select a form.'
-    if (!subject.trim()) return 'Subject is required.'
+    if (!resolvedSubject.trim()) return 'Subject is required.'
     if (!messageBody.trim()) return 'Email message is required.'
     if (!htmlBody.trim()) return 'Email layout could not be generated.'
     if (recipientsCount < 1) return 'No valid recipient emails found from previous form submissions.'
@@ -304,7 +299,7 @@ export default function NotificationsPage() {
       setSuccess('')
 
       const payload: { subject: string; htmlBody: string; scheduleAt?: string } = {
-        subject: subject.trim(),
+        subject: resolvedSubject.trim(),
         htmlBody,
       }
       if (scheduleAt) {
@@ -365,7 +360,7 @@ export default function NotificationsPage() {
         setSavingNotificationSetting(false)
       }
     },
-    [emailNotificationsEnabled, refetchBusiness],
+    [business?._id, emailNotificationsEnabled, refetchBusiness],
   )
 
   return (
@@ -452,7 +447,7 @@ export default function NotificationsPage() {
               <Input
                 id="campaign-subject"
                 label="Email subject"
-                value={subject}
+                value={resolvedSubject}
                 onChange={setSubject}
                 placeholder="Please complete our latest form"
                 required

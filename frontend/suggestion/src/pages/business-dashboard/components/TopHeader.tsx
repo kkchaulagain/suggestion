@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react'
 import axios from 'axios'
 import { Bell } from 'lucide-react'
 import { Link } from 'react-router-dom'
@@ -70,6 +70,7 @@ export default function TopHeader({ title }: TopHeaderProps) {
   const [lastSeenAt, setLastSeenAt] = useState(0)
   const wrapperRef = useRef<HTMLDivElement | null>(null)
   const isEligibleRole = !!user?.role && ROLES_WITH_SUBMISSION_NOTIFICATIONS.has(user.role)
+  const storageKey = useMemo(() => getStorageKey(user?._id), [user?._id])
 
   const authConfig = useMemo(
     () => ({
@@ -79,7 +80,18 @@ export default function TopHeader({ title }: TopHeaderProps) {
     [getAuthHeaders],
   )
 
-  const loadNotifications = useCallback(async () => {
+  const storedLastSeenAt = useMemo(() => {
+    if (!isEligibleRole) {
+      return 0
+    }
+
+    const stored = Number(localStorage.getItem(storageKey) || '0')
+    return Number.isFinite(stored) ? stored : 0
+  }, [isEligibleRole, storageKey])
+
+  const effectiveLastSeenAt = Math.max(lastSeenAt, storedLastSeenAt)
+
+  const loadNotifications = useEffectEvent(async () => {
     if (!isEligibleRole) {
       setNotifications([])
       return
@@ -96,31 +108,21 @@ export default function TopHeader({ title }: TopHeaderProps) {
     } catch {
       setNotifications([])
     }
-  }, [authConfig, isEligibleRole])
+  })
 
   useEffect(() => {
     if (!isEligibleRole) return
-    const key = getStorageKey(user?._id)
-    const stored = Number(localStorage.getItem(key) || '0')
-    setLastSeenAt(Number.isFinite(stored) ? stored : 0)
-  }, [isEligibleRole, user?._id])
-
-  useEffect(() => {
-    if (!isEligibleRole) return
-    void loadNotifications()
+    const kickoffId = window.setTimeout(() => {
+      void loadNotifications()
+    }, 0)
     const id = window.setInterval(() => {
       void loadNotifications()
     }, 30000)
-    return () => window.clearInterval(id)
+    return () => {
+      window.clearTimeout(kickoffId)
+      window.clearInterval(id)
+    }
   }, [isEligibleRole, loadNotifications])
-
-  useEffect(() => {
-    if (!isOpen || !isEligibleRole) return
-    const latestTs = parseSafeDate(notifications[0]?.submittedAt) || Date.now()
-    const key = getStorageKey(user?._id)
-    localStorage.setItem(key, String(latestTs))
-    setLastSeenAt(latestTs)
-  }, [isOpen, isEligibleRole, notifications, user?._id])
 
   useEffect(() => {
     if (!isOpen) return
@@ -135,9 +137,21 @@ export default function TopHeader({ title }: TopHeaderProps) {
   }, [isOpen])
 
   const unreadCount = useMemo(() => {
-    if (!lastSeenAt) return notifications.length
-    return notifications.filter((item) => parseSafeDate(item.submittedAt) > lastSeenAt).length
-  }, [lastSeenAt, notifications])
+    if (!effectiveLastSeenAt) return notifications.length
+    return notifications.filter((item) => parseSafeDate(item.submittedAt) > effectiveLastSeenAt).length
+  }, [effectiveLastSeenAt, notifications])
+
+  const handleToggleOpen = () => {
+    setIsOpen((current) => {
+      const next = !current
+      if (next && isEligibleRole) {
+        const latestTs = parseSafeDate(notifications[0]?.submittedAt) || Date.now()
+        localStorage.setItem(storageKey, String(latestTs))
+        setLastSeenAt(latestTs)
+      }
+      return next
+    })
+  }
 
   return (
     <header className="sticky top-0 z-20 border-b border-stone-200/80 bg-[#fafaf9] px-4 py-4 dark:border-stone-700/80 dark:bg-stone-950 sm:px-6">
@@ -153,7 +167,7 @@ export default function TopHeader({ title }: TopHeaderProps) {
                 type="button"
                 className="relative inline-flex h-10 w-10 items-center justify-center rounded-full border border-stone-200 bg-white text-stone-700 transition hover:border-stone-300 hover:bg-stone-50 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-200 dark:hover:border-stone-600 dark:hover:bg-stone-800"
                 aria-label="Open submission notifications"
-                onClick={() => setIsOpen((current) => !current)}
+                onClick={handleToggleOpen}
               >
                 <Bell className="h-5 w-5" />
                 {unreadCount > 0 ? (
@@ -177,7 +191,7 @@ export default function TopHeader({ title }: TopHeaderProps) {
                   {notifications.length > 0 ? (
                     <ul className="max-h-96 overflow-y-auto">
                       {notifications.map((item) => {
-                        const isUnread = parseSafeDate(item.submittedAt) > lastSeenAt
+                        const isUnread = parseSafeDate(item.submittedAt) > effectiveLastSeenAt
                         return (
                           <li key={item._id}>
                             <Link
