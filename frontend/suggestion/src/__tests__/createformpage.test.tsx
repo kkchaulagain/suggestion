@@ -633,10 +633,16 @@ describe('CreateFormPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /\+ add new field/i }))
     await screen.findByRole('heading', { name: /add new field/i })
     fireEvent.click(screen.getByRole('button', { name: /add name email phone fields/i }))
+    await waitFor(() => {
+      expect(screen.getAllByText('Contact Name').length).toBeGreaterThanOrEqual(1)
+    })
 
     fireEvent.click(screen.getByRole('button', { name: /\+ add new field/i }))
     await screen.findByRole('heading', { name: /add new field/i })
     fireEvent.click(screen.getByRole('button', { name: /add name email phone fields/i }))
+    await waitFor(() => {
+      expect(screen.getAllByText('Contact Name').length).toBeGreaterThanOrEqual(2)
+    })
 
     fireEvent.click(screen.getByRole('button', { name: /save form/i }))
 
@@ -653,7 +659,7 @@ describe('CreateFormPage', () => {
         expect.any(Object),
       )
     })
-  })
+  }, 45000)
 
   test('remove field dialog cancel keeps field and closes modal', async () => {
     renderCreateFormPage()

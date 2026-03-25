@@ -63,9 +63,13 @@ describe('NotificationsPage', () => {
       expect(screen.getByDisplayValue(/Please complete: Customer Survey/i)).toBeInTheDocument()
     })
 
-    expect(screen.getByText(/2 unique email recipients found/i)).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText(/2 unique email recipients found/i)).toBeInTheDocument()
+    })
     expect(screen.getByText(/This QR and link will be embedded in the outgoing email\./i)).toBeInTheDocument()
-    expect(screen.getByAltText(/QR for Customer Survey/i)).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByAltText(/QR for Customer Survey/i)).toBeInTheDocument()
+    })
     expect(screen.queryByLabelText(/Editable HTML layout/i)).not.toBeInTheDocument()
     expect(screen.getByText(/We build the email layout automatically from your message and the selected form\./i)).toBeInTheDocument()
   })

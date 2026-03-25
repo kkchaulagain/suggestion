@@ -254,6 +254,7 @@ describe('BusinessDetailPage', () => {
 
     const noteTextarea = document.getElementById('detail-note') as HTMLTextAreaElement
     fireEvent.change(noteTextarea, { target: { value: 'Hello note' } })
+    await waitFor(() => expect(screen.getByTestId('detail-add-note')).toBeEnabled())
     fireEvent.click(screen.getByTestId('detail-add-note'))
 
     await waitFor(() => {
