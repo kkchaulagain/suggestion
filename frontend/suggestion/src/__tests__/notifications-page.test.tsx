@@ -273,7 +273,7 @@ describe('NotificationsPage', () => {
       .mockResolvedValueOnce({ data: { ok: true } })
       .mockRejectedValueOnce({ response: { data: { message: 'Update failed on server' } } })
 
-    renderNotificationsPage()
+    const secondRender = renderNotificationsPage()
 
     await waitFor(() => {
       expect(screen.getByRole('switch', { name: /toggle email notifications/i })).toBeInTheDocument()
