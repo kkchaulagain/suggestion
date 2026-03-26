@@ -169,13 +169,14 @@ describe('CreateFormPage drag coverage', () => {
 
     fireEvent.click(screen.getByTestId('dnd-end-reorder'))
 
-    const resetButton = screen.getByRole('button', { name: /reset to original order/i })
-    expect(resetButton).toBeEnabled()
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /reset to original order/i })).toBeEnabled()
+    })
 
-    fireEvent.click(resetButton)
+    fireEvent.click(screen.getByRole('button', { name: /reset to original order/i }))
 
     await waitFor(() => {
-      expect(resetButton).toBeDisabled()
+      expect(screen.getByRole('button', { name: /reset to original order/i })).toBeDisabled()
     })
 
     expect(screen.getByText('Text field 4')).toBeInTheDocument()

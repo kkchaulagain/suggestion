@@ -11,6 +11,7 @@ const User = require('../models/User');
 const { syncContactFromSubmission } = require('../services/syncContactFromSubmission');
 const { isAuthenticated } = require('../middleware/isauthenticated');
 const { authorize } = require('../middleware/authorize');
+const{ EmailNotification }=require('../notification/email.notifiaction');
 const router = express.Router();
 const DEFAULT_FRONTEND_FORM_BASE_URL = 'http://localhost:3001/feedback-forms';
 
@@ -193,6 +194,18 @@ function getFrontendFormUrl(formId: string, frontendBaseUrlOverride?: string) {
   return `${normalizeBaseUrl(baseUrl)}/${encodeURIComponent(formId)}`;
 }
 
+async function generateFormShareAssets(formId: string, frontendBaseUrlOverride?: string) {
+  const formUrl = getFrontendFormUrl(formId, frontendBaseUrlOverride);
+  const qrCodeDataUrl = await QRCode.toDataURL(formUrl, {
+    type: 'image/png',
+    width: 320,
+    margin: 2,
+    errorCorrectionLevel: 'M',
+  });
+
+  return { formUrl, qrCodeDataUrl };
+}
+
 interface FormFieldDoc {
   name: string;
   label: string;
@@ -221,6 +234,14 @@ function buildFormSnapshot(form: { fields: FormFieldDoc[] }): FormSnapshotField[
 type SubmissionBody = Record<string, string | string[]>;
 
 const ANONYMOUS_FIELD_TYPES = new Set(['text', 'name', 'email']);
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const scheduledCampaignTimers = new Map<string, NodeJS.Timeout>();
+
+interface RecipientInfo {
+  email: string;
+  submissionId: string;
+  submittedAt: Date;
+}
 
 function validateSubmissionPayload(
   form: { fields: FormFieldDoc[] },
@@ -236,7 +257,10 @@ function validateSubmissionPayload(
     const name = field.name;
     const value = raw[name];
 
-    const isAnonymousAllowed = ANONYMOUS_FIELD_TYPES.has(field.type) && (field as { allowAnonymous?: boolean }).allowAnonymous === true;
+    const isAnonymousAllowed =
+      field.type !== 'checkbox' &&
+      ANONYMOUS_FIELD_TYPES.has(field.type) &&
+      (field as { allowAnonymous?: boolean }).allowAnonymous === true;
 
     if (field.required && !isAnonymousAllowed) {
       if (value === undefined || value === null) {
@@ -269,6 +293,124 @@ function validateSubmissionPayload(
   }
 
   return { valid: true, responses };
+}
+
+function normalizeEmailAddress(value: unknown): string {
+  if (typeof value !== 'string') return '';
+  const trimmed = value.trim().toLowerCase();
+  if (!trimmed) return '';
+  return EMAIL_REGEX.test(trimmed) ? trimmed : '';
+}
+
+function findEmailInResponses(responses: Record<string, unknown>): string {
+  const direct = normalizeEmailAddress(responses.email);
+  if (direct) return direct;
+
+  for (const [key, value] of Object.entries(responses)) {
+    if (!/email/i.test(key)) continue;
+    const match = normalizeEmailAddress(value);
+    if (match) return match;
+  }
+
+  for (const value of Object.values(responses)) {
+    const match = normalizeEmailAddress(value);
+    if (match) return match;
+  }
+
+  return '';
+}
+
+function extractRecipientFromSubmission(submission: {
+  _id?: Types.ObjectId | string;
+  responses?: Record<string, unknown>;
+  submittedAt?: Date;
+  submitterEmail?: string;
+}): RecipientInfo | null {
+  const responses = submission.responses || {};
+  const storedEmail = normalizeEmailAddress(submission.submitterEmail);
+  const email = storedEmail || findEmailInResponses(responses);
+  if (!email) return null;
+  const submittedAt = submission.submittedAt instanceof Date ? submission.submittedAt : new Date();
+  const submissionId = submission._id ? String(submission._id) : '';
+  if (!submissionId) return null;
+  return {
+    email,
+    submissionId,
+    submittedAt,
+  };
+}
+
+function dedupeRecipients(recipients: RecipientInfo[]): RecipientInfo[] {
+  const seen = new Set<string>();
+  const unique: RecipientInfo[] = [];
+  for (const recipient of recipients) {
+    const key = recipient.email.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    unique.push(recipient);
+  }
+  return unique;
+}
+
+function scheduleCampaignDispatch(campaignId: string, runAt: Date, task: () => Promise<void>) {
+  const delayMs = Math.max(0, runAt.getTime() - Date.now());
+  const existing = scheduledCampaignTimers.get(campaignId);
+  if (existing) {
+    clearTimeout(existing);
+  }
+  const timer = setTimeout(async () => {
+    try {
+      await task();
+    } catch (err) {
+      console.error('Scheduled campaign send failed', err);
+    } finally {
+      scheduledCampaignTimers.delete(campaignId);
+    }
+  }, delayMs);
+  scheduledCampaignTimers.set(campaignId, timer);
+}
+
+async function sendCampaignEmails(
+  recipients: RecipientInfo[],
+  subject: string,
+  htmlBody: string,
+  options: { formTitle?: string; formUrl?: string; qrCodeDataUrl?: string } = {},
+) {
+  let sent = 0;
+  let failed = 0;
+  const failures: Array<{ email: string; reason: string }> = [];
+  const batchSize = 20;
+
+  for (let i = 0; i < recipients.length; i += batchSize) {
+    const batch = recipients.slice(i, i + batchSize);
+    const results = await Promise.allSettled(
+      batch.map(async (recipient) => {
+        const notification = new EmailNotification(recipient.email, htmlBody, {
+          subject,
+          rawHtmlBody: htmlBody,
+          formTitle: options.formTitle,
+          formUrl: options.formUrl,
+          qrCodeDataUrl: options.qrCodeDataUrl,
+        });
+        await notification.send();
+        return recipient.email;
+      }),
+    );
+
+    results.forEach((result, index) => {
+      if (result.status === 'fulfilled') {
+        sent += 1;
+        return;
+      }
+      failed += 1;
+      failures.push({
+        email: batch[index]?.email || 'unknown',
+        reason: result.reason instanceof Error ? result.reason.message : 'Failed to send email',
+      });
+    });
+  }
+
+  return { sent, failed, failures };
 }
 
 async function resolveBusinessProfile(req: AuthenticatedRequest, res: Response, next: NextFunction) {
@@ -448,8 +590,162 @@ router.get('/:id/submissions', isAuthenticated, authorize('business', 'admin', '
   }
 });
 
+router.get('/:id/notification-recipients', isAuthenticated, authorize('business', 'admin', 'governmentservices', 'user'), resolveBusinessProfile, async (req: AuthenticatedRequest, res: Response) => {
+  const id = req.params.id;
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ error: 'Invalid feedback form id' });
+  }
+
+  try {
+    const formFilter: Record<string, unknown> = { _id: id };
+    if (req.businessProfile) {
+      formFilter.businessId = req.businessProfile._id;
+    }
+
+    const form = await FeedbackForm.findOne(formFilter).select('_id businessId fields title').lean();
+    if (!form) {
+      return res.status(404).json({ error: 'Feedback form not found' });
+    }
+
+    const submissionFilter: Record<string, unknown> = {};
+    if (req.businessProfile) {
+      submissionFilter.businessId = req.businessProfile._id;
+    }
+
+    const submissions = await FeedbackSubmission.find(submissionFilter)
+      .select('_id responses submitterEmail submittedAt')
+      .sort({ submittedAt: -1 })
+      .lean();
+
+    const uniqueRecipients = dedupeRecipients(
+      (submissions as Array<{ _id?: Types.ObjectId | string; responses?: Record<string, unknown>; submitterEmail?: string; submittedAt?: Date }>)
+        .map((submission) => extractRecipientFromSubmission(submission))
+        .filter(Boolean) as RecipientInfo[],
+    );
+
+    const page = Math.max(1, parseInt(String(req.query.page), 10) || 1);
+    const pageSize = Math.min(100, Math.max(1, parseInt(String(req.query.pageSize), 10) || 20));
+    const skip = (page - 1) * pageSize;
+
+    return res.status(200).json({
+      formId: id,
+      formTitle: (form as { title?: string }).title || '',
+      totalRecipients: uniqueRecipients.length,
+      page,
+      pageSize,
+      recipients: uniqueRecipients.slice(skip, skip + pageSize),
+    });
+  } catch (_err) {
+    return res.status(500).json({ error: 'Failed to load notification recipients' });
+  }
+});
+
+router.post('/:id/notifications/campaign', isAuthenticated, authorize('business', 'admin', 'governmentservices', 'user'), resolveBusinessProfile, async (req: AuthenticatedRequest, res: Response) => {
+  const rawId = req.params.id;
+  const id = Array.isArray(rawId) ? rawId[0] : rawId;
+  if (typeof id !== 'string' || !mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ error: 'Invalid feedback form id' });
+  }
+
+  const subject = typeof req.body?.subject === 'string' ? req.body.subject.trim() : '';
+  const htmlBody = typeof req.body?.htmlBody === 'string' ? req.body.htmlBody.trim() : '';
+  const scheduleAtRaw = typeof req.body?.scheduleAt === 'string' ? req.body.scheduleAt.trim() : '';
+
+  if (!subject) {
+    return res.status(400).json({ error: 'Subject is required' });
+  }
+  if (!htmlBody) {
+    return res.status(400).json({ error: 'Email body is required' });
+  }
+
+  let scheduledFor: Date | null = null;
+  if (scheduleAtRaw) {
+    const parsed = new Date(scheduleAtRaw);
+    if (Number.isNaN(parsed.getTime())) {
+      return res.status(400).json({ error: 'scheduleAt must be a valid date-time string' });
+    }
+    if (parsed.getTime() <= Date.now()) {
+      return res.status(400).json({ error: 'scheduleAt must be in the future' });
+    }
+    scheduledFor = parsed;
+  }
+
+  try {
+    const formFilter: Record<string, unknown> = { _id: id };
+    if (req.businessProfile) {
+      formFilter.businessId = req.businessProfile._id;
+    }
+
+    const form = await FeedbackForm.findOne(formFilter).select('_id businessId fields title').lean();
+    if (!form) {
+      return res.status(404).json({ error: 'Feedback form not found' });
+    }
+
+    const submissionFilter: Record<string, unknown> = {};
+    if (req.businessProfile) {
+      submissionFilter.businessId = req.businessProfile._id;
+    }
+
+    const submissions = await FeedbackSubmission.find(submissionFilter)
+      .select('_id responses submitterEmail submittedAt')
+      .sort({ submittedAt: -1 })
+      .lean();
+
+    const recipients = dedupeRecipients(
+      (submissions as Array<{ _id?: Types.ObjectId | string; responses?: Record<string, unknown>; submitterEmail?: string; submittedAt?: Date }>)
+        .map((submission) => extractRecipientFromSubmission(submission))
+        .filter(Boolean) as RecipientInfo[],
+    );
+
+    if (recipients.length === 0) {
+      return res.status(400).json({ error: 'No valid recipient emails found from previous form submissions' });
+    }
+
+    const shareAssets = await generateFormShareAssets(id);
+    const formTitle = typeof (form as { title?: unknown }).title === 'string'
+      ? (form as { title: string }).title
+      : '';
+
+    if (scheduledFor) {
+      const campaignId = `${id}:${Date.now()}:${Math.random().toString(36).slice(2, 10)}`;
+      scheduleCampaignDispatch(campaignId, scheduledFor, async () => {
+        await sendCampaignEmails(recipients, subject, htmlBody, {
+          formTitle,
+          formUrl: shareAssets.formUrl,
+          qrCodeDataUrl: shareAssets.qrCodeDataUrl,
+        });
+      });
+
+      return res.status(202).json({
+        message: 'Campaign scheduled successfully',
+        campaignId,
+        formId: id,
+        recipientCount: recipients.length,
+        scheduledFor,
+      });
+    }
+
+    const result = await sendCampaignEmails(recipients, subject, htmlBody, {
+      formTitle,
+      formUrl: shareAssets.formUrl,
+      qrCodeDataUrl: shareAssets.qrCodeDataUrl,
+    });
+    return res.status(200).json({
+      message: 'Campaign sent',
+      formId: id,
+      recipientCount: recipients.length,
+      sent: result.sent,
+      failed: result.failed,
+      failures: result.failures,
+    });
+  } catch (_err) {
+    return res.status(500).json({ error: 'Failed to send campaign emails' });
+  }
+});
+
 router.post('/:id/submit', async (req: Request, res: Response) => {
   const id = req.params.id;
+  
   if (!mongoose.Types.ObjectId.isValid(id)) {
     return res.status(400).json({ error: 'Invalid feedback form id' });
   }
@@ -463,11 +759,21 @@ router.post('/:id/submit', async (req: Request, res: Response) => {
       return res.status(400).json({ error: validation.error });
     }
     const formSnapshot = buildFormSnapshot(form);
+    const emailField = Array.isArray((form as { fields?: FormFieldDoc[] }).fields)
+      ? (form as { fields: FormFieldDoc[] }).fields.find(
+        (field) => field?.type === 'email' && typeof field?.name === 'string',
+      )
+      : undefined;
+    const rawEmail = emailField?.name
+      ? validation.responses[emailField.name]
+      : validation.responses.email;
+    const submitterEmail = normalizeEmailAddress(rawEmail);
     const doc = await FeedbackSubmission.create({
       formId: form._id,
       businessId: form.businessId,
       formSnapshot,
       responses: validation.responses,
+      submitterEmail,
       submittedAt: new Date(),
     });
     try {
@@ -479,6 +785,70 @@ router.post('/:id/submit', async (req: Request, res: Response) => {
       );
     } catch (syncErr) {
       console.error('syncContactFromSubmission failed', syncErr);
+    }
+
+    const userEmail = submitterEmail;
+    if (userEmail && userEmail.toLowerCase() !== 'anonymous') {
+      const message = 'thank you for your feedback!,your response has been recorded.';
+      try {
+        const emailNotification = new EmailNotification(userEmail, message);
+        await emailNotification.send();
+      } catch (_mailErr) {
+        console.error('Email notification failed');
+      }
+    }
+
+    const formFields = Array.isArray((form as { fields?: FormFieldDoc[] }).fields)
+      ? (form as { fields: FormFieldDoc[] }).fields
+      : [];
+    const nameFields = formFields.filter(
+      (field) => field?.type === 'name' && typeof field?.name === 'string',
+    );
+    let rawSubmitterName = '';
+    for (const field of nameFields) {
+      const candidate = validation.responses[field.name];
+      if (typeof candidate === 'string' && candidate.trim()) {
+        rawSubmitterName = candidate.trim();
+        break;
+      }
+    }
+    if (!rawSubmitterName) {
+      for (const [key, value] of Object.entries(validation.responses)) {
+        if (/name/i.test(key) && typeof value === 'string' && value.trim()) {
+          rawSubmitterName = value.trim();
+          break;
+        }
+      }
+    }
+    const submitterName = rawSubmitterName && rawSubmitterName.toLowerCase() !== 'anonymous'
+      ? rawSubmitterName
+      : 'Anonymous';
+
+    const formTitle = typeof (form as { title?: unknown }).title === 'string' && (form as { title: string }).title.trim()
+      ? (form as { title: string }).title.trim()
+      : 'Untitled Form';
+
+    const businessDoc = await Business.findById(form.businessId).select('owner emailNotificationsEnabled').lean();
+    const ownerId = (businessDoc as { owner?: Types.ObjectId | string | null; emailNotificationsEnabled?: boolean } | null)?.owner;
+    const businessNotificationsEnabled = (businessDoc as { emailNotificationsEnabled?: boolean } | null)?.emailNotificationsEnabled !== false;
+    if (ownerId && businessNotificationsEnabled) {
+      const owner = await User.findById(ownerId.toString()).select('email').lean();
+      const businessEmail = typeof (owner as { email?: unknown } | null)?.email === 'string'
+        ? String((owner as { email: string }).email).trim()
+        : '';
+      if (businessEmail) {
+        const businessMessage = [
+          'New form submission received.',
+          `Form: ${formTitle}`,
+          `Submitted by: ${submitterName}`,
+        ].join('\n');
+        try {
+          const businessNotification = new EmailNotification(businessEmail, businessMessage);
+          await businessNotification.send();
+        } catch (_businessMailErr) {
+          console.error('Business notification email failed');
+        }
+      }
     }
     return res.status(201).json({ message: 'Submission received', submissionId: doc._id });
   } catch (_err) {
@@ -644,13 +1014,7 @@ router.post('/:id/qr', isAuthenticated, authorize('business', 'admin', 'governme
       return res.status(404).json({ error: 'Feedback form not found' });
     }
 
-  const formUrl = getFrontendFormUrl(feedbackForm._id.toString(), frontendBaseUrl);
-    const qrCodeDataUrl = await QRCode.toDataURL(formUrl, {
-      type: 'image/png',
-      width: 320,
-      margin: 2,
-      errorCorrectionLevel: 'M',
-    });
+    const { formUrl, qrCodeDataUrl } = await generateFormShareAssets(feedbackForm._id.toString(), frontendBaseUrl);
 
     return res.status(200).json({
       message: 'Feedback form QR generated',

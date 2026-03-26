@@ -33,6 +33,7 @@ export interface Business {
   description: string
   onboardingCompleted?: boolean
   onboardingCompletedAt?: string
+  emailNotificationsEnabled?: boolean
 }
 
 interface LoginCredentials {

@@ -297,6 +297,15 @@ describe('Auth Profile Endpoints', () => {
       expect(res.body.data.pancardNumber).toBe('11223344');
     });
 
+    it('returns 200 and updates emailNotificationsEnabled', async () => {
+      const res = await withAuth(request(app).put('/api/auth/business'), businessToken)
+        .send({ emailNotificationsEnabled: false })
+        .expect(200);
+
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.emailNotificationsEnabled).toBe(false);
+    });
+
     it('returns 500 if database error occurs', async () => {
       const originalFindOneAndUpdate = Business.findOneAndUpdate;
       Business.findOneAndUpdate = jest.fn().mockImplementation(() => {

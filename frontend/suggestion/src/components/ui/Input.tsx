@@ -6,7 +6,7 @@ export interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 
   id: string
   label?: ReactNode
   leftIcon?: ReactNode
-  type?: 'text' | 'email' | 'password' | 'number' | 'date' | 'tel' | 'time' | 'url'
+  type?: 'text' | 'email' | 'password' | 'number' | 'date' | 'datetime-local' | 'tel' | 'time' | 'url'
   value: string
   onChange: (value: string) => void
   placeholder?: string
