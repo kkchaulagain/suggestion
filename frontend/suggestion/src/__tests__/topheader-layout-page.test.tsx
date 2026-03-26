@@ -150,7 +150,9 @@ describe('TopHeader', () => {
     )
 
     const bellButton = await screen.findByLabelText(/open submission notifications/i)
-    expect(await screen.findByText('1')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(bellButton).toHaveTextContent('1')
+    })
 
     fireEvent.click(bellButton)
 
@@ -223,10 +225,16 @@ describe('TopHeader', () => {
     const bellButton = await screen.findByLabelText(/open submission notifications/i)
     fireEvent.click(bellButton)
 
-    expect(await screen.findByText(/Yesterday/i)).toBeInTheDocument()
+    expect(
+      await screen.findByText((_, element) => element?.textContent === 'Anonymous • Yesterday')
+    ).toBeInTheDocument()
     expect(screen.getByText(/3d ago/i)).toBeInTheDocument()
-    expect(screen.getByText(new Date('2026-03-10T12:00:00.000Z').toLocaleDateString(undefined, { month: 'short', day: 'numeric' }))).toBeInTheDocument()
-    expect(screen.getByText(/Anonymous/i)).toBeInTheDocument()
+    expect(
+      screen.getByText((_, element) => {
+        const dateLabel = new Date('2026-03-10T12:00:00.000Z').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+        return element?.textContent === `Anonymous • ${dateLabel}`
+      })
+    ).toBeInTheDocument()
     expect(screen.getByText(/Morgan/i)).toBeInTheDocument()
     expect(screen.getByText(/Untitled Form/i)).toBeInTheDocument()
 

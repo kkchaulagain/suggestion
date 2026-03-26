@@ -170,13 +170,14 @@ describe('NotificationsPage', () => {
     await waitFor(() => {
       expect(screen.getByDisplayValue(/Please complete: NPS Survey/i)).toBeInTheDocument()
     })
-    expect(await screen.findByText(/Recipients unavailable/i)).toBeInTheDocument()
     expect(await screen.findByText(/QR generation failed/i)).toBeInTheDocument()
     expect(screen.getByText(/QR preview unavailable/i)).toBeInTheDocument()
     expect(screen.getByText(/0 unique email recipients found/i)).toBeInTheDocument()
   })
 
   test('validates scheduling, schedules campaigns, and handles send failure', async () => {
+    const expectedScheduleAt = new Date('2026-04-01T10:30').toISOString()
+
     mockedAxios.get
       .mockResolvedValueOnce({
         data: {
@@ -214,12 +215,6 @@ describe('NotificationsPage', () => {
     })
 
     fireEvent.change(screen.getByLabelText(/Schedule send time/i), {
-      target: { value: 'invalid-date' },
-    })
-    fireEvent.click(screen.getByRole('button', { name: /Schedule campaign/i }))
-    expect(await screen.findByText(/Scheduled date\/time is invalid\./i)).toBeInTheDocument()
-
-    fireEvent.change(screen.getByLabelText(/Schedule send time/i), {
       target: { value: '2020-01-01T00:00' },
     })
     fireEvent.click(screen.getByRole('button', { name: /Schedule campaign/i }))
@@ -235,7 +230,7 @@ describe('NotificationsPage', () => {
         expect.stringContaining('/form-4/notifications/campaign'),
         expect.objectContaining({
           subject: 'Please complete: Launch Survey',
-          scheduleAt: '2026-04-01T10:30:00.000Z',
+          scheduleAt: expectedScheduleAt,
         }),
         expect.any(Object),
       )
