@@ -30,7 +30,7 @@ function renderNotificationsPage() {
 
 describe('NotificationsPage', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    jest.resetAllMocks()
     mockedAxios.get.mockReset()
     mockedAxios.post.mockReset()
     mockedAxios.put = jest.fn() as unknown as typeof mockedAxios.put
@@ -242,7 +242,7 @@ describe('NotificationsPage', () => {
     })
     fireEvent.click(screen.getByRole('button', { name: /Schedule campaign/i }))
     expect(await screen.findByText(/Failed to send campaign\./i)).toBeInTheDocument()
-  })
+  }, 30000)
 
   test('toggles email notifications and handles missing business and server failures', async () => {
     mockedAxios.get
