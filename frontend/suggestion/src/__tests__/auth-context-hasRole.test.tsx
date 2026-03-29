@@ -31,7 +31,8 @@ function HasRoleConsumer() {
 
 describe('AuthContext hasRole', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    jest.resetAllMocks()
+    mockedAxios.get.mockReset()
     localStorage.clear()
     mockAxiosInterceptors()
   })

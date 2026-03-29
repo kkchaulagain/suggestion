@@ -1,8 +1,9 @@
+require('dotenv').config();
 const app = require('./app');
 const { connect } = require('./db');
 const { logger } = require('./logger');
 
-const PORT = process.env.PORT || 3000;
+const PORT = Number(process.env.PORT || 3000);
 
 async function start() {
   try {
@@ -12,7 +13,7 @@ async function start() {
     logger.warn('MongoDB not connected', { message: err instanceof Error ? err.message : err });
   }
   const host = process.env.HOST ?? '0.0.0.0';
-  app.listen(Number(PORT), host, () => {
+  app.listen(PORT, host, () => {
     logger.info('Server running', { host, port: PORT });
   });
 }

@@ -47,6 +47,13 @@ const feedbackSubmissionSchema = new mongoose.Schema(
       required: [true, 'Responses are required'],
       default: {},
     },
+    submitterEmail: {
+      type: String,
+      default: '',
+      trim: true,
+      lowercase: true,
+      index: true,
+    },
     submittedAt: {
       type: Date,
       default: Date.now,

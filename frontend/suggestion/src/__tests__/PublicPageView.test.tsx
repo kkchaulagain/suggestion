@@ -24,7 +24,7 @@ function renderPublicPageView(initialPath = '/c/page-1/landing') {
 
 describe('PublicPageView', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    jest.resetAllMocks()
   })
 
   test('shows loading then error when no id', async () => {

@@ -27,7 +27,7 @@ function renderSignup() {
 describe('Signup Component', () => {
 
   beforeEach(() => {
-    jest.clearAllMocks()
+    jest.resetAllMocks()
     mockNavigate.mockClear()
     window.alert = jest.fn()
   })

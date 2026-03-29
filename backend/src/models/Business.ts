@@ -67,6 +67,10 @@ const businessSchema = new mongoose.Schema({
         type: Date,
         required: false,
     },
+    emailNotificationsEnabled: {
+        type: Boolean,
+        default: true,
+    },
     crmTags: {
         type: [String],
         default: [],
