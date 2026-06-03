@@ -52,7 +52,8 @@ describe('BusinessesPage', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mockNavigate.mockClear()
-    mockedStartImpersonation.mockReset()
+    mockedStartImpersonation.mockClear()
+    mockedStartImpersonation.mockImplementation(() => Promise.resolve({ success: true }))
     mockedAxios.get.mockReset()
     mockedAxios.post.mockReset()
     mockedAxios.put.mockReset()

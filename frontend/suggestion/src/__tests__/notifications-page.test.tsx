@@ -203,10 +203,17 @@ describe('NotificationsPage', () => {
         status: 202,
         data: {
           recipientCount: 3,
-          scheduledFor: '2026-04-01T10:30:00.000Z',
+          scheduledFor: '2026-04-01T04:45:00.000Z',
         },
       })
       .mockRejectedValueOnce({ response: { data: { error: 'Failed to send campaign.' } } })
+      .mockResolvedValueOnce({
+        status: 202,
+        data: {
+          recipientCount: 3,
+          scheduledFor: '2026-04-01T04:45:00.000Z',
+        },
+      })
 
     renderNotificationsPage()
 
@@ -242,6 +249,12 @@ describe('NotificationsPage', () => {
     })
     fireEvent.click(screen.getByRole('button', { name: /Schedule campaign/i }))
     expect(await screen.findByText(/Failed to send campaign\./i)).toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText(/Business message/i), {
+      target: { value: 'Retry again' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /Schedule campaign/i }))
+    expect(await screen.findByText(/Campaign scheduled for .* to 3 recipients\./i)).toBeInTheDocument()
   }, 30000)
 
   test('toggles email notifications and handles missing business and server failures', async () => {

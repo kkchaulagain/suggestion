@@ -61,7 +61,8 @@ describe('BusinessDetailPage', () => {
     jest.clearAllMocks()
     mockedAxios.get.mockReset()
     mockedAxios.patch.mockReset()
-    mockedStartImpersonation.mockReset()
+    mockedStartImpersonation.mockClear()
+    mockedStartImpersonation.mockImplementation(() => Promise.resolve({ success: true }))
   })
 
   // ── Rendering ──────────────────────────────────────────────────────────────
