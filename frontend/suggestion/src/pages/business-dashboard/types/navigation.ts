@@ -19,6 +19,6 @@ export const sidebarItems: SidebarItem[] = [
   { label: 'Submissions', path: '/dashboard/submissions', icon: Inbox, requiredRoles: [...DASHBOARD_ROLES] },
   { label: 'Notifications', path: '/dashboard/notifications', icon: Mail, requiredRoles: ['business', 'admin'] },
   { label: 'Businesses', path: '/dashboard/businesses', icon: Building2, requiredRoles: ['admin'] },
-  { label: 'Users', path: '/dashboard/users', icon: Users, requiredRoles: ['admin', 'business', 'governmentservices'] },
+  { label: 'Users', path: '/dashboard/users', icon: Users, requiredRoles: ['admin'] },
   { label: 'Profile', path: '/dashboard/profile', icon: UserCircle, requiredRoles: [...DASHBOARD_ROLES] },
 ]

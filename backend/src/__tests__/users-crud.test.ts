@@ -253,23 +253,7 @@ describe('Users CRUD API', () => {
       const decoded = jwt.verify(res.body.data.token, JWT_SECRET) as { userId: string };
       expect(decoded.userId).toBe(regularUserId);
     });
-
-    it('returns 200 and an impersonation token for active user when business user impersonates', async () => {
-      const res = await withAuth(businessToken, 'post', `/api/users/${regularUserId}/impersonate`).expect(200);
-      expect(res.body.success).toBe(true);
-      expect(typeof res.body.data?.token).toBe('string');
-      const decoded = jwt.verify(res.body.data.token, JWT_SECRET) as { userId: string };
-      expect(decoded.userId).toBe(regularUserId);
-    });
-
-    it('returns 200 and an impersonation token for active user when government services user impersonates', async () => {
-      const res = await withAuth(governmentToken, 'post', `/api/users/${regularUserId}/impersonate`).expect(200);
-      expect(res.body.success).toBe(true);
-      expect(typeof res.body.data?.token).toBe('string');
-      const decoded = jwt.verify(res.body.data.token, JWT_SECRET) as { userId: string };
-      expect(decoded.userId).toBe(regularUserId);
-    });
-
+    
     it('returns 400 when attempting to impersonate self', async () => {
       await withAuth(adminToken, 'post', `/api/users/${adminId}/impersonate`).expect(400);
     });

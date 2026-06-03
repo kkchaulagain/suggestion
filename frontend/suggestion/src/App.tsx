@@ -91,7 +91,7 @@ function App() {
                 </RoleGuard>
               }
             />
-            <Route path="users" element={<RoleGuard roles={['admin', 'business', 'governmentservices']}><UsersPage /></RoleGuard>} />
+            <Route path="users" element={<RoleGuard roles={['admin']}><UsersPage /></RoleGuard>} />
             <Route path="profile" element={<ProfilePage />} />
           </Route>
           {/* Legacy: redirect old business-dashboard URLs to main dashboard */}

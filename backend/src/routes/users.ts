@@ -181,7 +181,7 @@ function createAccessToken(userId: string) {
   });
 }
 
-router.post('/:id/impersonate', isAuthenticated, authorize('admin', 'business', 'governmentservices'), async (req: Request, res: Response) => {
+router.post('/:id/impersonate', isAuthenticated, authorize('admin'), async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const currentUserId = (req as Request & { id?: string }).id;
