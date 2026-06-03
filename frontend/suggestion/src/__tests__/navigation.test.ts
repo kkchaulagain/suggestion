@@ -8,7 +8,7 @@ describe('navigation', () => {
     expect(sidebarItems[2]).toMatchObject({ label: 'Submissions', path: '/dashboard/submissions' })
     expect(sidebarItems[3]).toMatchObject({ label: 'Notifications', path: '/dashboard/notifications', requiredRoles: ['business', 'admin'] })
     expect(sidebarItems[4]).toMatchObject({ label: 'Businesses', path: '/dashboard/businesses', requiredRoles: ['admin'] })
-    expect(sidebarItems[5]).toMatchObject({ label: 'Users', path: '/dashboard/users', requiredRoles: ['admin', 'business', 'governmentservices'] })
+    expect(sidebarItems[5]).toMatchObject({ label: 'Users', path: '/dashboard/users', requiredRoles: ['admin'] })
     expect(sidebarItems[6]).toMatchObject({ label: 'Profile', path: '/dashboard/profile' })
     sidebarItems.forEach((item) => {
       expect(item.icon).toBeDefined()
