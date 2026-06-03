@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
-import { Check, Pencil, RefreshCw, Trash2, X } from 'lucide-react'
+import { Check, LogIn, Pencil, RefreshCw, Trash2, X } from 'lucide-react'
 import { useAuth } from '../../../context/AuthContext'
 import { businessesListApi } from '../../../utils/apipath'
 import { Button, Card, Input, Textarea, Select, ErrorMessage, Modal } from '../../../components/ui'
@@ -48,7 +48,20 @@ export default function BusinessesPage() {
   })
   const [modalError, setModalError] = useState('')
   const [saving, setSaving] = useState(false)
-  const { getAuthHeaders } = useAuth()
+  const { user: currentUser, getAuthHeaders, startImpersonation } = useAuth()
+  const [impersonationError, setImpersonationError] = useState('')
+
+  const handleImpersonateOwner = useCallback(
+    async (business: BusinessListItem) => {
+      if (!business.owner || business.owner === currentUser?._id) return
+      setImpersonationError('')
+      const result = await startImpersonation({ _id: business.owner })
+      if (!result.success) {
+        setImpersonationError(result.error ?? 'Failed to impersonate owner.')
+      }
+    },
+    [currentUser?._id, startImpersonation],
+  )
 
   const authHeaders = useMemo(
     () => ({
@@ -196,6 +209,18 @@ export default function BusinessesPage() {
                 >
                   View
                 </Button>
+                {business.owner && business.owner !== currentUser?._id ? (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => void handleImpersonateOwner(business)}
+                    aria-label={`Login as owner of ${business.businessname}`}
+                  >
+                    <LogIn className="h-4 w-4" />
+                    Login as owner
+                  </Button>
+                ) : null}
                 <Button type="button" variant="secondary" size="sm" onClick={() => openEdit(business)}>
                   <Pencil className="h-4 w-4" />
                   Edit
@@ -211,6 +236,7 @@ export default function BusinessesPage() {
       </div>
 
       {error ? <ErrorMessage message={error} className="mt-4" /> : null}
+      {impersonationError ? <ErrorMessage message={impersonationError} className="mt-4" /> : null}
 
       {modalMode === 'edit' && selectedBusiness ? (
         <Modal isOpen onClose={closeModal} title="Edit business">

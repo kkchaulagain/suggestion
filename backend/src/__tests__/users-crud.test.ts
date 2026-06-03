@@ -10,6 +10,10 @@ describe('Users CRUD API', () => {
   let adminToken: string;
   let adminId: string;
   let regularUserId: string;
+  let businessToken: string;
+  let businessUserId: string;
+  let governmentToken: string;
+  let governmentUserId: string;
 
   beforeAll(async () => {
     await connect();
@@ -43,6 +47,28 @@ describe('Users CRUD API', () => {
       isActive: true,
     });
     regularUserId = regular._id.toString();
+
+    const businessUser = await User.create({
+      name: 'Business User',
+      email: 'business@example.com',
+      password: 'businesspass123',
+      phone: '+9779812345612',
+      role: 'business',
+      isActive: true,
+    });
+    businessUserId = businessUser._id.toString();
+    businessToken = jwt.sign({ userId: businessUserId }, JWT_SECRET);
+
+    const governmentUser = await User.create({
+      name: 'Government User',
+      email: 'government@example.com',
+      password: 'governmentpass123',
+      phone: '+9779812345613',
+      role: 'governmentservices',
+      isActive: true,
+    });
+    governmentUserId = governmentUser._id.toString();
+    governmentToken = jwt.sign({ userId: governmentUserId }, JWT_SECRET);
   });
 
   const withAuth = (token: string, method: string, path: string) =>
@@ -81,6 +107,18 @@ describe('Users CRUD API', () => {
       expect(first).toHaveProperty('email');
       expect(first).toHaveProperty('role');
       expect(first).toHaveProperty('isActive');
+    });
+
+    it('returns 200 for business user', async () => {
+      const res = await withAuth(businessToken, 'get', '/api/users').expect(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.users).toBeInstanceOf(Array);
+    });
+
+    it('returns 200 for government services user', async () => {
+      const res = await withAuth(governmentToken, 'get', '/api/users').expect(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.users).toBeInstanceOf(Array);
     });
 
     it('supports search and filters', async () => {
@@ -204,6 +242,41 @@ describe('Users CRUD API', () => {
       const res = await withAuth(adminToken, 'patch', `/api/users/${regularUserId}/activate`).expect(200);
       expect(res.body.success).toBe(true);
       expect(res.body.data.isActive).toBe(true);
+    });
+  });
+
+  describe('POST /api/users/:id/impersonate', () => {
+    it('returns 200 and an impersonation token for active user', async () => {
+      const res = await withAuth(adminToken, 'post', `/api/users/${regularUserId}/impersonate`).expect(200);
+      expect(res.body.success).toBe(true);
+      expect(typeof res.body.data?.token).toBe('string');
+      const decoded = jwt.verify(res.body.data.token, JWT_SECRET) as { userId: string };
+      expect(decoded.userId).toBe(regularUserId);
+    });
+
+    it('returns 200 and an impersonation token for active user when business user impersonates', async () => {
+      const res = await withAuth(businessToken, 'post', `/api/users/${regularUserId}/impersonate`).expect(200);
+      expect(res.body.success).toBe(true);
+      expect(typeof res.body.data?.token).toBe('string');
+      const decoded = jwt.verify(res.body.data.token, JWT_SECRET) as { userId: string };
+      expect(decoded.userId).toBe(regularUserId);
+    });
+
+    it('returns 200 and an impersonation token for active user when government services user impersonates', async () => {
+      const res = await withAuth(governmentToken, 'post', `/api/users/${regularUserId}/impersonate`).expect(200);
+      expect(res.body.success).toBe(true);
+      expect(typeof res.body.data?.token).toBe('string');
+      const decoded = jwt.verify(res.body.data.token, JWT_SECRET) as { userId: string };
+      expect(decoded.userId).toBe(regularUserId);
+    });
+
+    it('returns 400 when attempting to impersonate self', async () => {
+      await withAuth(adminToken, 'post', `/api/users/${adminId}/impersonate`).expect(400);
+    });
+
+    it('returns 400 when attempting to impersonate an inactive user', async () => {
+      await User.findByIdAndUpdate(regularUserId, { isActive: false });
+      await withAuth(adminToken, 'post', `/api/users/${regularUserId}/impersonate`).expect(400);
     });
   });
 

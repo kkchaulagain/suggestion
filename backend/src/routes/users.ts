@@ -1,5 +1,6 @@
 import type { Request, Response } from 'express';
 const express = require('express');
+const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const { isAuthenticated } = require('../middleware/isauthenticated');
 const { authorize } = require('../middleware/authorize');
@@ -28,7 +29,7 @@ function toPublicUser(doc: { _id: unknown; name: string; email: string; role: st
   };
 }
 
-router.get('/', isAuthenticated, authorize('admin'), async (req: Request, res: Response) => {
+router.get('/', isAuthenticated, authorize('admin', 'business', 'governmentservices'), async (req: Request, res: Response) => {
   try {
     const page = Math.max(1, parseInt(String(req.query.page), 10) || DEFAULT_PAGE);
     const pageSize = Math.min(MAX_PAGE_SIZE, Math.max(1, parseInt(String(req.query.pageSize), 10) || DEFAULT_PAGE_SIZE));
@@ -71,7 +72,7 @@ router.get('/', isAuthenticated, authorize('admin'), async (req: Request, res: R
   }
 });
 
-router.get('/:id', isAuthenticated, authorize('admin'), async (req: Request, res: Response) => {
+router.get('/:id', isAuthenticated, authorize('admin', 'business', 'governmentservices'), async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const user = await User.findById(id).select('-password').lean();
@@ -170,6 +171,43 @@ router.patch('/:id/activate', isAuthenticated, authorize('admin'), async (req: R
     });
   } catch (err) {
     logger.error('Activate user error:', err);
+    return res.status(500).json({ success: false, message: 'Something went wrong' });
+  }
+});
+
+function createAccessToken(userId: string) {
+  return jwt.sign({ userId }, process.env.JWT_SECRET || 'default_secret_key', {
+    expiresIn: '15m',
+  });
+}
+
+router.post('/:id/impersonate', isAuthenticated, authorize('admin', 'business', 'governmentservices'), async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const currentUserId = (req as Request & { id?: string }).id;
+
+    if (!id || id === currentUserId) {
+      return res.status(400).json({ success: false, message: 'Invalid impersonation target' });
+    }
+
+    const user = await User.findById(id).select('+password').lean();
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    if (user.isActive === false) {
+      return res.status(400).json({ success: false, message: 'Cannot impersonate inactive user' });
+    }
+
+    const token = createAccessToken(String(user._id));
+    return res.status(200).json({
+      success: true,
+      message: 'Impersonation token generated successfully',
+      data: { token },
+      token,
+    });
+  } catch (err) {
+    logger.error('Impersonation error:', err);
     return res.status(500).json({ success: false, message: 'Something went wrong' });
   }
 });

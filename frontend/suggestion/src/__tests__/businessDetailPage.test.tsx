@@ -9,9 +9,13 @@ import BusinessDetailPage from '../pages/business-dashboard/pages/BusinessDetail
 jest.mock('axios')
 const mockedAxios = axios as jest.Mocked<typeof axios>
 
+const mockedStartImpersonation = jest.fn(() => Promise.resolve({ success: true }))
+
 jest.mock('../context/AuthContext', () => ({
   useAuth: () => ({
+    user: { _id: 'admin1' },
     getAuthHeaders: () => ({ Authorization: 'Bearer fake-token' }),
+    startImpersonation: mockedStartImpersonation,
   }),
 }))
 
@@ -57,6 +61,7 @@ describe('BusinessDetailPage', () => {
     jest.clearAllMocks()
     mockedAxios.get.mockReset()
     mockedAxios.patch.mockReset()
+    mockedStartImpersonation.mockReset()
   })
 
   // ── Rendering ──────────────────────────────────────────────────────────────
@@ -500,6 +505,21 @@ describe('BusinessDetailPage', () => {
       expect(screen.getByText(/Open in Maps/i)).toBeInTheDocument()
       expect(screen.getByText(/View Reviews/i)).toBeInTheDocument()
       expect(screen.getByText('27.7, 85.3')).toBeInTheDocument()
+    })
+  })
+
+  test('Login as owner button calls impersonation when owner differs from current user', async () => {
+    mockGet(defaultBusiness({ owner: 'u-owner' }))
+    renderDetail()
+
+    await waitFor(() => {
+      expect(screen.getByText(/CRM Biz/i)).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /Login as owner/i }))
+
+    await waitFor(() => {
+      expect(mockedStartImpersonation).toHaveBeenCalledWith({ _id: 'u-owner' })
     })
   })
 })

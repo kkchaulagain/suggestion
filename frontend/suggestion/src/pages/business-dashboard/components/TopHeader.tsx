@@ -153,6 +153,9 @@ export default function TopHeader({ title }: TopHeaderProps) {
     })
   }
 
+  const isImpersonating = auth?.isImpersonating
+  const impersonatedUser = auth?.impersonatedUser
+
   return (
     <header className="sticky top-0 z-20 border-b border-stone-200/80 bg-[#fafaf9] px-4 py-4 dark:border-stone-700/80 dark:bg-stone-950 sm:px-6">
       <div className="flex items-center justify-between">
@@ -221,6 +224,22 @@ export default function TopHeader({ title }: TopHeaderProps) {
           <ThemeToggle />
         </div>
       </div>
+      {isImpersonating && impersonatedUser ? (
+        <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-600/40 dark:bg-amber-500/10 dark:text-amber-100">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <p>
+              You are impersonating <strong>{impersonatedUser.name}</strong> ({impersonatedUser.role}).
+            </p>
+            <button
+              type="button"
+              className="inline-flex items-center justify-center rounded-lg border border-amber-300 bg-amber-100 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-amber-900 transition hover:bg-amber-200 dark:border-amber-500/60 dark:bg-amber-500/20 dark:text-amber-100"
+              onClick={() => auth?.stopImpersonation?.()}
+            >
+              Stop impersonation
+            </button>
+          </div>
+        </div>
+      ) : null}
     </header>
   )
 }
