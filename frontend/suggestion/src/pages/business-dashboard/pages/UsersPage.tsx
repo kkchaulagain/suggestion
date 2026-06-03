@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import axios from 'axios'
 import { Pencil, UserX, UserCheck, LogIn } from 'lucide-react'
-import { useAuth } from '../../../context/AuthContext'
+import { useAuth, type UserRole } from '../../../context/AuthContext'
 import { usersApi } from '../../../utils/apipath'
 import { Button, Card, ErrorMessage, Input, Modal, Select, Tag } from '../../../components/ui'
 import { DataTable, EmptyState, Pagination } from '../../../components/layout'
@@ -176,7 +176,7 @@ export default function UsersPage() {
         _id: u._id,
         name: u.name,
         email: u.email,
-        role: u.role as any,
+        role: u.role as UserRole,
         isActive: u.isActive,
       })
       if (!result.success) {
@@ -331,7 +331,7 @@ export default function UsersPage() {
         ),
       },
     ],
-    [currentUser?._id, handleActivate],
+    [currentUser?._id, handleActivate, handleImpersonate],
   )
 
   return (

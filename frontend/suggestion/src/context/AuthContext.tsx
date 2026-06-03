@@ -224,7 +224,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setBusiness(null)
     setToken(null)
     setErrorState(null)
-  }, [clearImpersonation, setToken])
+  }, [getActiveAuthToken, clearImpersonation, setToken])
 
   const fetchBusiness = useCallback(async (authToken: string): Promise<Business | null> => {
     try {
@@ -427,7 +427,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       axios.interceptors.request.eject(requestInterceptor)
       axios.interceptors.response.eject(responseInterceptor)
     }
-  }, [refreshAccessToken])
+  }, [refreshAccessToken, getActiveAuthToken])
 
   // Restore session from stored token on mount (token and isLoading already set from initial state)
   useEffect(() => {

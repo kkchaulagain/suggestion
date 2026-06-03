@@ -122,7 +122,7 @@ export default function TopHeader({ title }: TopHeaderProps) {
       window.clearTimeout(kickoffId)
       window.clearInterval(id)
     }
-  }, [isEligibleRole, loadNotifications])
+  }, [isEligibleRole])
 
   useEffect(() => {
     if (!isOpen) return
