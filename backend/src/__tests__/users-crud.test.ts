@@ -270,7 +270,7 @@ describe('Users CRUD API', () => {
 
   describe('POST /api/users/:id/impersonate', () => {
     it('returns 400 when id is missing or empty', async () => {
-      const res = await withAuth(adminToken, 'post', '/api/users//impersonate').expect(404);
+      await withAuth(adminToken, 'post', '/api/users//impersonate').expect(404);
     });
 
     it('returns 200 and an impersonation token for active user', async () => {
