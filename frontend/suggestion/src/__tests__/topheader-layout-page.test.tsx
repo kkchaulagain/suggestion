@@ -1,5 +1,6 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom'
+import axios from 'axios'
 import { Route, Routes } from 'react-router-dom'
 import { TestRouter } from './test-router'
 
@@ -7,8 +8,10 @@ import TopHeader from '../pages/business-dashboard/components/TopHeader'
 import BusinessDashboardLayout from '../pages/business-dashboard/layout/BusinessDashboardLayout'
 import FormsPage from '../pages/business-dashboard/pages/FormsPage'
 import { ThemeProvider } from '../context/ThemeContext'
+import { AuthProvider } from '../context/AuthContext'
 
 jest.mock('axios')
+const mockedAxios = axios as jest.Mocked<typeof axios>
 
 jest.mock('../context/AuthContext', () => ({
   useAuth: () => ({
@@ -19,6 +22,7 @@ jest.mock('../context/AuthContext', () => ({
     isImpersonating: true,
     impersonatedUser: { _id: 'u2', name: 'Test', email: 't@t.com', role: 'user', isActive: true },
   }),
+  AuthProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }))
 
 function mockAxiosInterceptors() {
@@ -78,7 +82,7 @@ describe('TopHeader', () => {
 
   test('does not show submission notification button for regular users', async () => {
     localStorage.setItem('auth_token', 'fake-token')
-    mockedAxios.get.mockImplementation((url) => {
+    mockedAxios.get.mockImplementation((url: unknown) => {
       if (typeof url === 'string' && url.includes('/api/auth/me')) {
         return Promise.resolve({
           data: { success: true, data: { _id: '2', name: 'User', email: 'u@t.com', role: 'user' } },
@@ -108,7 +112,7 @@ describe('TopHeader', () => {
     const now = Date.now()
     localStorage.setItem('dashboard_submission_notifications_last_seen_1', String(now - 45 * 60 * 1000))
 
-    mockedAxios.get.mockImplementation((url) => {
+    mockedAxios.get.mockImplementation((url: unknown) => {
       if (typeof url !== 'string') return Promise.resolve({ data: {} })
       if (url.includes('/api/auth/me')) {
         return Promise.resolve({
@@ -175,7 +179,7 @@ describe('TopHeader', () => {
     localStorage.setItem('auth_token', 'fake-token')
     localStorage.setItem('dashboard_submission_notifications_last_seen_1', '0')
 
-    mockedAxios.get.mockImplementation((url) => {
+    mockedAxios.get.mockImplementation((url: unknown) => {
       if (typeof url !== 'string') return Promise.resolve({ data: {} })
       if (url.includes('/api/auth/me')) {
         return Promise.resolve({

@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import axios from 'axios'
+import type { UserRole } from '../context/AuthContext'
 import { AuthProvider, useAuth } from '../context/AuthContext'
 
 jest.mock('axios')
@@ -18,7 +19,7 @@ function mockAxiosInterceptors() {
   }
 }
 
-function ImpersonationTrigger({ target }: { target: { _id: string; name?: string; email?: string; role?: string; isActive?: boolean } }) {
+function ImpersonationTrigger({ target }: { target: { _id: string; name?: string; email?: string; role?: UserRole; isActive?: boolean } }) {
   const { startImpersonation, isImpersonating, impersonatedUser } = useAuth()
   return (
     <div>
