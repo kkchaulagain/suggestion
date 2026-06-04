@@ -22,6 +22,14 @@ jest.mock('../context/AuthContext', () => ({
     isImpersonating: true,
     impersonatedUser: { _id: 'u2', name: 'Test', email: 't@t.com', role: 'user', isActive: true },
   }),
+  useAuthOptional: () => ({
+    getAuthHeaders: () => ({ Authorization: 'Bearer fake-token' }),
+    user: { _id: 'admin-1', name: 'Admin', email: 'a@a.com', role: 'admin' },
+    startImpersonation: jest.fn(),
+    stopImpersonation: jest.fn(),
+    isImpersonating: true,
+    impersonatedUser: { _id: 'u2', name: 'Test', email: 't@t.com', role: 'user', isActive: true },
+  }),
   AuthProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }))
 
