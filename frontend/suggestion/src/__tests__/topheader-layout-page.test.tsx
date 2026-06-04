@@ -13,23 +13,30 @@ import { AuthProvider } from '../context/AuthContext'
 jest.mock('axios')
 const mockedAxios = axios as jest.Mocked<typeof axios>
 
+type MockAuthState = {
+  getAuthHeaders: () => { Authorization?: string }
+  user: { _id: string; name: string; email: string; role: string } | null
+  startImpersonation: jest.Mock
+  stopImpersonation: jest.Mock
+  isImpersonating: boolean
+  impersonatedUser: { _id: string; name: string; email: string; role: string; isActive?: boolean } | null
+}
+
+const buildDefaultMockAuthState = (): MockAuthState => ({
+  getAuthHeaders: () => ({ Authorization: 'Bearer fake-token' }),
+  user: null,
+  startImpersonation: jest.fn(),
+  stopImpersonation: jest.fn(),
+  isImpersonating: false,
+  impersonatedUser: null,
+})
+
+let mockAuthOptionalState: MockAuthState = buildDefaultMockAuthState()
+let mockAuthState: MockAuthState = buildDefaultMockAuthState()
+
 jest.mock('../context/AuthContext', () => ({
-  useAuth: () => ({
-    getAuthHeaders: () => ({ Authorization: 'Bearer fake-token' }),
-    user: { _id: 'admin-1', name: 'Admin', email: 'a@a.com', role: 'admin' },
-    startImpersonation: jest.fn(),
-    stopImpersonation: jest.fn(),
-    isImpersonating: true,
-    impersonatedUser: { _id: 'u2', name: 'Test', email: 't@t.com', role: 'user', isActive: true },
-  }),
-  useAuthOptional: () => ({
-    getAuthHeaders: () => ({ Authorization: 'Bearer fake-token' }),
-    user: { _id: 'admin-1', name: 'Admin', email: 'a@a.com', role: 'admin' },
-    startImpersonation: jest.fn(),
-    stopImpersonation: jest.fn(),
-    isImpersonating: true,
-    impersonatedUser: { _id: 'u2', name: 'Test', email: 't@t.com', role: 'user', isActive: true },
-  }),
+  useAuth: () => mockAuthState,
+  useAuthOptional: () => mockAuthOptionalState,
   AuthProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }))
 
