@@ -22,21 +22,20 @@ type MockAuthState = {
   impersonatedUser: { _id: string; name: string; email: string; role: string; isActive?: boolean } | null
 }
 
-const buildDefaultMockAuthState = (): MockAuthState => ({
+const baseMockAuthState: MockAuthState = {
   getAuthHeaders: () => ({ Authorization: 'Bearer fake-token' }),
   user: null,
   startImpersonation: jest.fn(),
   stopImpersonation: jest.fn(),
   isImpersonating: false,
   impersonatedUser: null,
-})
+}
 
-let mockAuthOptionalState: MockAuthState = buildDefaultMockAuthState()
-let mockAuthState: MockAuthState = buildDefaultMockAuthState()
+let mockAuthState: MockAuthState = { ...baseMockAuthState }
 
 jest.mock('../context/AuthContext', () => ({
-  useAuth: () => mockAuthState,
-  useAuthOptional: () => mockAuthOptionalState,
+  useAuth: () => ({ ...mockAuthState }),
+  useAuthOptional: () => ({ ...mockAuthState }),
   AuthProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }))
 
@@ -60,6 +59,7 @@ describe('TopHeader', () => {
     mockAxiosInterceptors()
     localStorage.clear()
     jest.useRealTimers()
+    mockAuthState = { ...baseMockAuthState }
   })
 
   test('renders title and theme toggle', () => {
@@ -73,12 +73,12 @@ describe('TopHeader', () => {
   })
 
   test('shows submission notification button for business users', async () => {
+    mockAuthState = {
+      ...baseMockAuthState,
+      user: { _id: '1', name: 'Test', email: 't@t.com', role: 'business' },
+    }
     localStorage.setItem('auth_token', 'fake-token')
-    mockedAxios.get
-      .mockResolvedValueOnce({
-        data: { success: true, data: { _id: '1', name: 'Test', email: 't@t.com', role: 'business' } },
-      } as MeApiResponse)
-      .mockResolvedValueOnce({ data: { submissions: [] } })
+    mockedAxios.get.mockResolvedValueOnce({ data: { submissions: [] } })
 
     render(
       <TestRouter>
@@ -96,6 +96,10 @@ describe('TopHeader', () => {
   })
 
   test('does not show submission notification button for regular users', async () => {
+    mockAuthState = {
+      ...baseMockAuthState,
+      user: { _id: '2', name: 'User', email: 'u@t.com', role: 'user' },
+    }
     localStorage.setItem('auth_token', 'fake-token')
     mockedAxios.get.mockImplementation((url: unknown) => {
       if (typeof url === 'string' && url.includes('/api/auth/me')) {
@@ -123,6 +127,10 @@ describe('TopHeader', () => {
   })
 
   test('shows unread submissions count and notification items', async () => {
+    mockAuthState = {
+      ...baseMockAuthState,
+      user: { _id: '1', name: 'Biz', email: 'b@t.com', role: 'business' },
+    }
     localStorage.setItem('auth_token', 'fake-token')
     const now = Date.now()
     localStorage.setItem('dashboard_submission_notifications_last_seen_1', String(now - 45 * 60 * 1000))
@@ -189,6 +197,10 @@ describe('TopHeader', () => {
   })
 
   test('covers notification name fallbacks, relative time labels, and closes on outside and link clicks', async () => {
+    mockAuthState = {
+      ...baseMockAuthState,
+      user: { _id: '1', name: 'Biz', email: 'b@t.com', role: 'business' },
+    }
     jest.useFakeTimers()
     jest.setSystemTime(new Date('2026-03-26T12:00:00.000Z'))
     localStorage.setItem('auth_token', 'fake-token')
@@ -286,14 +298,23 @@ describe('TopHeader', () => {
   })
 
   test('shows impersonation banner when isImpersonating is true', async () => {
+    mockAuthState = {
+      ...baseMockAuthState,
+      user: { _id: 'admin-1', name: 'Admin', email: 'a@a.com', role: 'admin' },
+      isImpersonating: true,
+      impersonatedUser: { _id: 'u2', name: 'Test', email: 't@t.com', role: 'user', isActive: true },
+    }
     render(
       <ThemeProvider>
-        <TopHeader title="Forms" />
+        <AuthProvider>
+          <TopHeader title="Forms" />
+        </AuthProvider>
       </ThemeProvider>,
     )
 
     await waitFor(() => {
-      expect(screen.getByText(/You are impersonating Test/i)).toBeInTheDocument()
+      expect(screen.getByText(/You are impersonating/)).toBeInTheDocument()
+      expect(screen.getByText(/Test/)).toBeInTheDocument()
     })
   })
 })
