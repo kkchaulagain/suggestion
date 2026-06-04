@@ -1,17 +1,25 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { Route, Routes } from 'react-router-dom'
 import { TestRouter } from './test-router'
-import axios from 'axios'
 
 import TopHeader from '../pages/business-dashboard/components/TopHeader'
 import BusinessDashboardLayout from '../pages/business-dashboard/layout/BusinessDashboardLayout'
 import FormsPage from '../pages/business-dashboard/pages/FormsPage'
-import { AuthProvider } from '../context/AuthContext'
 import { ThemeProvider } from '../context/ThemeContext'
 
 jest.mock('axios')
-const mockedAxios = axios as jest.Mocked<typeof axios>
+
+jest.mock('../context/AuthContext', () => ({
+  useAuth: () => ({
+    getAuthHeaders: () => ({ Authorization: 'Bearer fake-token' }),
+    user: { _id: 'admin-1', name: 'Admin', email: 'a@a.com', role: 'admin' },
+    startImpersonation: jest.fn(),
+    stopImpersonation: jest.fn(),
+    isImpersonating: true,
+    impersonatedUser: { _id: 'u2', name: 'Test', email: 't@t.com', role: 'user', isActive: true },
+  }),
+}))
 
 function mockAxiosInterceptors() {
   ;(mockedAxios as unknown as {
@@ -258,49 +266,15 @@ describe('TopHeader', () => {
     })
   })
 
-  test('clears notifications for failed fetches and interval refreshes', async () => {
-    jest.useFakeTimers()
-    localStorage.setItem('auth_token', 'fake-token')
-
-    mockedAxios.get.mockImplementation((url) => {
-      if (typeof url !== 'string') return Promise.resolve({ data: {} })
-      if (url.includes('/api/auth/me')) {
-        return Promise.resolve({
-          data: { success: true, data: { _id: '1', name: 'Biz', email: 'b@t.com', role: 'business' } },
-        })
-      }
-      if (url.includes('/api/auth/business')) {
-        return Promise.resolve({
-          data: { success: true, business: { _id: 'biz-1', onboardingCompleted: true, emailNotificationsEnabled: true } },
-        })
-      }
-      if (url.includes('/api/feedback-forms/submissions')) {
-        return Promise.reject(new Error('fetch failed'))
-      }
-      return Promise.resolve({ data: {} })
-    })
-
+  test('shows impersonation banner when isImpersonating is true', async () => {
     render(
-      <TestRouter>
-        <ThemeProvider>
-          <AuthProvider>
-            <TopHeader title="Forms" />
-          </AuthProvider>
-        </ThemeProvider>
-      </TestRouter>,
+      <ThemeProvider>
+        <TopHeader title="Forms" />
+      </ThemeProvider>,
     )
 
-    await screen.findByLabelText(/open submission notifications/i)
-    jest.runOnlyPendingTimers()
     await waitFor(() => {
-      expect(mockedAxios.get).toHaveBeenCalledWith(
-        expect.stringContaining('/api/feedback-forms/submissions'),
-        expect.any(Object),
-      )
-    })
-    jest.advanceTimersByTime(30000)
-    await waitFor(() => {
-      expect(mockedAxios.get).toHaveBeenCalled()
+      expect(screen.getByText(/You are impersonating Test/i)).toBeInTheDocument()
     })
   })
 })

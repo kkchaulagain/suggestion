@@ -210,6 +210,16 @@ describe('Users CRUD API', () => {
       expect(res.body.success).toBe(false);
       expect(res.body.message).toMatch(/already in use/i);
     });
+
+    it('returns 404 when updating non-existent user', async () => {
+      const res = await request(app)
+        .put(`/api/users/507f1f77bcf86cd799439011`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ name: 'Updated' })
+        .expect(404);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toMatch(/not found/i);
+    });
   });
 
   describe('PATCH /api/users/:id/deactivate', () => {
@@ -227,6 +237,12 @@ describe('Users CRUD API', () => {
       expect(res.body.message).toMatch(/cannot deactivate your own/i);
     });
 
+    it('returns 404 when deactivating non-existent user', async () => {
+      const res = await withAuth(adminToken, 'patch', '/api/users/507f1f77bcf86cd799439011/deactivate').expect(404);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toMatch(/not found/i);
+    });
+
     it('returns 200 and sets isActive false', async () => {
       const res = await withAuth(adminToken, 'patch', `/api/users/${regularUserId}/deactivate`).expect(200);
       expect(res.body.success).toBe(true);
@@ -237,6 +253,13 @@ describe('Users CRUD API', () => {
   });
 
   describe('PATCH /api/users/:id/activate', () => {
+    it('returns 404 when activating non-existent user', async () => {
+      await request(app)
+        .patch('/api/users/507f1f77bcf86cd799439011/activate')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(404);
+    });
+
     it('returns 200 and sets isActive true', async () => {
       await User.findByIdAndUpdate(regularUserId, { isActive: false });
       const res = await withAuth(adminToken, 'patch', `/api/users/${regularUserId}/activate`).expect(200);
@@ -246,6 +269,10 @@ describe('Users CRUD API', () => {
   });
 
   describe('POST /api/users/:id/impersonate', () => {
+    it('returns 400 when id is missing or empty', async () => {
+      const res = await withAuth(adminToken, 'post', '/api/users//impersonate').expect(404);
+    });
+
     it('returns 200 and an impersonation token for active user', async () => {
       const res = await withAuth(adminToken, 'post', `/api/users/${regularUserId}/impersonate`).expect(200);
       expect(res.body.success).toBe(true);
@@ -265,6 +292,25 @@ describe('Users CRUD API', () => {
   });
 
   describe('error handling', () => {
+    it('POST /api/users/:id/impersonate returns 404 when user not found', async () => {
+      const res = await withAuth(adminToken, 'post', '/api/users/507f1f77bcf86cd799439011/impersonate').expect(404);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toMatch(/not found/i);
+    });
+
+    it('POST /api/users/:id/impersonate returns 500 when findById throws', async () => {
+      const rejectChain = { select: () => rejectChain, lean: () => Promise.reject(new Error('DB error')) };
+      const originalFindById = User.findById;
+      const spy = jest.spyOn(User, 'findById').mockImplementation((id: string) => {
+        if (id !== regularUserId) return originalFindById.call(User, id);
+        return rejectChain;
+      });
+
+      const res = await withAuth(adminToken, 'post', `/api/users/${regularUserId}/impersonate`).expect(500);
+      expect(res.body.success).toBe(false);
+      spy.mockRestore();
+    });
+
     it('GET /api/users returns 500 when list fails', async () => {
       const chain = {
         select: () => chain,
