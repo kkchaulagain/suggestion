@@ -301,7 +301,7 @@ describe('Users CRUD API', () => {
     it('POST /api/users/:id/impersonate returns 500 when findById throws', async () => {
       const rejectChain = { select: () => rejectChain, lean: () => Promise.reject(new Error('DB error')) };
       const originalFindById = User.findById;
-      const spy = jest.spyOn(User, 'findById').mockImplementation((id: string) => {
+      const spy = jest.spyOn(User, 'findById').mockImplementation((id: unknown) => {
         if (id !== regularUserId) return originalFindById.call(User, id);
         return rejectChain;
       });
