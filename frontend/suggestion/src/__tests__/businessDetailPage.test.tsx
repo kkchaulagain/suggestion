@@ -525,7 +525,7 @@ describe('BusinessDetailPage', () => {
   })
 
   test('Login as owner shows impersonation failure message', async () => {
-    mockedStartImpersonation.mockResolvedValueOnce({ success: false, error: 'Owner impersonation blocked' })
+    mockedStartImpersonation.mockResolvedValueOnce({ success: false, error: 'Owner impersonation blocked' } as { success: boolean; error?: string })
     mockGet(defaultBusiness({ owner: 'u-owner' }))
     renderDetail()
 

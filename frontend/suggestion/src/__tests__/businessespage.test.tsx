@@ -239,7 +239,7 @@ describe('BusinessesPage', () => {
   })
 
   test('Login as owner shows impersonation failure message', async () => {
-    mockedStartImpersonation.mockResolvedValueOnce({ success: false, error: 'Owner login blocked' })
+    mockedStartImpersonation.mockResolvedValueOnce({ success: false, error: 'Owner login blocked' } as { success: boolean; error?: string })
     mockedAxios.get.mockResolvedValueOnce({
       data: {
         businesses: [
