@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import axios from 'axios'
-import { Pencil, UserX, UserCheck } from 'lucide-react'
-import { useAuth } from '../../../context/AuthContext'
+import { Pencil, UserX, UserCheck, LogIn } from 'lucide-react'
+import { useAuth, type UserRole } from '../../../context/AuthContext'
 import { usersApi } from '../../../utils/apipath'
 import { Button, Card, ErrorMessage, Input, Modal, Select, Tag } from '../../../components/ui'
 import { DataTable, EmptyState, Pagination } from '../../../components/layout'
@@ -167,7 +167,24 @@ export default function UsersPage() {
   const [statusApplied, setStatusApplied] = useState('')
   const [editUser, setEditUser] = useState<UserRow | null>(null)
   const [deactivateUser, setDeactivateUser] = useState<UserRow | null>(null)
-  const { user: currentUser, getAuthHeaders } = useAuth()
+  const { user: currentUser, getAuthHeaders, startImpersonation } = useAuth()
+
+  const handleImpersonate = useCallback(
+    async (u: UserRow) => {
+      setError('')
+      const result = await startImpersonation({
+        _id: u._id,
+        name: u.name,
+        email: u.email,
+        role: u.role as UserRole,
+        isActive: u.isActive,
+      })
+      if (!result.success) {
+        setError(result.error ?? 'Failed to impersonate user.')
+      }
+    },
+    [startImpersonation],
+  )
 
   const authHeaders = useMemo(
     () => ({ withCredentials: true as const, headers: getAuthHeaders() }),
@@ -273,6 +290,18 @@ export default function UsersPage() {
               <Pencil className="h-4 w-4" />
               Edit
             </Button>
+            {row.isActive && row._id !== currentUser?._id ? (
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => handleImpersonate(row)}
+                aria-label={`Login as ${row.name}`}
+              >
+                <LogIn className="h-4 w-4" />
+                Login as
+              </Button>
+            ) : null}
             {row.isActive ? (
               row._id !== currentUser?._id ? (
                 <Button
@@ -302,7 +331,7 @@ export default function UsersPage() {
         ),
       },
     ],
-    [currentUser?._id, handleActivate],
+    [currentUser?._id, handleActivate, handleImpersonate],
   )
 
   return (
@@ -371,6 +400,18 @@ export default function UsersPage() {
                     <Pencil className="h-4 w-4" />
                     Edit
                   </Button>
+                  {row.isActive && row._id !== currentUser?._id ? (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="md"
+                      className="flex-1 min-h-[44px] justify-center"
+                      onClick={() => handleImpersonate(row)}
+                    >
+                      <LogIn className="h-4 w-4" />
+                      Login as
+                    </Button>
+                  ) : null}
                   {row.isActive && row._id !== currentUser?._id ? (
                     <Button
                       type="button"

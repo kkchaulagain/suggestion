@@ -10,6 +10,7 @@ import {
   ExternalLink,
   Globe,
   Loader2,
+  LogIn,
   MapPin,
   MessageSquare,
   Pencil,
@@ -132,7 +133,7 @@ function InfoRow({ label, value, link }: { label: string; value?: string | numbe
           <ExternalLink className="h-3 w-3 shrink-0" />
         </a>
       ) : (
-        <span className="text-sm text-slate-700 dark:text-slate-200 leading-snug break-words">{String(value)}</span>
+        <span className="text-sm text-slate-700 dark:text-slate-200 leading-snug wrap-break-word">{String(value)}</span>
       )}
     </div>
   )
@@ -142,7 +143,9 @@ function InfoRow({ label, value, link }: { label: string; value?: string | numbe
 
 export default function BusinessDetailPage() {
   const { businessId } = useParams<{ businessId: string }>()
-  const { getAuthHeaders } = useAuth()
+  const { user: currentUser, getAuthHeaders, startImpersonation } = useAuth()
+  const [impersonationError, setImpersonationError] = useState('')
+
   const authConfig = useMemo(
     () => ({ withCredentials: true, headers: getAuthHeaders() }),
     [getAuthHeaders],
@@ -215,6 +218,7 @@ export default function BusinessDetailPage() {
   const patch = async (body: Record<string, unknown>) => {
     if (!businessId) return
     setPatchError('')
+    setImpersonationError('')
     setSaving(true)
     try {
       const res = await axios.patch<BusinessDetailResponse>(
@@ -249,6 +253,15 @@ export default function BusinessDetailPage() {
       },
     })
     setEditOpen(false)
+  }
+
+  const handleImpersonateOwner = async () => {
+    if (!data?.business.owner || data.business.owner === currentUser?._id) return
+    setImpersonationError('')
+    const result = await startImpersonation({ _id: data.business.owner })
+    if (!result.success) {
+      setImpersonationError(result.error ?? 'Failed to impersonate owner.')
+    }
   }
 
   const addNote = () => {
@@ -356,17 +369,30 @@ export default function BusinessDetailPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            {patchError ? (
-              <span className="text-xs text-rose-500">{patchError}</span>
-            ) : null}
-            {saving ? (
-              <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
-            ) : null}
-            <Button variant="secondary" size="sm" onClick={() => setEditOpen(true)}>
-              <Pencil className="h-3.5 w-3.5" />
-              Edit
-            </Button>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2">
+            <div className="flex items-center gap-2">
+              {patchError ? (
+                <span className="text-xs text-rose-500">{patchError}</span>
+              ) : null}
+              {impersonationError ? (
+                <span className="text-xs text-rose-500">{impersonationError}</span>
+              ) : null}
+              {saving ? (
+                <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
+              ) : null}
+            </div>
+            <div className="flex items-center gap-2">
+              {data.business.owner && data.business.owner !== currentUser?._id ? (
+                <Button variant="secondary" size="sm" onClick={handleImpersonateOwner}>
+                  <LogIn className="h-3.5 w-3.5" />
+                  Login as owner
+                </Button>
+              ) : null}
+              <Button variant="secondary" size="sm" onClick={() => setEditOpen(true)}>
+                <Pencil className="h-3.5 w-3.5" />
+                Edit
+              </Button>
+            </div>
           </div>
         </div>
       </div>

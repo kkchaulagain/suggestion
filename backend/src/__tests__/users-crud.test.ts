@@ -10,6 +10,10 @@ describe('Users CRUD API', () => {
   let adminToken: string;
   let adminId: string;
   let regularUserId: string;
+  let businessToken: string;
+  let businessUserId: string;
+  let governmentToken: string;
+  let governmentUserId: string;
 
   beforeAll(async () => {
     await connect();
@@ -43,6 +47,28 @@ describe('Users CRUD API', () => {
       isActive: true,
     });
     regularUserId = regular._id.toString();
+
+    const businessUser = await User.create({
+      name: 'Business User',
+      email: 'business@example.com',
+      password: 'businesspass123',
+      phone: '+9779812345612',
+      role: 'business',
+      isActive: true,
+    });
+    businessUserId = businessUser._id.toString();
+    businessToken = jwt.sign({ userId: businessUserId }, JWT_SECRET);
+
+    const governmentUser = await User.create({
+      name: 'Government User',
+      email: 'government@example.com',
+      password: 'governmentpass123',
+      phone: '+9779812345613',
+      role: 'governmentservices',
+      isActive: true,
+    });
+    governmentUserId = governmentUser._id.toString();
+    governmentToken = jwt.sign({ userId: governmentUserId }, JWT_SECRET);
   });
 
   const withAuth = (token: string, method: string, path: string) =>
@@ -81,6 +107,18 @@ describe('Users CRUD API', () => {
       expect(first).toHaveProperty('email');
       expect(first).toHaveProperty('role');
       expect(first).toHaveProperty('isActive');
+    });
+
+    it('returns 200 for business user', async () => {
+      const res = await withAuth(businessToken, 'get', '/api/users').expect(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.users).toBeInstanceOf(Array);
+    });
+
+    it('returns 200 for government services user', async () => {
+      const res = await withAuth(governmentToken, 'get', '/api/users').expect(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.users).toBeInstanceOf(Array);
     });
 
     it('supports search and filters', async () => {
@@ -172,6 +210,16 @@ describe('Users CRUD API', () => {
       expect(res.body.success).toBe(false);
       expect(res.body.message).toMatch(/already in use/i);
     });
+
+    it('returns 404 when updating non-existent user', async () => {
+      const res = await request(app)
+        .put(`/api/users/507f1f77bcf86cd799439011`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ name: 'Updated' })
+        .expect(404);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toMatch(/not found/i);
+    });
   });
 
   describe('PATCH /api/users/:id/deactivate', () => {
@@ -189,6 +237,12 @@ describe('Users CRUD API', () => {
       expect(res.body.message).toMatch(/cannot deactivate your own/i);
     });
 
+    it('returns 404 when deactivating non-existent user', async () => {
+      const res = await withAuth(adminToken, 'patch', '/api/users/507f1f77bcf86cd799439011/deactivate').expect(404);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toMatch(/not found/i);
+    });
+
     it('returns 200 and sets isActive false', async () => {
       const res = await withAuth(adminToken, 'patch', `/api/users/${regularUserId}/deactivate`).expect(200);
       expect(res.body.success).toBe(true);
@@ -199,6 +253,13 @@ describe('Users CRUD API', () => {
   });
 
   describe('PATCH /api/users/:id/activate', () => {
+    it('returns 404 when activating non-existent user', async () => {
+      await request(app)
+        .patch('/api/users/507f1f77bcf86cd799439011/activate')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(404);
+    });
+
     it('returns 200 and sets isActive true', async () => {
       await User.findByIdAndUpdate(regularUserId, { isActive: false });
       const res = await withAuth(adminToken, 'patch', `/api/users/${regularUserId}/activate`).expect(200);
@@ -207,7 +268,49 @@ describe('Users CRUD API', () => {
     });
   });
 
+  describe('POST /api/users/:id/impersonate', () => {
+    it('returns 400 when id is missing or empty', async () => {
+      await withAuth(adminToken, 'post', '/api/users//impersonate').expect(404);
+    });
+
+    it('returns 200 and an impersonation token for active user', async () => {
+      const res = await withAuth(adminToken, 'post', `/api/users/${regularUserId}/impersonate`).expect(200);
+      expect(res.body.success).toBe(true);
+      expect(typeof res.body.data?.token).toBe('string');
+      const decoded = jwt.verify(res.body.data.token, JWT_SECRET) as { userId: string };
+      expect(decoded.userId).toBe(regularUserId);
+    });
+    
+    it('returns 400 when attempting to impersonate self', async () => {
+      await withAuth(adminToken, 'post', `/api/users/${adminId}/impersonate`).expect(400);
+    });
+
+    it('returns 400 when attempting to impersonate an inactive user', async () => {
+      await User.findByIdAndUpdate(regularUserId, { isActive: false });
+      await withAuth(adminToken, 'post', `/api/users/${regularUserId}/impersonate`).expect(400);
+    });
+  });
+
   describe('error handling', () => {
+    it('POST /api/users/:id/impersonate returns 404 when user not found', async () => {
+      const res = await withAuth(adminToken, 'post', '/api/users/507f1f77bcf86cd799439011/impersonate').expect(404);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toMatch(/not found/i);
+    });
+
+    it('POST /api/users/:id/impersonate returns 500 when findById throws', async () => {
+      const rejectChain = { select: () => rejectChain, lean: () => Promise.reject(new Error('DB error')) };
+      const originalFindById = User.findById;
+      const spy = jest.spyOn(User, 'findById').mockImplementation((id: unknown) => {
+        if (id !== regularUserId) return originalFindById.call(User, id);
+        return rejectChain;
+      });
+
+      const res = await withAuth(adminToken, 'post', `/api/users/${regularUserId}/impersonate`).expect(500);
+      expect(res.body.success).toBe(false);
+      spy.mockRestore();
+    });
+
     it('GET /api/users returns 500 when list fails', async () => {
       const chain = {
         select: () => chain,

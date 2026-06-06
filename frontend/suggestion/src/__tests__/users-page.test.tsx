@@ -7,11 +7,13 @@ import UsersPage from '../pages/business-dashboard/pages/UsersPage'
 
 jest.mock('axios')
 const mockedAxios = axios as jest.Mocked<typeof axios>
+const mockedStartImpersonation = jest.fn(() => Promise.resolve({ success: true }))
 
 jest.mock('../context/AuthContext', () => ({
   useAuth: () => ({
     user: { _id: 'admin-1', name: 'Admin', email: 'admin@test.com', role: 'admin' },
     getAuthHeaders: () => ({ Authorization: 'Bearer token' }),
+    startImpersonation: mockedStartImpersonation,
   }),
 }))
 
@@ -59,6 +61,8 @@ describe('UsersPage', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mockedAxios.get.mockReset()
+    mockedStartImpersonation.mockReset()
+    mockedStartImpersonation.mockImplementation(() => Promise.resolve({ success: true }))
   })
 
   it('shows loading then empty state', async () => {
@@ -385,6 +389,46 @@ describe('UsersPage', () => {
 
     await waitFor(() => {
       expect(screen.getByText(/Failed to activate user/i)).toBeInTheDocument()
+    })
+  })
+
+  it('can impersonate users from table and mobile actions and shows failures', async () => {
+    const users = [
+      { _id: 'u5', name: 'Shadow User', email: 'shadow@example.com', role: 'business', isActive: true },
+    ]
+    setupGetMock()
+    mockedStartImpersonation
+      .mockResolvedValueOnce({ success: true })
+      .mockResolvedValueOnce({ success: false, error: 'Cannot impersonate this user' } as { success: boolean; error?: string })
+
+    render(
+      <TestRouter>
+        <UsersPage />
+      </TestRouter>,
+    )
+
+    await flushInitialLoadInAct({ data: { success: true, data: { users, pagination: { total: 1 } } } })
+
+    await waitFor(() => {
+      expect(screen.getAllByText('Shadow User').length).toBeGreaterThanOrEqual(1)
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /Login as Shadow User/i }))
+    await waitFor(() => {
+      expect(mockedStartImpersonation).toHaveBeenCalledWith({
+        _id: 'u5',
+        name: 'Shadow User',
+        email: 'shadow@example.com',
+        role: 'business',
+        isActive: true,
+      })
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /^Login as$/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText(/Cannot impersonate this user/i)).toBeInTheDocument()
+      expect(mockedStartImpersonation).toHaveBeenCalledTimes(2)
     })
   })
 })

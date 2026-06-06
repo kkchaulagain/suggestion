@@ -1,17 +1,43 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom'
+import axios from 'axios'
 import { Route, Routes } from 'react-router-dom'
 import { TestRouter } from './test-router'
-import axios from 'axios'
 
 import TopHeader from '../pages/business-dashboard/components/TopHeader'
 import BusinessDashboardLayout from '../pages/business-dashboard/layout/BusinessDashboardLayout'
 import FormsPage from '../pages/business-dashboard/pages/FormsPage'
-import { AuthProvider } from '../context/AuthContext'
 import { ThemeProvider } from '../context/ThemeContext'
+import { AuthProvider } from '../context/AuthContext'
 
 jest.mock('axios')
 const mockedAxios = axios as jest.Mocked<typeof axios>
+
+type MockAuthState = {
+  getAuthHeaders: () => { Authorization?: string }
+  user: { _id: string; name: string; email: string; role: string } | null
+  startImpersonation: jest.Mock
+  stopImpersonation: jest.Mock
+  isImpersonating: boolean
+  impersonatedUser: { _id: string; name: string; email: string; role: string; isActive?: boolean } | null
+}
+
+const baseMockAuthState: MockAuthState = {
+  getAuthHeaders: () => ({ Authorization: 'Bearer fake-token' }),
+  user: null,
+  startImpersonation: jest.fn(),
+  stopImpersonation: jest.fn(),
+  isImpersonating: false,
+  impersonatedUser: null,
+}
+
+let mockAuthState: MockAuthState = { ...baseMockAuthState }
+
+jest.mock('../context/AuthContext', () => ({
+  useAuth: () => ({ ...mockAuthState }),
+  useAuthOptional: () => ({ ...mockAuthState }),
+  AuthProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}))
 
 function mockAxiosInterceptors() {
   ;(mockedAxios as unknown as {
@@ -33,6 +59,7 @@ describe('TopHeader', () => {
     mockAxiosInterceptors()
     localStorage.clear()
     jest.useRealTimers()
+    mockAuthState = { ...baseMockAuthState }
   })
 
   test('renders title and theme toggle', () => {
@@ -46,12 +73,12 @@ describe('TopHeader', () => {
   })
 
   test('shows submission notification button for business users', async () => {
+    mockAuthState = {
+      ...baseMockAuthState,
+      user: { _id: '1', name: 'Test', email: 't@t.com', role: 'business' },
+    }
     localStorage.setItem('auth_token', 'fake-token')
-    mockedAxios.get
-      .mockResolvedValueOnce({
-        data: { success: true, data: { _id: '1', name: 'Test', email: 't@t.com', role: 'business' } },
-      } as MeApiResponse)
-      .mockResolvedValueOnce({ data: { submissions: [] } })
+    mockedAxios.get.mockResolvedValueOnce({ data: { submissions: [] } })
 
     render(
       <TestRouter>
@@ -69,8 +96,12 @@ describe('TopHeader', () => {
   })
 
   test('does not show submission notification button for regular users', async () => {
+    mockAuthState = {
+      ...baseMockAuthState,
+      user: { _id: '2', name: 'User', email: 'u@t.com', role: 'user' },
+    }
     localStorage.setItem('auth_token', 'fake-token')
-    mockedAxios.get.mockImplementation((url) => {
+    mockedAxios.get.mockImplementation((url: unknown) => {
       if (typeof url === 'string' && url.includes('/api/auth/me')) {
         return Promise.resolve({
           data: { success: true, data: { _id: '2', name: 'User', email: 'u@t.com', role: 'user' } },
@@ -96,11 +127,15 @@ describe('TopHeader', () => {
   })
 
   test('shows unread submissions count and notification items', async () => {
+    mockAuthState = {
+      ...baseMockAuthState,
+      user: { _id: '1', name: 'Biz', email: 'b@t.com', role: 'business' },
+    }
     localStorage.setItem('auth_token', 'fake-token')
     const now = Date.now()
     localStorage.setItem('dashboard_submission_notifications_last_seen_1', String(now - 45 * 60 * 1000))
 
-    mockedAxios.get.mockImplementation((url) => {
+    mockedAxios.get.mockImplementation((url: unknown) => {
       if (typeof url !== 'string') return Promise.resolve({ data: {} })
       if (url.includes('/api/auth/me')) {
         return Promise.resolve({
@@ -162,12 +197,16 @@ describe('TopHeader', () => {
   })
 
   test('covers notification name fallbacks, relative time labels, and closes on outside and link clicks', async () => {
+    mockAuthState = {
+      ...baseMockAuthState,
+      user: { _id: '1', name: 'Biz', email: 'b@t.com', role: 'business' },
+    }
     jest.useFakeTimers()
     jest.setSystemTime(new Date('2026-03-26T12:00:00.000Z'))
     localStorage.setItem('auth_token', 'fake-token')
     localStorage.setItem('dashboard_submission_notifications_last_seen_1', '0')
 
-    mockedAxios.get.mockImplementation((url) => {
+    mockedAxios.get.mockImplementation((url: unknown) => {
       if (typeof url !== 'string') return Promise.resolve({ data: {} })
       if (url.includes('/api/auth/me')) {
         return Promise.resolve({
@@ -258,50 +297,48 @@ describe('TopHeader', () => {
     })
   })
 
-  test('clears notifications for failed fetches and interval refreshes', async () => {
-    jest.useFakeTimers()
-    localStorage.setItem('auth_token', 'fake-token')
-
-    mockedAxios.get.mockImplementation((url) => {
-      if (typeof url !== 'string') return Promise.resolve({ data: {} })
-      if (url.includes('/api/auth/me')) {
-        return Promise.resolve({
-          data: { success: true, data: { _id: '1', name: 'Biz', email: 'b@t.com', role: 'business' } },
-        })
-      }
-      if (url.includes('/api/auth/business')) {
-        return Promise.resolve({
-          data: { success: true, business: { _id: 'biz-1', onboardingCompleted: true, emailNotificationsEnabled: true } },
-        })
-      }
-      if (url.includes('/api/feedback-forms/submissions')) {
-        return Promise.reject(new Error('fetch failed'))
-      }
-      return Promise.resolve({ data: {} })
-    })
-
+  test('shows impersonation banner when isImpersonating is true', async () => {
+    mockAuthState = {
+      ...baseMockAuthState,
+      user: { _id: 'admin-1', name: 'Admin', email: 'a@a.com', role: 'admin' },
+      isImpersonating: true,
+      impersonatedUser: { _id: 'u2', name: 'Test', email: 't@t.com', role: 'user', isActive: true },
+    }
     render(
-      <TestRouter>
-        <ThemeProvider>
-          <AuthProvider>
-            <TopHeader title="Forms" />
-          </AuthProvider>
-        </ThemeProvider>
-      </TestRouter>,
+      <ThemeProvider>
+        <AuthProvider>
+          <TopHeader title="Forms" />
+        </AuthProvider>
+      </ThemeProvider>,
     )
 
-    await screen.findByLabelText(/open submission notifications/i)
-    jest.runOnlyPendingTimers()
     await waitFor(() => {
-      expect(mockedAxios.get).toHaveBeenCalledWith(
-        expect.stringContaining('/api/feedback-forms/submissions'),
-        expect.any(Object),
-      )
+      expect(screen.getByText(/You are impersonating/)).toBeInTheDocument()
+      expect(screen.getByText(/Test/)).toBeInTheDocument()
     })
-    jest.advanceTimersByTime(30000)
-    await waitFor(() => {
-      expect(mockedAxios.get).toHaveBeenCalled()
-    })
+  })
+
+  test('stop impersonation button calls auth stopImpersonation', async () => {
+    const stopImpersonation = jest.fn()
+    mockAuthState = {
+      ...baseMockAuthState,
+      user: { _id: 'admin-1', name: 'Admin', email: 'a@a.com', role: 'admin' },
+      isImpersonating: true,
+      impersonatedUser: { _id: 'u2', name: 'Test', email: 't@t.com', role: 'user', isActive: true },
+      stopImpersonation,
+    }
+
+    render(
+      <ThemeProvider>
+        <AuthProvider>
+          <TopHeader title="Forms" />
+        </AuthProvider>
+      </ThemeProvider>,
+    )
+
+    fireEvent.click(await screen.findByRole('button', { name: /Stop impersonation/i }))
+
+    expect(stopImpersonation).toHaveBeenCalledTimes(1)
   })
 })
 

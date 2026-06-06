@@ -10,6 +10,7 @@ jest.mock('axios')
 const mockedAxios = axios as jest.Mocked<typeof axios>
 
 const mockNavigate = jest.fn()
+const mockedStartImpersonation = jest.fn(() => Promise.resolve({ success: true }))
 
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual<Record<string, unknown>>('react-router-dom'),
@@ -19,6 +20,8 @@ jest.mock('react-router-dom', () => ({
 jest.mock('../context/AuthContext', () => ({
   useAuth: () => ({
     getAuthHeaders: () => ({ Authorization: 'Bearer fake-token' }),
+    user: { _id: 'admin1' },
+    startImpersonation: mockedStartImpersonation,
   }),
 }))
 
@@ -49,6 +52,8 @@ describe('BusinessesPage', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mockNavigate.mockClear()
+    mockedStartImpersonation.mockClear()
+    mockedStartImpersonation.mockImplementation(() => Promise.resolve({ success: true }))
     mockedAxios.get.mockReset()
     mockedAxios.post.mockReset()
     mockedAxios.put.mockReset()
@@ -202,6 +207,65 @@ describe('BusinessesPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /^View$/i }))
 
     expect(mockNavigate).toHaveBeenCalledWith('/dashboard/businesses/b1')
+  })
+
+  test('Login as owner calls impersonation for business owner', async () => {
+    mockedAxios.get.mockResolvedValueOnce({
+      data: {
+        businesses: [
+          {
+            id: 'b1',
+            owner: 'u1',
+            businessname: 'Acme Corp',
+            location: 'City Center',
+            pancardNumber: 123456789,
+            description: 'Test business',
+          },
+        ],
+      },
+    } as BusinessesApiResponse)
+
+    renderBusinessesPage()
+
+    await waitFor(() => {
+      expect(screen.getByText(/Acme Corp/i)).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /Login as owner/i }))
+
+    await waitFor(() => {
+      expect(mockedStartImpersonation).toHaveBeenCalledWith({ _id: 'u1' })
+    })
+  })
+
+  test('Login as owner shows impersonation failure message', async () => {
+    mockedStartImpersonation.mockResolvedValueOnce({ success: false, error: 'Owner login blocked' } as { success: boolean; error?: string })
+    mockedAxios.get.mockResolvedValueOnce({
+      data: {
+        businesses: [
+          {
+            id: 'b1',
+            owner: 'u1',
+            businessname: 'Acme Corp',
+            location: 'City Center',
+            pancardNumber: 123456789,
+            description: 'Test business',
+          },
+        ],
+      },
+    } as BusinessesApiResponse)
+
+    renderBusinessesPage()
+
+    await waitFor(() => {
+      expect(screen.getByText(/Acme Corp/i)).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /Login as owner/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText(/Owner login blocked/i)).toBeInTheDocument()
+    })
   })
 
   test('Refresh re-fetches businesses', async () => {

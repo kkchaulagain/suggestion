@@ -10,7 +10,7 @@ import {
 } from 'react'
 import axios from 'axios'
 import type { AxiosHeaderValue, AxiosRequestHeaders } from 'axios'
-import { loginapi, logoutApi, meapi, refreshTokenApi, businessmeapi } from '../utils/apipath'
+import { loginapi, logoutApi, meapi, refreshTokenApi, businessmeapi, usersApi } from '../utils/apipath'
 
 const AUTH_STORAGE_KEY = 'auth_token'
 
@@ -23,6 +23,14 @@ export interface User {
   role?: UserRole
   isActive?: boolean
   avatarId?: string | null
+}
+
+export type ImpersonationTarget = {
+  _id: string
+  name?: string
+  email?: string
+  role?: UserRole
+  isActive?: boolean
 }
 
 export interface Business {
@@ -60,6 +68,10 @@ interface AuthContextValue extends AuthState {
   hasRole: (...roles: UserRole[]) => boolean
   /** Refetch business (e.g. after onboarding completes). Only relevant when user has business role. */
   refetchBusiness: () => Promise<void>
+  startImpersonation: (targetUser: ImpersonationTarget) => Promise<{ success: boolean; error?: string }>
+  stopImpersonation: () => void
+  isImpersonating: boolean
+  impersonatedUser: User | null
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -155,7 +167,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setTokenState] = useState<string | null>(readStoredToken)
   const [isLoading, setIsLoading] = useState(() => !!readStoredToken())
   const [error, setErrorState] = useState<string | null>(null)
+  const [isImpersonating, setIsImpersonating] = useState(false)
+  const [impersonatedUser, setImpersonatedUser] = useState<User | null>(null)
   const tokenRef = useRef<string | null>(readStoredToken())
+  const impersonationTokenRef = useRef<string | null>(null)
+  const originalUserRef = useRef<User | null>(null)
+  const originalBusinessRef = useRef<Business | null>(null)
+  const isImpersonatingRef = useRef(false)
   const refreshPromiseRef = useRef<Promise<string | null> | null>(null)
 
   const setToken = useCallback((newToken: string | null) => {
@@ -164,8 +182,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     persistToken(newToken)
   }, [])
 
+  const getActiveAuthToken = useCallback(() => impersonationTokenRef.current ?? tokenRef.current, [])
+
+  const clearImpersonation = useCallback(() => {
+    impersonationTokenRef.current = null
+    originalUserRef.current = null
+    originalBusinessRef.current = null
+    isImpersonatingRef.current = false
+    setIsImpersonating(false)
+    setImpersonatedUser(null)
+  }, [])
+
+  const stopImpersonation = useCallback(() => {
+    const previousUser = originalUserRef.current
+    const previousBusiness = originalBusinessRef.current
+    clearImpersonation()
+    if (previousUser) {
+      setUser(previousUser)
+    }
+    if (previousBusiness) {
+      setBusiness(previousBusiness)
+    }
+  }, [clearImpersonation])
+
   const logout = useCallback(async () => {
-    const authToken = tokenRef.current
+    const authToken = getActiveAuthToken()
     try {
       await axios.post(
         logoutApi,
@@ -178,11 +219,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       // local cleanup still proceeds when the server call fails
     }
+    clearImpersonation()
     setUser(null)
     setBusiness(null)
     setToken(null)
     setErrorState(null)
-  }, [setToken])
+  }, [getActiveAuthToken, clearImpersonation, setToken])
 
   const fetchBusiness = useCallback(async (authToken: string): Promise<Business | null> => {
     try {
@@ -198,13 +240,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return null
     }
   }, [])
-
-  const refetchBusiness = useCallback(async () => {
-    const authToken = tokenRef.current
-    if (!authToken || !BUSINESS_ROLES.includes(user?.role ?? 'user')) return
-    const b = await fetchBusiness(authToken)
-    setBusiness(b)
-  }, [user?.role, fetchBusiness])
 
   const fetchUser = useCallback(
     async (authToken: string): Promise<User | null> => {
@@ -228,7 +263,87 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [],
   )
 
+  const startImpersonation = useCallback(
+    async (targetUser: ImpersonationTarget): Promise<{ success: boolean; error?: string }> => {
+      const authToken = tokenRef.current
+      if (!authToken) {
+        return { success: false, error: 'Not authenticated' }
+      }
+
+      try {
+        const response = await axios.post(
+          `${usersApi}/${targetUser._id}/impersonate`,
+          {},
+          {
+            withCredentials: true,
+            headers: { Authorization: `Bearer ${authToken}` },
+          },
+        )
+
+        const impersonationToken = response.data?.data?.token ?? response.data?.token
+        if (!impersonationToken) {
+          return { success: false, error: 'Impersonation token missing' }
+        }
+
+        originalUserRef.current = user
+        originalBusinessRef.current = business
+        impersonationTokenRef.current = impersonationToken
+        isImpersonatingRef.current = true
+        setIsImpersonating(true)
+
+        let impersonatedUserProfile: User | null = null
+        if (targetUser.name && targetUser.email && targetUser.role) {
+          impersonatedUserProfile = {
+            _id: targetUser._id,
+            name: targetUser.name,
+            email: targetUser.email,
+            role: targetUser.role,
+            isActive: targetUser.isActive !== false,
+          }
+        } else {
+          const fetched = await fetchUser(impersonationToken)
+          if (!fetched) {
+            clearImpersonation()
+            return { success: false, error: 'Failed to load impersonated user profile' }
+          }
+          impersonatedUserProfile = fetched
+        }
+
+        setImpersonatedUser(impersonatedUserProfile)
+        setUser(impersonatedUserProfile)
+
+        if (impersonatedUserProfile.role && BUSINESS_ROLES.includes(impersonatedUserProfile.role)) {
+          const b = await fetchBusiness(impersonationToken)
+          setBusiness(b)
+        } else {
+          setBusiness(null)
+        }
+
+        return { success: true }
+      } catch (err: unknown) {
+        const axiosErr = axios.isAxiosError(err) ? err : null
+        const responseData = axiosErr?.response?.data
+        const message =
+          responseData?.error ??
+          (typeof responseData?.message === 'string' ? responseData.message : null) ??
+          'Failed to start impersonation'
+        return { success: false, error: message }
+      }
+    },
+    [business, clearImpersonation, fetchBusiness, fetchUser, user],
+  )
+
+  const refetchBusiness = useCallback(async () => {
+    const authToken = tokenRef.current
+    if (!authToken || !BUSINESS_ROLES.includes(user?.role ?? 'user')) return
+    const b = await fetchBusiness(authToken)
+    setBusiness(b)
+  }, [user?.role, fetchBusiness])
+
   const refreshAccessToken = useCallback(async (): Promise<string | null> => {
+    if (isImpersonatingRef.current) {
+      return null
+    }
     if (refreshPromiseRef.current) {
       return refreshPromiseRef.current
     }
@@ -264,7 +379,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const requestInterceptor = axios.interceptors.request.use((config) => {
-      const authToken = tokenRef.current
+      const authToken = getActiveAuthToken()
       if (authToken) {
         config.headers = upsertAuthorizationHeader(config.headers, authToken)
       }
@@ -285,7 +400,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const isLoginCall = url.includes('/api/auth/login')
         const isLogoutCall = url.includes('/api/auth/logout')
 
-        if (status !== 401 || originalRequest._retry || isRefreshCall || isLoginCall || isLogoutCall) {
+        if (
+          status !== 401 ||
+          originalRequest._retry ||
+          isRefreshCall ||
+          isLoginCall ||
+          isLogoutCall ||
+          isImpersonatingRef.current
+        ) {
           return Promise.reject(err)
         }
 
@@ -305,7 +427,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       axios.interceptors.request.eject(requestInterceptor)
       axios.interceptors.response.eject(responseInterceptor)
     }
-  }, [refreshAccessToken])
+  }, [refreshAccessToken, getActiveAuthToken])
 
   // Restore session from stored token on mount (token and isLoading already set from initial state)
   useEffect(() => {
@@ -361,6 +483,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     async (
       credentials: LoginCredentials,
     ): Promise<{ success: boolean; error?: string; role?: UserRole }> => {
+      clearImpersonation()
       setErrorState(null)
       try {
         const { data } = await axios.post(loginapi, credentials, {
@@ -414,7 +537,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { success: false, error: message }
       }
     },
-    [fetchUser, setToken, fetchBusiness],
+    [clearImpersonation, fetchUser, setToken, fetchBusiness],
   )
 
   const setError = useCallback((err: string | null) => {
@@ -423,9 +546,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const getAuthHeaders = useCallback(
     () => ({
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(getActiveAuthToken() ? { Authorization: `Bearer ${getActiveAuthToken()}` } : {}),
     }),
-    [token],
+    [getActiveAuthToken],
   )
 
   const hasRole = useCallback(
@@ -447,8 +570,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       getAuthHeaders,
       hasRole,
       refetchBusiness,
+      startImpersonation,
+      stopImpersonation,
+      isImpersonating,
+      impersonatedUser,
     }),
-    [user, business, token, isLoading, error, login, logout, setError, getAuthHeaders, hasRole, refetchBusiness],
+    [
+      user,
+      business,
+      token,
+      isLoading,
+      error,
+      login,
+      logout,
+      setError,
+      getAuthHeaders,
+      hasRole,
+      refetchBusiness,
+      startImpersonation,
+      stopImpersonation,
+      isImpersonating,
+      impersonatedUser,
+    ],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
