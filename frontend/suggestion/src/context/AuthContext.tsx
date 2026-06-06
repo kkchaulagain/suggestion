@@ -537,7 +537,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { success: false, error: message }
       }
     },
-    [fetchUser, setToken, fetchBusiness],
+    [clearImpersonation, fetchUser, setToken, fetchBusiness],
   )
 
   const setError = useCallback((err: string | null) => {

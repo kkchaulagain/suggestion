@@ -523,4 +523,20 @@ describe('BusinessDetailPage', () => {
       expect(mockedStartImpersonation).toHaveBeenCalledWith({ _id: 'u-owner' })
     })
   })
+
+  test('Login as owner shows impersonation failure message', async () => {
+    mockedStartImpersonation.mockResolvedValueOnce({ success: false, error: 'Owner impersonation blocked' })
+    mockGet(defaultBusiness({ owner: 'u-owner' }))
+    renderDetail()
+
+    await waitFor(() => {
+      expect(screen.getByText(/CRM Biz/i)).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /Login as owner/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText(/Owner impersonation blocked/i)).toBeInTheDocument()
+    })
+  })
 })

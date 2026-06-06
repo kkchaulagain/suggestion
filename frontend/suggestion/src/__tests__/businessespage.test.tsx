@@ -238,6 +238,36 @@ describe('BusinessesPage', () => {
     })
   })
 
+  test('Login as owner shows impersonation failure message', async () => {
+    mockedStartImpersonation.mockResolvedValueOnce({ success: false, error: 'Owner login blocked' })
+    mockedAxios.get.mockResolvedValueOnce({
+      data: {
+        businesses: [
+          {
+            id: 'b1',
+            owner: 'u1',
+            businessname: 'Acme Corp',
+            location: 'City Center',
+            pancardNumber: 123456789,
+            description: 'Test business',
+          },
+        ],
+      },
+    } as BusinessesApiResponse)
+
+    renderBusinessesPage()
+
+    await waitFor(() => {
+      expect(screen.getByText(/Acme Corp/i)).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /Login as owner/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText(/Owner login blocked/i)).toBeInTheDocument()
+    })
+  })
+
   test('Refresh re-fetches businesses', async () => {
     mockedAxios.get
       .mockResolvedValueOnce({ data: { businesses: [] } } as BusinessesApiResponse)

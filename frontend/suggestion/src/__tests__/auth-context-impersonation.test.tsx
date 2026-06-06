@@ -20,14 +20,22 @@ function mockAxiosInterceptors() {
 }
 
 function ImpersonationTrigger({ target }: { target: { _id: string; name?: string; email?: string; role?: UserRole; isActive?: boolean } }) {
-  const { startImpersonation, isImpersonating, impersonatedUser } = useAuth()
+  const { startImpersonation, stopImpersonation, refetchBusiness, isImpersonating, impersonatedUser, user, business } = useAuth()
   return (
     <div>
       <button type="button" onClick={() => void startImpersonation(target)}>
         start
       </button>
+      <button type="button" onClick={stopImpersonation}>
+        stop
+      </button>
+      <button type="button" onClick={() => void refetchBusiness()}>
+        refetch business
+      </button>
       <span data-testid="is-impersonating">{String(isImpersonating)}</span>
       <span data-testid="impersonated-user">{impersonatedUser?.name ?? 'none'}</span>
+      <span data-testid="current-user">{user?.name ?? 'none'}</span>
+      <span data-testid="current-business">{business?.businessname ?? 'none'}</span>
     </div>
   )
 }
@@ -220,6 +228,105 @@ describe('AuthContext startImpersonation', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('is-impersonating')).toHaveTextContent('true')
+    })
+  })
+
+  it('stops impersonation and restores the original business user context', async () => {
+    localStorage.setItem('auth_token', 'stored-token')
+    mockedAxios.get
+      .mockResolvedValueOnce({
+        data: { success: true, data: { _id: '1', name: 'Business Admin', email: 'a@a.com', role: 'business' } },
+      })
+      .mockResolvedValueOnce({
+        data: {
+          success: true,
+          data: {
+            _id: 'biz-1',
+            owner: '1',
+            businessname: 'Original Biz',
+            type: 'commercial',
+            description: 'Original business',
+          },
+        },
+      })
+    mockedAxios.post.mockResolvedValueOnce({
+      data: { token: 'imp-token' },
+    })
+
+    render(
+      <AuthProvider>
+        <ImpersonationTrigger target={{ _id: 'u1', name: 'Target User', email: 't@t.com', role: 'user', isActive: true }} />
+      </AuthProvider>,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId('current-user')).toHaveTextContent('Business Admin')
+      expect(screen.getByTestId('current-business')).toHaveTextContent('Original Biz')
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'start' }))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('is-impersonating')).toHaveTextContent('true')
+      expect(screen.getByTestId('current-user')).toHaveTextContent('Target User')
+      expect(screen.getByTestId('current-business')).toHaveTextContent('none')
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'stop' }))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('is-impersonating')).toHaveTextContent('false')
+      expect(screen.getByTestId('impersonated-user')).toHaveTextContent('none')
+      expect(screen.getByTestId('current-user')).toHaveTextContent('Business Admin')
+      expect(screen.getByTestId('current-business')).toHaveTextContent('Original Biz')
+    })
+  })
+
+  it('refetches business data for business users', async () => {
+    localStorage.setItem('auth_token', 'stored-token')
+    mockedAxios.get
+      .mockResolvedValueOnce({
+        data: { success: true, data: { _id: '1', name: 'Business Admin', email: 'a@a.com', role: 'business' } },
+      })
+      .mockResolvedValueOnce({
+        data: {
+          success: true,
+          data: {
+            _id: 'biz-1',
+            owner: '1',
+            businessname: 'Original Biz',
+            type: 'commercial',
+            description: 'Original business',
+          },
+        },
+      })
+      .mockResolvedValueOnce({
+        data: {
+          success: true,
+          data: {
+            _id: 'biz-1',
+            owner: '1',
+            businessname: 'Updated Biz',
+            type: 'commercial',
+            description: 'Updated business',
+          },
+        },
+      })
+
+    render(
+      <AuthProvider>
+        <ImpersonationTrigger target={{ _id: 'u1', name: 'Target User', email: 't@t.com', role: 'user', isActive: true }} />
+      </AuthProvider>,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId('current-business')).toHaveTextContent('Original Biz')
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'refetch business' }))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('current-business')).toHaveTextContent('Updated Biz')
     })
   })
 })

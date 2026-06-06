@@ -317,6 +317,29 @@ describe('TopHeader', () => {
       expect(screen.getByText(/Test/)).toBeInTheDocument()
     })
   })
+
+  test('stop impersonation button calls auth stopImpersonation', async () => {
+    const stopImpersonation = jest.fn()
+    mockAuthState = {
+      ...baseMockAuthState,
+      user: { _id: 'admin-1', name: 'Admin', email: 'a@a.com', role: 'admin' },
+      isImpersonating: true,
+      impersonatedUser: { _id: 'u2', name: 'Test', email: 't@t.com', role: 'user', isActive: true },
+      stopImpersonation,
+    }
+
+    render(
+      <ThemeProvider>
+        <AuthProvider>
+          <TopHeader title="Forms" />
+        </AuthProvider>
+      </ThemeProvider>,
+    )
+
+    fireEvent.click(await screen.findByRole('button', { name: /Stop impersonation/i }))
+
+    expect(stopImpersonation).toHaveBeenCalledTimes(1)
+  })
 })
 
 describe('BusinessDashboardLayout and page', () => {
