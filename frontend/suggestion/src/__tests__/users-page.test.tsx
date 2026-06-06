@@ -399,7 +399,7 @@ describe('UsersPage', () => {
     setupGetMock()
     mockedStartImpersonation
       .mockResolvedValueOnce({ success: true })
-      .mockResolvedValueOnce({ success: false, error: 'Cannot impersonate this user' })
+      .mockResolvedValueOnce({ success: false, error: 'Cannot impersonate this user' } as { success: boolean; error?: string })
 
     render(
       <TestRouter>
