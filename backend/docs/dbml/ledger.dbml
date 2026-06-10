@@ -1,0 +1,103 @@
+Table users
+{
+  id int [pk,increment]
+  name varchar [not null]
+  email varchar [not null,unique]
+  password varchar [not null]
+  phone varchar(20) [unique,not null]
+  role users_role [not null ,default:'user']
+  is_active boolean [default:true]
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+}
+Enum users_role
+{
+user 
+admin
+business
+governmentservices
+}
+Table business
+{
+   id int [pk,increment]
+   business_owner_id int [ref: > users.id, unique]
+   business_name varchar [not null]
+   pancardNumber string [not null,unique]
+   created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+}
+Table customer
+{
+   id int [pk,increment]
+   customer_name varchar [not null]
+   customer_phone varchar(20) [not null,unique]
+   customer_email varchar [unique]
+   created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+}
+Table business_customer
+{
+   id int [pk,increment]
+   business_id int [ref: >business.id]
+   customer_id int [ref: >customer.id]
+   Indexes {
+ (business_id, customer_id) [unique]
+}
+}
+Table invoice
+{
+  id int [pk,increment]
+   business_id int [ref : >business.id]
+   customer_id int [ref : >customer.id]
+   total_amount decimal [not null] //total amout items bought
+   invoice_date timestamp [default: `now()`]
+   paid_amount decimal [default: 0]
+   due_amount decimal [default: 0] // due = total_amount - paid_amount
+   created_at timestamp [default: `now()`]
+   updated_at timestamp [default: `now()`]
+}
+Enum payment_type
+{
+ fully_paid 
+ due
+ refund
+}
+Table invoice_items
+{
+    id int [pk,increment]
+    invoice_id int [ref : >invoice.id]
+    item_name varchar [not null]
+    item_price decimal [not null]
+    item_quantity int [not null]
+}
+Table customer_ledger
+{
+  id int [pk,increment]
+  customer_id int [ref : >customer.id]
+  business_id int [ref : >business.id]
+  invoice_id int [ref : >invoice.id]
+  ledger_balance_type ledger_balance_type [not null]
+  amount decimal [not null] // amount of the transaction
+  payment_id int [ref: > payments.id]
+  after_balance decimal [not null] 
+  entry_date timestamp [default: `now()`]
+}
+Enum ledger_balance_type
+{
+ debit
+ credit
+}
+Table payments
+{
+  id int [pk,increment]
+  invoice_id int [ref: >invoice.id]
+  amount decimal [not null]
+  payment_date timestamp
+  payment_method  p_method [not null]
+  reference_no varchar [not null,unique]
+}
+Enum p_method
+{
+cash
+online_pay
+}
